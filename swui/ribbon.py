@@ -38,7 +38,12 @@ REFRESH_MS = 500
 _dock = None
 _timer = None
 _buttons = {}  # Knopf-ID -> QToolButton. ID = Befehl oder "Befehl#Index"
+_flyouts = []  # Ausklappknoepfe: {"button", "variants", "current", "id"}
 _skipped = []  # Befehle, die es nicht gibt
+
+# Hier merkt sich FreeCAD die zuletzt gewaehlte Variante je Ausklappknopf
+# (bleibt ueber Neustarts erhalten).
+PARAM_PATH = "User parameter:BaseApp/Preferences/Mod/SWUI/Ribbon"
 _icon_index = None  # Symbolname -> Ressourcenpfad, einmal aufgebaut
 
 
@@ -64,8 +69,16 @@ def hide():
 
 
 def button_names():
-    """Liste der Befehle, fuer die ein Knopf existiert (fuer Tests)."""
-    return list(_buttons)
+    """IDs aller Knoepfe inkl. aller Varianten in Ausklappknoepfen (fuer Tests)."""
+    names = list(_buttons)
+    for fly in _flyouts:
+        names.extend(v["key"] for v in fly["variants"])
+    return names
+
+
+def flyouts():
+    """Die Ausklappknoepfe (fuer Tests)."""
+    return list(_flyouts)
 
 
 def skipped_commands():
@@ -95,6 +108,8 @@ def _build():
     tabs = QtWidgets.QTabWidget(dock)
     tabs.setObjectName("SWUI_RibbonTabs")
     tabs.setDocumentMode(True)
+    # Wie im SOLIDWORKS-CommandManager: Reiter UNTER den Knoepfen.
+    tabs.setTabPosition(QtWidgets.QTabWidget.TabPosition.South)
 
     for tab_title, groups in ribbon_layout.TABS:
         page = _build_page(tabs, groups, available)
@@ -113,8 +128,8 @@ def _build():
             "gefunden und ausgelassen: %s\n" % (len(_skipped), ", ".join(_skipped))
         )
     FreeCAD.Console.PrintMessage(
-        "[SWUI] Ribbon aufgebaut: %d Knöpfe in %d Reitern.\n"
-        % (len(_buttons), len(ribbon_layout.TABS))
+        "[SWUI] Ribbon aufgebaut: %d Knöpfe und %d Ausklappknöpfe in %d Reitern.\n"
+        % (len(_buttons), len(_flyouts), len(ribbon_layout.TABS))
     )
     return dock
 
@@ -130,18 +145,15 @@ def _build_page(parent, groups, available):
     for group in groups:
         group_buttons = []
         for entry in group:
-            command, label = entry[0], entry[1]
-            opts = entry[2] if len(entry) > 2 else {}
-            if command not in available:
-                alt = next((c for c in opts.get("fallback", ()) if c in available), None)
-                if alt is None:
-                    _skipped.append(command)
-                    continue
-                FreeCAD.Console.PrintLog(
-                    "[SWUI] Ribbon: %s nicht vorhanden, nutze %s\n" % (command, alt)
-                )
-                command = alt
-            group_buttons.append(_make_button(page, command, label, opts))
+            if isinstance(entry, dict) and "flyout" in entry:
+                variants = [_resolve(e, available) for e in entry["flyout"]]
+                variants = [v for v in variants if v is not None]
+                if variants:
+                    group_buttons.append(_make_flyout(page, variants))
+                continue
+            resolved = _resolve(entry, available)
+            if resolved is not None:
+                group_buttons.append(_make_button(page, *resolved))
 
         # Leere Gruppen (alle Befehle fehlen) erzeugen keinen Strich.
         if not group_buttons:
@@ -154,6 +166,23 @@ def _build_page(parent, groups, available):
 
     row.addStretch(1)
     return page
+
+
+def _resolve(entry, available):
+    """
+    (Befehl, Beschriftung, opts) fuer einen Layout-Eintrag - oder None,
+    wenn weder der Befehl noch einer seiner Ersatzbefehle existiert.
+    """
+    command, label = entry[0], entry[1]
+    opts = entry[2] if len(entry) > 2 else {}
+    if command in available:
+        return command, label, opts
+    alt = next((c for c in opts.get("fallback", ()) if c in available), None)
+    if alt is None:
+        _skipped.append(command)
+        return None
+    FreeCAD.Console.PrintLog("[SWUI] Ribbon: %s nicht vorhanden, nutze %s\n" % (command, alt))
+    return alt, label, opts
 
 
 def button_id(command, opts):
@@ -184,6 +213,105 @@ def _make_button(parent, command, label, opts):
     button.clicked.connect(functools.partial(_run, command, index))
     _buttons[key] = button
     return button
+
+
+def _make_flyout(parent, variants):
+    """
+    Ausklappknopf wie in SOLIDWORKS: Klick auf das Symbol startet die
+    aktuelle Variante, der Pfeil daneben oeffnet das Menue mit allen.
+    Eine im Menue gewaehlte Variante wird ausgefuehrt UND zur neuen
+    aktuellen - auch ueber einen Neustart hinweg.
+    """
+    button = QtWidgets.QToolButton(parent)
+    button.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+    button.setIconSize(QtCore.QSize(ICON_SIZE, ICON_SIZE))
+    button.setAutoRaise(True)
+    button.setPopupMode(QtWidgets.QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+
+    fly = {"button": button, "variants": [], "current": 0}
+    menu = QtWidgets.QMenu(button)
+    for i, (command, label, opts) in enumerate(variants):
+        info = _command_info(command)
+        icon = _command_icon(command, info, opts)
+        tip = _strip_html(info.get("toolTip") or info.get("menuText") or command)
+        fly["variants"].append(
+            {
+                "command": command,
+                "label": label,
+                "index": opts.get("index"),
+                "icon": icon,
+                "tooltip": tip,
+                "key": button_id(command, opts),
+            }
+        )
+        action = menu.addAction(icon, _menu_text(label))
+        action.triggered.connect(functools.partial(_choose_variant, fly, i))
+    fly["id"] = fly["variants"][0]["key"]
+    button.setMenu(menu)
+    button.clicked.connect(functools.partial(_run_flyout, fly))
+
+    _set_variant(fly, _remembered_variant(fly))
+    _flyouts.append(fly)
+    return button
+
+
+def _menu_text(label):
+    """
+    Knopf-Beschriftung einzeilig fuers Menue:
+      'Mittelpunkt-\\nrechteck' -> 'Mittelpunktrechteck'  (Silbentrennung)
+      '3-Punkt-\\nKreis'        -> '3-Punkt-Kreis'        (echter Bindestrich)
+      'Abgerundetes\\nRechteck' -> 'Abgerundetes Rechteck'
+    """
+    import re
+
+    label = re.sub(r"-\n(?=[a-zäöüß])", "", label)
+    label = label.replace("-\n", "-")
+    return label.replace("\n", " ")
+
+
+def _set_variant(fly, i):
+    """Macht Variante i zur angezeigten und per Klick ausgefuehrten."""
+    v = fly["variants"][i]
+    fly["current"] = i
+    button = fly["button"]
+    button.setObjectName("SWUI_Fly_" + v["key"].replace("#", "_"))
+    button.setText(v["label"])
+    button.setIcon(v["icon"])
+    button.setToolTip(v["tooltip"] + "\n(Pfeil rechts: weitere Varianten)")
+
+
+def _choose_variant(fly, i, *_args):
+    """Variante aus dem Menue gewaehlt: merken und ausfuehren."""
+    _set_variant(fly, i)
+    _remember_variant(fly)
+    v = fly["variants"][i]
+    _run(v["command"], v["index"])
+
+
+def _run_flyout(fly, *_args):
+    """Klick auf den Ausklappknopf selbst: aktuelle Variante ausfuehren."""
+    v = fly["variants"][fly["current"]]
+    _run(v["command"], v["index"])
+
+
+def _remembered_variant(fly):
+    """Index der zuletzt gewaehlten Variante, sonst 0."""
+    try:
+        saved = FreeCAD.ParamGet(PARAM_PATH).GetString(fly["id"], "")
+    except Exception:
+        return 0
+    for i, v in enumerate(fly["variants"]):
+        if v["key"] == saved:
+            return i
+    return 0
+
+
+def _remember_variant(fly):
+    try:
+        key = fly["variants"][fly["current"]]["key"]
+        FreeCAD.ParamGet(PARAM_PATH).SetString(fly["id"], key)
+    except Exception:
+        pass
 
 
 def _make_separator(parent):
@@ -328,12 +456,17 @@ def _run(command, index=None, *_args):
 def _refresh_enabled():
     """Fragt fuer jeden Knopf bei FreeCAD nach, ob er gerade anwendbar ist."""
     for key, button in _buttons.items():
-        command = key.split("#", 1)[0]
-        try:
-            active = bool(FreeCADGui.Command.get(command).isActive())
-        except Exception:
-            active = True  # im Zweifel anklickbar lassen
-        button.setEnabled(active)
+        button.setEnabled(_is_active(key.split("#", 1)[0]))
+    for fly in _flyouts:
+        v = fly["variants"][fly["current"]]
+        fly["button"].setEnabled(_is_active(v["command"]))
+
+
+def _is_active(command):
+    try:
+        return bool(FreeCADGui.Command.get(command).isActive())
+    except Exception:
+        return True  # im Zweifel anklickbar lassen
 
 
 def _strip_html(text):

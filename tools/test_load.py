@@ -35,7 +35,12 @@ log = []
 
 # Diese Befehle gibt es in der Attrappe absichtlich nicht - prueft,
 # dass das Ribbon fehlende Befehle sauber auslaesst.
-MISSING = {"Sketcher_Offset", "PartDesign_SubtractiveLoft", "Sketcher_Projection"}
+MISSING = {
+    "Sketcher_Offset",
+    "PartDesign_SubtractiveLoft",
+    "Sketcher_Projection",  # prueft den Ersatzbefehl
+    "Sketcher_CreateArcSlot",  # prueft Ausklappknopf mit fehlender Variante
+}
 
 # Ersatzbefehle, die es in der Attrappe gibt (fuer "fallback" im Layout).
 EXTRA_AVAILABLE = {"Sketcher_External"}
@@ -144,6 +149,9 @@ class _FakeMainWindow:
         ]
         self.raised = []
         self.tabified = []
+        # So tut, als haette FreeCAD bereits ein eigenes Stylesheet.
+        self.ORIGINAL_QSS = "/* FreeCAD-Theme */\nQWidget { color: #ff0000; }"
+        self.qss = self.ORIGINAL_QSS
         self.restore_count = 0
         self.filters = 0
         self.dialog_open = False
@@ -187,6 +195,12 @@ class _FakeMainWindow:
     def isVisible(self):
         return True
 
+    def styleSheet(self):
+        return self.qss
+
+    def setStyleSheet(self, qss):
+        self.qss = qss
+
     def visible_bars(self):
         return sorted(b.name for b in self.toolbars if b.visible)
 
@@ -217,6 +231,22 @@ def _make_stubs():
     freecad.Console = _Console
     freecad.Version = lambda: ["1", "1", "4", "FreeCAD-Attrappe"]
     freecad.getUserAppDataDir = lambda: "/fake/appdata/"
+
+    # FreeCADs Einstellungsspeicher (ParamGet) als einfaches dict.
+    params = {}
+
+    class _Group:
+        def __init__(self, path):
+            self.d = params.setdefault(path, {})
+
+        def GetString(self, key, default=""):
+            return self.d.get(key, default)
+
+        def SetString(self, key, value):
+            self.d[key] = value
+
+    freecad.ParamGet = _Group
+    freecad._params = params
 
     gui = types.ModuleType("FreeCADGui")
     gui.Workbench = type("Workbench", (), {})
@@ -282,6 +312,34 @@ def _clear_addon_modules():
     """swui-Module zwischen den Durchlaeufen entfernen."""
     for name in [n for n in sys.modules if n == "swui" or n.startswith("swui.")]:
         del sys.modules[name]
+
+
+def _check_qss(qss):
+    """Grobe Syntaxpruefung fuer Qt-Stylesheets."""
+    import re
+
+    if "%(" in qss:
+        return False, "nicht ersetzter Platzhalter"
+    depth = 0
+    for ch in qss:
+        depth += ch == "{"
+        depth -= ch == "}"
+        if depth < 0 or depth > 1:
+            return False, "Klammern verschachtelt/unausgeglichen"
+    if depth:
+        return False, "Klammern unausgeglichen"
+    body = re.sub(r"/\*.*?\*/", "", qss, flags=re.S)
+    for block in re.findall(r"\{([^}]*)\}", body):
+        for decl in [d.strip() for d in block.split(";") if d.strip()]:
+            if ":" not in decl:
+                return False, "Deklaration ohne Doppelpunkt: %r" % decl
+            key, val = [x.strip() for x in decl.split(":", 1)]
+            if not key or not val:
+                return False, "leere Eigenschaft: %r" % decl
+            for col in re.findall(r"#[0-9a-fA-F]+\b", val):
+                if len(col) not in (4, 7, 9):
+                    return False, "Farbe ungueltig: %s" % col
+    return True, ""
 
 
 # --- Ein Durchlauf ---------------------------------------------------
@@ -406,6 +464,36 @@ def run(split_namespace):
     ribbon._refresh_enabled()
     print("  Aktiv    : Status-Abfrage OK")
 
+    # --- Ausklappknoepfe ----------------------------------------------
+    flys = {f["id"]: f for f in ribbon.flyouts()}
+    rect = flys.get("Sketcher_CreateRectangle")
+    slot = flys.get("Sketcher_CreateSlot")
+    if rect is None or slot is None:
+        print("  FEHLER: Ausklappknöpfe fehlen", sorted(flys))
+        return False
+    if [v["key"] for v in slot["variants"]] != ["Sketcher_CreateSlot"]:
+        print("  FEHLER: fehlende Variante nicht ausgelassen", slot["variants"])
+        return False
+    ribbon._run_flyout(rect, False)
+    if ran[-1:] != [("Sketcher_CreateRectangle",)]:
+        print("  FEHLER: Hauptklick führt nicht die Standard-Variante aus", ran[-1:])
+        return False
+    ribbon._choose_variant(rect, 1, False)
+    if ran[-1:] != [("Sketcher_CreateRectangle_Center",)] or rect["current"] != 1:
+        print("  FEHLER: Menüauswahl nicht ausgeführt/übernommen", ran[-1:])
+        return False
+    ribbon._run_flyout(rect, False)
+    if ran[-1:] != [("Sketcher_CreateRectangle_Center",)]:
+        print("  FEHLER: Knopf hat sich die Variante nicht gemerkt")
+        return False
+    if ribbon._remembered_variant(rect) != 1:
+        print("  FEHLER: Variante nicht für den nächsten Start gespeichert")
+        return False
+    if ribbon._menu_text("3-Punkt-\nKreis") != "3-Punkt-Kreis":
+        print("  FEHLER: Menütext", ribbon._menu_text("3-Punkt-\nKreis"))
+        return False
+    print("  Ausklapp : %d Knöpfe; Auswahl wird ausgeführt, gemerkt und gespeichert" % len(flys))
+
     # Zweites Activated darf nicht neu bauen (sonst doppelte Knoepfe).
     wb.Activated()
     if len(ribbon.button_names()) != len(built):
@@ -440,6 +528,17 @@ def run(split_namespace):
         return False
     print("  Layout   : Dialog auf -> Aufgaben vorne, Dialog zu -> Baum vorne")
 
+    # --- Farbschema ---------------------------------------------------
+    if not mw.qss.startswith(mw.ORIGINAL_QSS) or "SWUI_RibbonTabs" not in mw.qss:
+        print("  FEHLER: Farbschema nicht angehängt")
+        return False
+    theme = sys.modules["swui.theme"]
+    ok, why = _check_qss(theme.build_qss())
+    if not ok:
+        print("  FEHLER: Stylesheet fehlerhaft:", why)
+        return False
+    print("  Farben   : Stylesheet angehängt, Syntax OK (%d Regeln)" % theme.build_qss().count("{"))
+
     log.clear()
     wb.Deactivated()
     if any(level == "ERR" for level, _ in log):
@@ -453,13 +552,19 @@ def run(split_namespace):
     if task.area != "right":
         print("  FEHLER: Aufgaben-Panel nicht an alten Platz zurück:", task.area)
         return False
-    print("  Verlassen: alle Leisten und Panels wiederhergestellt")
+    if mw.qss != mw.ORIGINAL_QSS:
+        print("  FEHLER: Stylesheet nach Verlassen nicht exakt zurück")
+        return False
+    print("  Verlassen: alle Leisten, Panels und Farben wiederhergestellt")
 
     # Beenden von FreeCAD im SOLIDWORKS-Layout
     wb.Activated()
     layout._on_close()
     if mw.visible_bars() != all_bars:
         print("  FEHLER: beim Schliessen nicht wiederhergestellt", mw.visible_bars())
+        return False
+    if mw.qss != mw.ORIGINAL_QSS:
+        print("  FEHLER: Stylesheet beim Schließen nicht zurück")
         return False
     print("  Schließen: Originalzustand vor dem Speichern hergestellt")
 
@@ -468,7 +573,10 @@ def run(split_namespace):
     if mw.visible_bars() != keep:
         print("  FEHLER: nach abgebrochenem Schließen kein Layout", mw.visible_bars())
         return False
-    print("  Abbruch  : Layout wieder angewendet")
+    if mw.qss.count("SWUI-THEME-BEGIN") != 1:
+        print("  FEHLER: Farbschema nach Abbruch nicht genau einmal aktiv")
+        return False
+    print("  Abbruch  : Layout und Farben wieder angewendet")
 
     if mw.filters != 1:
         print("  FEHLER: Ereignisfilter %d-mal installiert" % mw.filters)

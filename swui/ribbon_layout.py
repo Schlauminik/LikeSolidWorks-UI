@@ -21,6 +21,13 @@ nur diese Datei. Aufbau:
       "fallback": Liste von Ersatzbefehlen, falls der erste in der
                installierten FreeCAD-Version nicht existiert
 
+Statt eines Tupels kann ein Gruppeneintrag auch ein Ausklappmenue sein:
+
+    {"flyout": [ (Befehl, Beschriftung[, opts]), ... ]}
+
+Ein Knopf mit Pfeil; die Varianten liegen im Menue. Der Knopf zeigt
+und startet immer die zuletzt gewaehlte Variante - wie in SOLIDWORKS.
+
 Befehle, die es in der installierten FreeCAD-Version nicht gibt,
 werden beim Aufbau uebersprungen und im Ausgabefenster gemeldet.
 Die Beschriftungen orientieren sich an der deutschen SOLIDWORKS-
@@ -79,12 +86,38 @@ SKIZZE = (
             ("Sketcher_Dimension", "Intelligente\nBemaßung"),
         ],
         [
-            ("Sketcher_CreateLine", "Linie"),
-            ("Sketcher_CreateRectangle", "Eck-\nrechteck"),
-            ("Sketcher_CreateCircle", "Kreis"),
-            ("Sketcher_CreateArc", "Mittelpunkt-\nbogen"),
-            ("Sketcher_CreateSlot", "Langloch"),
+            # Ausklappmenues wie in SOLIDWORKS: ein Knopf, Varianten
+            # unter dem Pfeil. Der Knopf merkt sich die zuletzt
+            # gewaehlte Variante. Die erste verfuegbare ist Standard.
+            {"flyout": [
+                # Polyline = Kette wie die SW-Linie: Klick fuer Klick
+                # weiter, Esc beendet. Taste M wechselt waehrenddessen
+                # zwischen Linie und Tangentialbogen.
+                ("Sketcher_CreatePolyline", "Linie"),
+                ("Sketcher_CreateLine", "Einzel-\nlinie"),
+            ]},
+            {"flyout": [
+                ("Sketcher_CreateRectangle", "Eck-\nrechteck"),
+                ("Sketcher_CreateRectangle_Center", "Mittelpunkt-\nrechteck"),
+                ("Sketcher_CreateOblong", "Abgerundetes\nRechteck"),
+            ]},
+            {"flyout": [
+                ("Sketcher_CreateCircle", "Kreis"),
+                ("Sketcher_Create3PointCircle", "3-Punkt-\nKreis"),
+            ]},
+            {"flyout": [
+                ("Sketcher_CreateArc", "Mittelpunkt-\nbogen"),
+                ("Sketcher_Create3PointArc", "3-Punkt-\nBogen"),
+            ]},
+            {"flyout": [
+                ("Sketcher_CreateSlot", "Langloch"),
+                ("Sketcher_CreateArcSlot", "Bogen-\nlangloch"),
+            ]},
             ("Sketcher_CreateRegularPolygon", "Polygon"),
+            {"flyout": [
+                ("Sketcher_CreateEllipseByCenter", "Ellipse"),
+                ("Sketcher_CreateArcOfEllipse", "Teil-\nellipse"),
+            ]},
             ("Sketcher_CreateBSpline", "Spline"),
             ("Sketcher_CreatePoint", "Punkt"),
         ],
@@ -96,11 +129,20 @@ SKIZZE = (
             ("Sketcher_Intersection", "Schnitt-\nkurve"),
         ],
         [
-            ("Sketcher_CreateFillet", "Skizzen-\nverrundung"),
+            {"flyout": [
+                ("Sketcher_CreateFillet", "Skizzen-\nverrundung"),
+                ("Sketcher_CreateChamfer", "Skizzen-\nfase"),
+            ]},
             ("Sketcher_Trimming", "Trimmen"),
             ("Sketcher_Extend", "Verlängern"),
+            ("Sketcher_Split", "Teilen"),
             ("Sketcher_Offset", "Versetzen"),
             ("Sketcher_Symmetry", "Spiegeln"),
+            {"flyout": [
+                ("Sketcher_Translate", "Verschieben"),
+                ("Sketcher_Rotate", "Drehen"),
+                ("Sketcher_Scale", "Skalieren"),
+            ]},
         ],
         [
             ("Sketcher_ToggleConstruction", "Konstruktions-\ngeometrie"),

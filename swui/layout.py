@@ -68,6 +68,7 @@ def enter():
 
     hidden, kept = _hide_toolbars(mw)
     _move_tasks_left(mw)
+    _apply_theme(mw)
     _install_close_guard(mw)
 
     if _timer is None:
@@ -95,10 +96,30 @@ def leave():
         _timer.stop()
 
     mw = FreeCADGui.getMainWindow()
+    _remove_theme(mw)
     if _saved_state is not None:
         mw.restoreState(_saved_state)
 
     _active = False
+
+
+def _apply_theme(mw):
+    """Farbschema einschalten - Fehler duerfen das Layout nicht stoppen."""
+    try:
+        from swui import theme
+
+        theme.apply(mw)
+    except Exception as exc:
+        FreeCAD.Console.PrintWarning("[SWUI] Farbschema nicht anwendbar: %s\n" % exc)
+
+
+def _remove_theme(mw):
+    try:
+        from swui import theme
+
+        theme.remove(mw)
+    except Exception as exc:
+        FreeCAD.Console.PrintWarning("[SWUI] Farbschema nicht entfernbar: %s\n" % exc)
 
 
 def is_active():

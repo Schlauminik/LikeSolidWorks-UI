@@ -133,8 +133,14 @@ def _build_page(parent, groups, available):
             command, label = entry[0], entry[1]
             opts = entry[2] if len(entry) > 2 else {}
             if command not in available:
-                _skipped.append(command)
-                continue
+                alt = next((c for c in opts.get("fallback", ()) if c in available), None)
+                if alt is None:
+                    _skipped.append(command)
+                    continue
+                FreeCAD.Console.PrintLog(
+                    "[SWUI] Ribbon: %s nicht vorhanden, nutze %s\n" % (command, alt)
+                )
+                command = alt
             group_buttons.append(_make_button(page, command, label, opts))
 
         # Leere Gruppen (alle Befehle fehlen) erzeugen keinen Strich.

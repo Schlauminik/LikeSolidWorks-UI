@@ -35,7 +35,10 @@ log = []
 
 # Diese Befehle gibt es in der Attrappe absichtlich nicht - prueft,
 # dass das Ribbon fehlende Befehle sauber auslaesst.
-MISSING = {"Sketcher_Offset", "PartDesign_SubtractiveLoft"}
+MISSING = {"Sketcher_Offset", "PartDesign_SubtractiveLoft", "Sketcher_Projection"}
+
+# Ersatzbefehle, die es in der Attrappe gibt (fuer "fallback" im Layout).
+EXTRA_AVAILABLE = {"Sketcher_External"}
 
 
 def _all_layout_commands():
@@ -65,8 +68,30 @@ def _all_layout_commands():
                     opts = ast.literal_eval(node.elts[2])
                     if opts.get("index") is not None:
                         name = "%s#%d" % (name, opts["index"])
+                    if opts.get("fallback"):
+                        _FALLBACKS[name] = list(opts["fallback"])
                 names.append(name)
     return names
+
+
+_FALLBACKS = {}
+
+
+def _expected_buttons():
+    """Welche Knopf-IDs gebaut und welche Befehle ausgelassen werden muessen."""
+    available = ({c.split("#")[0] for c in _all_layout_commands()} | EXTRA_AVAILABLE) - MISSING
+    built, skipped = [], []
+    for cid in _all_layout_commands():
+        cmd = cid.split("#")[0]
+        if cmd in available:
+            built.append(cid)
+            continue
+        alt = next((f for f in _FALLBACKS.get(cid, []) if f in available), None)
+        if alt:
+            built.append(alt)
+        else:
+            skipped.append(cmd)
+    return built, skipped
 
 
 # --- Attrappen -------------------------------------------------------
@@ -208,7 +233,7 @@ def _make_stubs():
     gui.Control = types.SimpleNamespace(activeDialog=lambda: mw.dialog_open)
     gui.activeWorkbench = lambda: types.SimpleNamespace(name=lambda: "SolidWorksUIWorkbench")
     gui.listCommands = lambda: sorted(
-        {c.split("#")[0] for c in _all_layout_commands()} - MISSING
+        ({c.split("#")[0] for c in _all_layout_commands()} | EXTRA_AVAILABLE) - MISSING
     )
     ran = []
     gui.runCommand = lambda name, *idx: ran.append((name,) + idx)
@@ -353,7 +378,7 @@ def run(split_namespace):
         print("  FEHLER: Activated() hat swui.ribbon nicht geladen")
         return False
 
-    expected = [c for c in _all_layout_commands() if c.split("#")[0] not in MISSING]
+    expected, expected_skipped = _expected_buttons()
     built = ribbon.button_names()
     skipped = ribbon.skipped_commands()
     print("  Ribbon   : %d Knöpfe, %d ausgelassen %s" % (len(built), len(skipped), sorted(skipped)))
@@ -361,7 +386,7 @@ def run(split_namespace):
     if sorted(built) != sorted(expected):
         print("  FEHLER: Knöpfe stimmen nicht mit ribbon_layout.py überein")
         return False
-    if sorted(skipped) != sorted(MISSING):
+    if sorted(skipped) != sorted(expected_skipped):
         print("  FEHLER: Fehlende Befehle wurden nicht korrekt ausgelassen")
         return False
 

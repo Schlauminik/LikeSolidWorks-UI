@@ -18,6 +18,8 @@ nur diese Datei. Aufbau:
 - Optional drittes Element, ein dict:
       "index": Unterpunkt eines Gruppenbefehls (z.B. Std_DrawStyle)
       "icon":  Symbolname, falls der Befehl selbst keinen liefert
+      "fallback": Liste von Ersatzbefehlen, falls der erste in der
+               installierten FreeCAD-Version nicht existiert
 
 Befehle, die es in der installierten FreeCAD-Version nicht gibt,
 werden beim Aufbau uebersprungen und im Ausgabefenster gemeldet.
@@ -85,6 +87,13 @@ SKIZZE = (
             ("Sketcher_CreateRegularPolygon", "Polygon"),
             ("Sketcher_CreateBSpline", "Spline"),
             ("Sketcher_CreatePoint", "Punkt"),
+        ],
+        [
+            # "Elemente uebernehmen" = Modellkanten in die Skizze
+            # projizieren. Name in FreeCAD 1.x: Sketcher_Projection,
+            # in aelteren Versionen: Sketcher_External.
+            ("Sketcher_Projection", "Elemente\nübernehmen", {"fallback": ["Sketcher_External"]}),
+            ("Sketcher_Intersection", "Schnitt-\nkurve"),
         ],
         [
             ("Sketcher_CreateFillet", "Skizzen-\nverrundung"),

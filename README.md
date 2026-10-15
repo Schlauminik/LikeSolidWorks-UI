@@ -9,8 +9,9 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 |---|---|---|
 | 1 | Projektgerüst, Workbench-Registrierung, Diagnose | **fertig** |
 | 2a | Ribbon-Gerüst: Reiter Features und Skizze | **fertig** |
-| 2b | Dunkles Farbschema im SW-Look | offen |
-| 2c | Ausklappmenüs, kontextabhängige Reiter | offen |
+| 2b | SW-Layout: Leisten aus, Aufgaben links, Reiter Ansicht/Evaluieren | **fertig** |
+| 2c | Dunkles Farbschema im SW-Look | offen |
+| 2d | Schwebende Ansichtsleiste, kontextabhängige Reiter | offen |
 | 3 | Feature-Manager-Panel | offen |
 | 4 | Skizzier-Grundgerüst (Hybrid: FreeCAD-Sketcher + SW-Optik) | offen |
 | 5 | Weitere Skizzen-Elemente | offen |

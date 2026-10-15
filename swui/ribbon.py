@@ -37,8 +37,9 @@ REFRESH_MS = 500
 # ein- und ausgeblendet.
 _dock = None
 _timer = None
-_buttons = {}  # Befehlsname -> QToolButton
+_buttons = {}  # Knopf-ID -> QToolButton. ID = Befehl oder "Befehl#Index"
 _skipped = []  # Befehle, die es nicht gibt
+_icon_index = None  # Symbolname -> Ressourcenpfad, einmal aufgebaut
 
 
 # --- Oeffentliche Schnittstelle --------------------------------------
@@ -128,11 +129,13 @@ def _build_page(parent, groups, available):
     first_group = True
     for group in groups:
         group_buttons = []
-        for command, label in group:
+        for entry in group:
+            command, label = entry[0], entry[1]
+            opts = entry[2] if len(entry) > 2 else {}
             if command not in available:
                 _skipped.append(command)
                 continue
-            group_buttons.append(_make_button(page, command, label))
+            group_buttons.append(_make_button(page, command, label, opts))
 
         # Leere Gruppen (alle Befehle fehlen) erzeugen keinen Strich.
         if not group_buttons:
@@ -147,22 +150,33 @@ def _build_page(parent, groups, available):
     return page
 
 
-def _make_button(parent, command, label):
+def button_id(command, opts):
+    """Eindeutige ID eines Knopfes - Gruppenbefehle haben mehrere."""
+    index = opts.get("index")
+    return command if index is None else "%s#%d" % (command, index)
+
+
+def _make_button(parent, command, label, opts):
     """Ein grosser Knopf: Symbol oben, Text darunter."""
+    key = button_id(command, opts)
+    index = opts.get("index")
+
     button = QtWidgets.QToolButton(parent)
-    button.setObjectName("SWUI_Btn_" + command)
+    button.setObjectName("SWUI_Btn_" + key.replace("#", "_"))
     button.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
     button.setIconSize(QtCore.QSize(ICON_SIZE, ICON_SIZE))
     button.setAutoRaise(True)
     button.setText(label)
 
     info = _command_info(command)
-    button.setIcon(_command_icon(command, info))
+    button.setIcon(_command_icon(command, info, opts))
     tooltip = info.get("toolTip") or info.get("menuText") or command
+    if index is not None:
+        tooltip = label.replace("\n", " ")
     button.setToolTip(_strip_html(tooltip))
 
-    button.clicked.connect(functools.partial(_run, command))
-    _buttons[command] = button
+    button.clicked.connect(functools.partial(_run, command, index))
+    _buttons[key] = button
     return button
 
 
@@ -202,36 +216,103 @@ def _command_info(command):
         return {}
 
 
-def _command_icon(command, info):
+def _command_icon(command, info, opts):
     """
-    Symbol eines Befehls.
+    Symbol eines Befehls. Vier Wege, der erste Treffer gewinnt:
 
-    Erst ueber die QAction, die FreeCAD fuer den Befehl angelegt hat -
-    dann stimmt das Symbol garantiert. Sonst ueber den Pixmap-Namen aus
-    FreeCADs eingebauten Qt-Ressourcen.
+    1. Die QAction, die FreeCAD fuer den Befehl angelegt hat (bei
+       Gruppenbefehlen die des Unterpunkts). Existiert nur, wenn der
+       Befehl schon einmal in einer Leiste/einem Menue stand.
+    2. Suche nach Dateinamen in FreeCADs eingebauten Ressourcen -
+       REKURSIV. Noetig, weil z.B. die Sketcher-Symbole in
+       Unterordnern liegen (:/icons/geometry/...), die PartDesign-
+       Symbole aber direkt unter :/icons/.
+    3. FreeCADGui.getIcon() - zuletzt, weil es bei unbekannten Namen
+       ein rotes Platzhalter-Kreuz statt "nichts" liefern kann.
     """
+    index = opts.get("index")
     try:
-        actions = FreeCADGui.Command.get(command).getAction()
-        if actions:
-            icon = actions[0].icon()
+        actions = FreeCADGui.Command.get(command).getAction() or []
+        if index is not None and len(actions) > index:
+            candidates = [actions[index]]
+        elif index is None and actions:
+            candidates = [actions[0]]
+        else:
+            candidates = []
+        for action in candidates:
+            icon = action.icon()
             if not icon.isNull():
                 return icon
     except Exception:
         pass
 
-    pixmap = info.get("pixmap") or ""
-    if pixmap:
-        for candidate in (":/icons/%s.svg" % pixmap, ":/icons/%s" % pixmap, pixmap):
-            icon = QtGui.QIcon(candidate)
+    names = [n for n in (opts.get("icon"), info.get("pixmap")) if n]
+
+    index_map = _resource_icons()
+    for name in names:
+        path = index_map.get(name) or index_map.get(name.lower())
+        if path:
+            icon = QtGui.QIcon(path)
             if not icon.isNull():
                 return icon
+
+    get_icon = getattr(FreeCADGui, "getIcon", None)
+    if get_icon is not None:
+        for name in names:
+            try:
+                icon = get_icon(name)
+                if icon is not None and not icon.isNull():
+                    return QtGui.QIcon(icon)
+            except Exception:
+                continue
     return QtGui.QIcon()
 
 
-def _run(command, *_args):
-    """Knopfdruck: FreeCAD-Befehl ausfuehren. *_args faengt 'checked' ab."""
+def _resource_icons():
+    """
+    Verzeichnis aller Symbole in FreeCADs Qt-Ressourcen.
+
+    Schluessel: Dateiname ohne Endung (zusaetzlich kleingeschrieben).
+    Wird einmal aufgebaut. Begrenzt auf MAX Eintraege, damit eine
+    fehlerhafte Umgebung nie in eine Endlosschleife laeuft.
+    """
+    global _icon_index
+    if _icon_index is not None:
+        return _icon_index
+
+    _icon_index = {}
+    max_entries = 50000
     try:
-        FreeCADGui.runCommand(command)
+        flags = QtCore.QDirIterator.IteratorFlag.Subdirectories
+        it = QtCore.QDirIterator(":/icons", flags)
+        count = 0
+        while it.hasNext() and count < max_entries:
+            count += 1
+            path = it.next()
+            if not isinstance(path, str):
+                break
+            base = path.rsplit("/", 1)[-1]
+            stem = base.rsplit(".", 1)[0]
+            if stem and stem not in _icon_index:
+                _icon_index[stem] = path
+                _icon_index.setdefault(stem.lower(), path)
+    except Exception as exc:
+        FreeCAD.Console.PrintLog("[SWUI] Symbolsuche nicht moeglich: %s\n" % exc)
+    return _icon_index
+
+
+def _run(command, index=None, *_args):
+    """
+    Knopfdruck: FreeCAD-Befehl ausfuehren.
+
+    index: Unterpunkt eines Gruppenbefehls oder None.
+    *_args faengt das 'checked'-Argument von Qt ab.
+    """
+    try:
+        if index is None:
+            FreeCADGui.runCommand(command)
+        else:
+            FreeCADGui.runCommand(command, index)
     except Exception as exc:
         FreeCAD.Console.PrintError(
             "[SWUI] Befehl %s fehlgeschlagen: %s\n" % (command, exc)
@@ -240,7 +321,8 @@ def _run(command, *_args):
 
 def _refresh_enabled():
     """Fragt fuer jeden Knopf bei FreeCAD nach, ob er gerade anwendbar ist."""
-    for command, button in _buttons.items():
+    for key, button in _buttons.items():
+        command = key.split("#", 1)[0]
         try:
             active = bool(FreeCADGui.Command.get(command).isActive())
         except Exception:

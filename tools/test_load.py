@@ -48,18 +48,122 @@ def _all_layout_commands():
     tree = ast.parse(open(path, encoding="utf-8").read())
     names = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.Tuple) and len(node.elts) == 2:
-            first = node.elts[0]
-            if isinstance(first, ast.Constant) and isinstance(first.value, str):
-                if "_" in first.value and first.value.split("_")[0] in (
-                    "PartDesign",
-                    "Sketcher",
-                ):
-                    names.append(first.value)
+        if isinstance(node, ast.Tuple) and len(node.elts) in (2, 3):
+            first, second = node.elts[0], node.elts[1]
+            if not (isinstance(first, ast.Constant) and isinstance(first.value, str)):
+                continue
+            if not (isinstance(second, ast.Constant) and isinstance(second.value, str)):
+                continue
+            if "_" in first.value and first.value.split("_")[0] in (
+                "PartDesign",
+                "Sketcher",
+                "Std",
+                "Part",
+            ):
+                name = first.value
+                if len(node.elts) == 3:
+                    opts = ast.literal_eval(node.elts[2])
+                    if opts.get("index") is not None:
+                        name = "%s#%d" % (name, opts["index"])
+                names.append(name)
     return names
 
 
 # --- Attrappen -------------------------------------------------------
+
+
+class _FakeBar:
+    """Toolbar oder Dock: Name, Sichtbarkeit, Bereich."""
+
+    def __init__(self, name, area="top", visible=True):
+        self.name = name
+        self.area = area
+        self.visible = visible
+
+    def objectName(self):
+        return self.name
+
+    def isVisible(self):
+        return self.visible
+
+    def hide(self):
+        self.visible = False
+
+    def show(self):
+        self.visible = True
+
+    def raise_(self):
+        _FakeMainWindow.current.raised.append(self.name)
+
+
+class _FakeMainWindow:
+    """Hauptfenster mit FreeCAD-typischen Leisten und Panels."""
+
+    current = None
+
+    def __init__(self):
+        _FakeMainWindow.current = self
+        self.toolbars = [
+            _FakeBar(n)
+            for n in ("File", "Edit", "Workbench", "View", "Structure", "Macro", "Help")
+        ]
+        # Leiste innerhalb eines Panels: darf NICHT angefasst werden.
+        self.toolbars.append(_FakeBar("InnerPanelBar", area=None))
+        # Echte Namen aus FreeCAD 1.1 (Ausgabefenster vom 15.10.)
+        self.docks = [
+            _FakeBar("Model", area="left"),
+            _FakeBar("Tasks", area="right"),
+            _FakeBar("Report view", area="right"),
+            _FakeBar("Python console", area="bottom"),
+            _FakeBar("Selection view", area="right"),
+        ]
+        self.raised = []
+        self.tabified = []
+        self.restore_count = 0
+        self.filters = 0
+        self.dialog_open = False
+
+    def findChildren(self, cls):
+        qtw = sys.modules["PySide"].QtWidgets
+        if cls is qtw.QToolBar:
+            return list(self.toolbars)
+        if cls is qtw.QDockWidget:
+            return list(self.docks)
+        return []
+
+    def toolBarArea(self, tb):
+        return tb.area if tb.area else sys.modules["PySide"].QtCore.Qt.ToolBarArea.NoToolBarArea
+
+    def saveState(self):
+        return {
+            "bars": {b.name: b.visible for b in self.toolbars + self.docks},
+            "areas": {d.name: d.area for d in self.docks},
+        }
+
+    def restoreState(self, state):
+        self.restore_count += 1
+        for b in self.toolbars + self.docks:
+            if b.name in state["bars"]:
+                b.visible = state["bars"][b.name]
+        for d in self.docks:
+            d.area = state["areas"].get(d.name, d.area)
+        self.tabified = []
+
+    def addDockWidget(self, area, dock):
+        if isinstance(dock, _FakeBar):
+            dock.area = "left"
+
+    def tabifyDockWidget(self, first, second):
+        self.tabified.append((first.name, second.name))
+
+    def installEventFilter(self, _obj):
+        self.filters += 1
+
+    def isVisible(self):
+        return True
+
+    def visible_bars(self):
+        return sorted(b.name for b in self.toolbars if b.visible)
 
 
 def _make_stubs():
@@ -95,11 +199,19 @@ def _make_stubs():
     gui.addWorkbench = lambda obj: registered.setdefault(type(obj).__name__, obj)
     gui.addCommand = lambda name, obj: commands.setdefault(name, obj)
 
-    # Ribbon braucht: Hauptfenster, Befehlsliste, Befehlsobjekte.
-    gui.getMainWindow = lambda: mock.MagicMock(name="MainWindow")
-    gui.listCommands = lambda: [c for c in _all_layout_commands() if c not in MISSING]
+    # Ribbon und Layout brauchen: Hauptfenster, Befehlsliste, Befehle.
+    # Das Hauptfenster ist eine echte kleine Attrappe mit Zustand, damit
+    # pruefbar ist, was ein- und ausgeblendet und wiederhergestellt wird.
+    mw = _FakeMainWindow()
+    gui.getMainWindow = lambda: mw
+    gui._mw = mw
+    gui.Control = types.SimpleNamespace(activeDialog=lambda: mw.dialog_open)
+    gui.activeWorkbench = lambda: types.SimpleNamespace(name=lambda: "SolidWorksUIWorkbench")
+    gui.listCommands = lambda: sorted(
+        {c.split("#")[0] for c in _all_layout_commands()} - MISSING
+    )
     ran = []
-    gui.runCommand = lambda name: ran.append(name)
+    gui.runCommand = lambda name, *idx: ran.append((name,) + idx)
     gui._ran = ran
 
     class _Cmd:
@@ -241,7 +353,7 @@ def run(split_namespace):
         print("  FEHLER: Activated() hat swui.ribbon nicht geladen")
         return False
 
-    expected = [c for c in _all_layout_commands() if c not in MISSING]
+    expected = [c for c in _all_layout_commands() if c.split("#")[0] not in MISSING]
     built = ribbon.button_names()
     skipped = ribbon.skipped_commands()
     print("  Ribbon   : %d Knöpfe, %d ausgelassen %s" % (len(built), len(skipped), sorted(skipped)))
@@ -255,11 +367,16 @@ def run(split_namespace):
 
     # Klick simulieren: _run muss den FreeCAD-Befehl ausloesen.
     ran = sys.modules["FreeCADGui"]._ran
-    ribbon._run("PartDesign_Pad", False)
-    if ran[-1:] != ["PartDesign_Pad"]:
-        print("  FEHLER: Klick hat keinen FreeCAD-Befehl ausgelöst")
+    # Qt haengt beim Klick 'checked' an - genau so aufrufen.
+    ribbon._run("PartDesign_Pad", None, False)
+    if ran[-1:] != [("PartDesign_Pad",)]:
+        print("  FEHLER: Klick hat keinen FreeCAD-Befehl ausgelöst", ran[-1:])
         return False
-    print("  Klick    : PartDesign_Pad -> runCommand OK")
+    ribbon._run("Std_DrawStyle", 5, False)
+    if ran[-1:] != [("Std_DrawStyle", 5)]:
+        print("  FEHLER: Gruppenbefehl ohne Index ausgeführt", ran[-1:])
+        return False
+    print("  Klick    : runCommand OK, Gruppenbefehl mit Index OK")
 
     ribbon._refresh_enabled()
     print("  Aktiv    : Status-Abfrage OK")
@@ -270,11 +387,69 @@ def run(split_namespace):
         print("  FEHLER: Ribbon wurde beim zweiten Aktivieren neu aufgebaut")
         return False
 
+    # --- Layout pruefen (nach dem ersten Activated) --------------------
+    mw = sys.modules["FreeCADGui"]._mw
+    layout = sys.modules.get("swui.layout")
+    if layout is None:
+        print("  FEHLER: Activated() hat swui.layout nicht geladen")
+        return False
+
+    keep = ["Edit", "File", "InnerPanelBar", "Workbench"]
+    if mw.visible_bars() != keep:
+        print("  FEHLER: sichtbare Leisten", mw.visible_bars(), "erwartet", keep)
+        return False
+    print("  Layout   : sichtbar bleiben", mw.visible_bars())
+
+    if ("Model", "Tasks") not in mw.tabified:
+        print("  FEHLER: Aufgaben-Panel nicht neben den Baum gelegt", mw.tabified)
+        return False
+    print("  Layout   : Aufgaben-Panel als Reiter neben dem Baum")
+
+    mw.raised.clear()
+    mw.dialog_open = True
+    layout._tick()
+    mw.dialog_open = False
+    layout._tick()
+    if mw.raised != ["Tasks", "Model"]:
+        print("  FEHLER: automatisches Umschalten", mw.raised)
+        return False
+    print("  Layout   : Dialog auf -> Aufgaben vorne, Dialog zu -> Baum vorne")
+
     log.clear()
     wb.Deactivated()
     if any(level == "ERR" for level, _ in log):
         print("  FEHLER in Deactivated():", log)
         return False
+    all_bars = sorted(b.name for b in mw.toolbars)
+    if mw.visible_bars() != all_bars or layout.is_active():
+        print("  FEHLER: nach Verlassen nicht wiederhergestellt", mw.visible_bars())
+        return False
+    task = [d for d in mw.docks if d.name == "Tasks"][0]
+    if task.area != "right":
+        print("  FEHLER: Aufgaben-Panel nicht an alten Platz zurück:", task.area)
+        return False
+    print("  Verlassen: alle Leisten und Panels wiederhergestellt")
+
+    # Beenden von FreeCAD im SOLIDWORKS-Layout
+    wb.Activated()
+    layout._on_close()
+    if mw.visible_bars() != all_bars:
+        print("  FEHLER: beim Schliessen nicht wiederhergestellt", mw.visible_bars())
+        return False
+    print("  Schließen: Originalzustand vor dem Speichern hergestellt")
+
+    # ...und Schliessen abgebrochen: Layout muss wiederkommen
+    layout._reenter_if_still_open()
+    if mw.visible_bars() != keep:
+        print("  FEHLER: nach abgebrochenem Schließen kein Layout", mw.visible_bars())
+        return False
+    print("  Abbruch  : Layout wieder angewendet")
+
+    if mw.filters != 1:
+        print("  FEHLER: Ereignisfilter %d-mal installiert" % mw.filters)
+        return False
+
+    wb.Deactivated()
     print("  Wechsel  : Activated/Deactivated OK")
     return True
 

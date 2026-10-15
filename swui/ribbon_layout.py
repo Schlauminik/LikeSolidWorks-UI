@@ -15,6 +15,9 @@ nur diese Datei. Aufbau:
 - Befehl:        FreeCAD-Befehlsname, z.B. "PartDesign_Pad"
 - Beschriftung:  Text unter dem Symbol. "\\n" erzwingt einen
                  Zeilenumbruch, damit die Knoepfe schmal bleiben.
+- Optional drittes Element, ein dict:
+      "index": Unterpunkt eines Gruppenbefehls (z.B. Std_DrawStyle)
+      "icon":  Symbolname, falls der Befehl selbst keinen liefert
 
 Befehle, die es in der installierten FreeCAD-Version nicht gibt,
 werden beim Aufbau uebersprungen und im Ausgabefenster gemeldet.
@@ -97,9 +100,63 @@ SKIZZE = (
     ],
 )
 
-TABS = [FEATURES, SKIZZE]
+EVALUIEREN = (
+    "Evaluieren",
+    [
+        [
+            ("Std_Measure", "Messen"),
+        ],
+        [
+            ("Part_CheckGeometry", "Geometrie\nprüfen"),
+        ],
+    ],
+)
+
+# Ersatz fuer FreeCADs Ansichtsleiste, die im SOLIDWORKS-Layout
+# ausgeblendet wird. Spaeter (Schritt 2d) wandern diese Befehle in
+# eine schwebende Leiste in der 3D-Ansicht - wie das Heads-up-Menue
+# in SOLIDWORKS.
+ANSICHT = (
+    "Ansicht",
+    [
+        [
+            ("Std_ViewFitAll", "Ganze\nAnsicht"),
+            ("Std_ViewFitSelection", "Auswahl\nzoomen"),
+            ("Std_ViewBoxZoom", "Zoom-\nbereich"),
+        ],
+        [
+            ("Std_ViewIsometric", "Isometrisch"),
+            ("Std_ViewFront", "Vorne"),
+            ("Std_ViewTop", "Oben"),
+            ("Std_ViewRight", "Rechts"),
+            ("Std_ViewRear", "Hinten"),
+            ("Std_ViewBottom", "Unten"),
+            ("Std_ViewLeft", "Links"),
+        ],
+        [
+            # Std_DrawStyle ist ein Gruppenbefehl. Die Unterpunkte werden
+            # per Index aufgerufen, genau wie FreeCAD es selbst aufzeichnet:
+            # Gui.runCommand('Std_DrawStyle', 5)
+            # Reihenfolge: 0 Wie ist, 1 Punkte, 2 Drahtmodell,
+            # 3 Verdeckte Linien, 4 Ohne Schattierung, 5 Schattiert,
+            # 6 Flache Linien.
+            ("Std_DrawStyle", "Schattiert\nmit Kanten", {"index": 6, "icon": "DrawStyleFlatLines"}),
+            ("Std_DrawStyle", "Schattiert", {"index": 5, "icon": "DrawStyleShaded"}),
+            ("Std_DrawStyle", "Verdeckte\nKanten", {"index": 3, "icon": "DrawStyleHiddenLine"}),
+            ("Std_DrawStyle", "Draht-\nmodell", {"index": 2, "icon": "DrawStyleWireFrame"}),
+        ],
+        [
+            ("Std_ToggleClipPlane", "Schnitt-\nansicht"),
+            ("Std_ToggleVisibility", "Ein-/Aus-\nblenden"),
+            ("Std_OrthographicCamera", "Ortho-\ngonal"),
+            ("Std_PerspectiveCamera", "Perspek-\ntive"),
+        ],
+    ],
+)
+
+TABS = [FEATURES, SKIZZE, EVALUIEREN, ANSICHT]
 
 # FreeCAD-Module, die die obigen Befehle bereitstellen. Sie werden vor
 # dem Aufbau geladen, sonst existieren die Befehle noch nicht, solange
 # PartDesign bzw. Sketcher nie aktiviert wurde.
-REQUIRED_GUI_MODULES = ("SketcherGui", "PartDesignGui")
+REQUIRED_GUI_MODULES = ("PartGui", "SketcherGui", "PartDesignGui")

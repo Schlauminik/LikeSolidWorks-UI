@@ -71,7 +71,8 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
             compat.report_environment_to_console()
             commands.register_all()
 
-            self.appendToolbar("SW Diagnose", ["SWUI_Diagnostics"])
+            # Keine eigene Toolbar: Alles Sichtbare lebt im Ribbon.
+            # Die Diagnose bleibt im Menue "SolidWorks UI" erreichbar.
             self.appendMenu("SolidWorks UI", ["SWUI_Diagnostics"])
 
             App.Console.PrintMessage("[SWUI] Workbench initialisiert.\n")
@@ -81,11 +82,23 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
             )
 
     def Activated(self):
-        """Benutzer hat zu dieser Workbench gewechselt: Ribbon zeigen."""
+        """Workbench betreten: SOLIDWORKS-Layout anwenden, Ribbon zeigen."""
         import traceback as tb
 
         import FreeCAD as App
 
+        # Getrennt abgesichert: Scheitert das Layout, kommt das Ribbon
+        # trotzdem - und umgekehrt.
+        # Reihenfolge wichtig: Layout merkt sich den Fensterzustand
+        # BEVOR das Ribbon erscheint.
+        try:
+            from swui import layout
+
+            layout.enter()
+        except Exception:
+            App.Console.PrintError(
+                "[SWUI] Layout konnte nicht angewendet werden:\n%s\n" % tb.format_exc()
+            )
         try:
             from swui import ribbon
 
@@ -96,11 +109,19 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
             )
 
     def Deactivated(self):
-        """Benutzer hat die Workbench verlassen: Ribbon ausblenden."""
+        """Workbench verlassen: Originalzustand herstellen, Ribbon weg."""
         import traceback as tb
 
         import FreeCAD as App
 
+        try:
+            from swui import layout
+
+            layout.leave()
+        except Exception:
+            App.Console.PrintError(
+                "[SWUI] Layout konnte nicht zurueckgesetzt werden:\n%s\n" % tb.format_exc()
+            )
         try:
             from swui import ribbon
 

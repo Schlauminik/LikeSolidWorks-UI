@@ -270,6 +270,8 @@ def _make_stubs():
         def GetContents(self):
             return [("?", k, v) for k, v in self.d.items()]
 
+    freecad._observers = []
+    freecad.addDocumentObserver = lambda o: freecad._observers.append(o)
     freecad.ParamGet = _Group
     freecad._params = params
     # Ausgangszustand von Dominiks Ansichts-Einstellungen (ausgedacht):
@@ -489,6 +491,79 @@ def run(split_namespace):
         print("  FEHLER: doppelt eingehakt")
         return False
     print("  Skizze   : bleibt in SolidWorks UI; Part Design wechselt weiter zum Sketcher")
+
+    # --- SOLIDWORKS-Namen fuer neue Features ----------------------------
+    fc = sys.modules["FreeCAD"]
+    naming = sys.modules["swui.naming"]
+    naming.install()  # zweites Mal: darf nicht doppelt anmelden
+    if len(fc._observers) != 1:
+        print("  FEHLER: Beobachter %d-mal angemeldet" % len(fc._observers))
+        return False
+    obs = fc._observers[0]
+
+    class Doc:
+        Restoring = False
+        Transacting = False
+
+        def __init__(self):
+            self.Objects = []
+
+    class Obj:
+        def __init__(self, doc, type_id, label, role=None):
+            self.Document, self.TypeId, self.Label = doc, type_id, label
+            if role is not None:
+                self.Role = role
+            doc.Objects.append(self)
+
+    doc = Doc()
+    for lbl in ("Skizze1", "Skizze4", "Linear austragen1"):  # schon vorhanden
+        Obj(doc, "Sketcher::SketchObject" if lbl.startswith("Skizze") else "PartDesign::Pad", lbl)
+
+    def create(type_id, label, **kw):
+        o = Obj(doc, type_id, label, **kw)
+        obs.slotCreatedObject(o)
+        return o
+
+    sk = create("Sketcher::SketchObject", "Sketch")
+    pad = create("PartDesign::Pad", "Pad")
+    body = create("PartDesign::Body", "Körper")
+    plane = create("App::Plane", "XZ-Ebene")
+    plane.Role = "XZ_Plane"  # FreeCAD setzt die Rolle erst NACH der Meldung
+    naming._flush()
+    got = (sk.Label, pad.Label, body.Label, plane.Label)
+    if got != ("Skizze5", "Linear austragen2", "Körper", "Ebene vorne"):
+        print("  FEHLER: Namen", got)
+        return False
+
+    doc.Restoring = True
+    loaded = create("Sketcher::SketchObject", "Sketch001")
+    doc.Restoring = False
+    doc.Transacting = True
+    redone = create("PartDesign::Pad", "Pad001")
+    doc.Transacting = False
+    gui._active_wb = "PartDesignWorkbench"
+    other = create("PartDesign::Fillet", "Fillet")
+    gui._active_wb = "SolidWorksUIWorkbench"
+    naming._flush()
+    if (loaded.Label, redone.Label, other.Label) != ("Sketch001", "Pad001", "Fillet"):
+        print("  FEHLER: umbenannt beim Laden/Rückgängig/anderer Workbench",
+              (loaded.Label, redone.Label, other.Label))
+        return False
+
+    class Gone:  # Objekt, das vor dem Umbenennen geloescht wurde
+        TypeId = "Sketcher::SketchObject"
+
+        @property
+        def Document(self):
+            raise RuntimeError("Objekt geloescht")
+
+    naming._pending.append(Gone())
+    try:
+        naming._flush()
+    except Exception as exc:
+        print("  FEHLER: gelöschtes Objekt bricht das Umbenennen:", exc)
+        return False
+    print("  Namen    : Skizze5, Linear austragen2, Ebene vorne; Laden/Rückgängig/Part Design unberührt")
     if not (bool(commands) and icon_ok):
         return False
 

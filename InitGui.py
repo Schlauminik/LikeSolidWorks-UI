@@ -76,6 +76,11 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
 
             sketch_edit.install()
 
+            # Neue Features bekommen SOLIDWORKS-Namen (Skizze1, ...).
+            from swui import naming
+
+            naming.install()
+
             # Keine eigene Toolbar: Alles Sichtbare lebt im Ribbon.
             # Die Diagnose bleibt im Menue "SolidWorks UI" erreichbar.
             self.appendMenu("SolidWorks UI", ["SWUI_Diagnostics"])

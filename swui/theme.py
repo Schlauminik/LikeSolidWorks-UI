@@ -37,6 +37,9 @@ COLORS = {
     "hover": "#3f5a75",  # Knopf unter der Maus
     "pressed": "#2f6db3",  # Knopf gedrueckt / Auswahl
     "selection": "#2f6db3",  # Auswahl im Baum
+    # 3D-Ansicht: Verlauf von oben nach unten (view_background.py)
+    "view_top": "#a4b6cb",  # grau-blau
+    "view_bottom": "#f2f5f9",  # fast weiss
 }
 
 # Marker, damit remove() unseren Block sicher wiederfindet.

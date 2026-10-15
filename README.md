@@ -12,7 +12,8 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | 2b | SW-Layout: Leisten aus, Aufgaben links, Reiter Ansicht/Evaluieren | **fertig** |
 | 2c | Dunkles Farbschema im SW-Look (`swui/theme.py`) | **fertig** |
 | 2c+ | Ausklappknöpfe im Ribbon, Skizzen-Varianten | **fertig** |
-| 2d | 3D-Hintergrund grau-blau, schwebende Ansichtsleiste, kontextabhängige Reiter | offen |
+| 2d | 3D-Hintergrund grau-blau, Reiter Skizze automatisch | **fertig** |
+| 2e | Schwebende Ansichtsleiste (Heads-up) | offen |
 | 3 | Feature-Manager-Panel | offen |
 | 4 | Skizzier-Grundgerüst (Hybrid: FreeCAD-Sketcher + SW-Optik) | offen |
 | 5 | Weitere Skizzen-Elemente | offen |

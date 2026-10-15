@@ -104,13 +104,19 @@ def leave():
 
 
 def _apply_theme(mw):
-    """Farbschema einschalten - Fehler duerfen das Layout nicht stoppen."""
+    """Farbschema und 3D-Hintergrund an - Fehler stoppen das Layout nicht."""
     try:
         from swui import theme
 
         theme.apply(mw)
     except Exception as exc:
         FreeCAD.Console.PrintWarning("[SWUI] Farbschema nicht anwendbar: %s\n" % exc)
+    try:
+        from swui import view_background
+
+        view_background.apply()
+    except Exception as exc:
+        FreeCAD.Console.PrintWarning("[SWUI] 3D-Hintergrund nicht anwendbar: %s\n" % exc)
 
 
 def _remove_theme(mw):
@@ -120,6 +126,12 @@ def _remove_theme(mw):
         theme.remove(mw)
     except Exception as exc:
         FreeCAD.Console.PrintWarning("[SWUI] Farbschema nicht entfernbar: %s\n" % exc)
+    try:
+        from swui import view_background
+
+        view_background.restore()
+    except Exception as exc:
+        FreeCAD.Console.PrintWarning("[SWUI] 3D-Hintergrund nicht zurücksetzbar: %s\n" % exc)
 
 
 def is_active():

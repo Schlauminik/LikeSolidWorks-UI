@@ -71,6 +71,11 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
             compat.report_environment_to_console()
             commands.register_all()
 
+            # Skizzen in SolidWorks UI bearbeiten statt im Sketcher.
+            from swui import sketch_edit
+
+            sketch_edit.install()
+
             # Keine eigene Toolbar: Alles Sichtbare lebt im Ribbon.
             # Die Diagnose bleibt im Menue "SolidWorks UI" erreichbar.
             self.appendMenu("SolidWorks UI", ["SWUI_Diagnostics"])
@@ -194,4 +199,19 @@ try:
 except Exception:
     FreeCAD.Console.PrintError(
         "[SWUI] Anmeldung fehlgeschlagen:\n%s\n" % traceback.format_exc()
+    )
+
+
+# --- Aufraeumen nach Absturz -----------------------------------------
+# Ist FreeCAD zuletzt im SOLIDWORKS-Layout abgestuerzt, stehen die
+# 3D-Hintergrund-Einstellungen noch auf unserem Verlauf. Hier beim Start
+# zuruecksetzen, damit andere Workbenches wieder normal aussehen.
+
+try:
+    from swui import view_background as _vb
+
+    _vb.recover()
+except Exception:
+    FreeCAD.Console.PrintWarning(
+        "[SWUI] Aufräumen beim Start fehlgeschlagen:\n%s\n" % traceback.format_exc()
     )

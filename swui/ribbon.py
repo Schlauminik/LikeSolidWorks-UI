@@ -40,6 +40,13 @@ _timer = None
 _buttons = {}  # Knopf-ID -> QToolButton. ID = Befehl oder "Befehl#Index"
 _flyouts = []  # Ausklappknoepfe: {"button", "variants", "current", "id"}
 _skipped = []  # Befehle, die es nicht gibt
+_tabs = None  # das QTabWidget des Ribbons
+_tab_titles = []  # Reiternamen in Reihenfolge
+_in_sketch = False  # wird gerade eine Skizze bearbeitet?
+_tab_before_sketch = None  # Reiter vor dem Betreten der Skizze
+
+SKETCH_TAB = "Skizze"
+SKETCH_TYPES = ("Sketcher::SketchObject",)
 
 # Hier merkt sich FreeCAD die zuletzt gewaehlte Variante je Ausklappknopf
 # (bleibt ueber Neustarts erhalten).
@@ -111,9 +118,12 @@ def _build():
     # Wie im SOLIDWORKS-CommandManager: Reiter UNTER den Knoepfen.
     tabs.setTabPosition(QtWidgets.QTabWidget.TabPosition.South)
 
+    global _tabs
+    _tabs = tabs
     for tab_title, groups in ribbon_layout.TABS:
         page = _build_page(tabs, groups, available)
         tabs.addTab(page, tab_title)
+        _tab_titles.append(tab_title)
 
     dock.setWidget(tabs)
     main_window.addDockWidget(QtCore.Qt.DockWidgetArea.TopDockWidgetArea, dock)
@@ -453,8 +463,51 @@ def _run(command, index=None, *_args):
         )
 
 
+def _check_context():
+    """
+    Wie in SOLIDWORKS: Beim Betreten einer Skizze springt das Ribbon auf
+    den Reiter "Skizze", beim Verlassen zurueck auf den vorherigen.
+
+    Gewechselt wird nur beim UEBERGANG. Klickt der Benutzer waehrend der
+    Skizze selbst einen anderen Reiter an, bleibt der stehen.
+    """
+    global _in_sketch, _tab_before_sketch
+    if _tabs is None or SKETCH_TAB not in _tab_titles:
+        return
+
+    now = _editing_sketch()
+    if now == _in_sketch:
+        return
+    _in_sketch = now
+
+    if now:
+        _tab_before_sketch = _tabs.currentIndex()
+        _tabs.setCurrentIndex(_tab_titles.index(SKETCH_TAB))
+    elif _tab_before_sketch is not None:
+        _tabs.setCurrentIndex(_tab_before_sketch)
+        _tab_before_sketch = None
+
+
+def _editing_sketch():
+    """True, wenn im aktiven Dokument gerade eine Skizze bearbeitet wird."""
+    try:
+        gui_doc = FreeCADGui.ActiveDocument
+        if gui_doc is None:
+            return False
+        vp = gui_doc.getInEdit()
+        if vp is None:
+            return False
+        return vp.Object.TypeId in SKETCH_TYPES
+    except Exception:
+        return False
+
+
 def _refresh_enabled():
-    """Fragt fuer jeden Knopf bei FreeCAD nach, ob er gerade anwendbar ist."""
+    """
+    Laeuft alle REFRESH_MS: Reiter dem Kontext anpassen und fuer jeden
+    Knopf bei FreeCAD nachfragen, ob er gerade anwendbar ist.
+    """
+    _check_context()
     for key, button in _buttons.items():
         button.setEnabled(_is_active(key.split("#", 1)[0]))
     for fly in _flyouts:

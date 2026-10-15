@@ -35,6 +35,9 @@ log = []
 
 # Diese Befehle gibt es in der Attrappe absichtlich nicht - prueft,
 # dass das Ribbon fehlende Befehle sauber auslaesst.
+VIEW = "User parameter:BaseApp/Preferences/View"
+ORIGINAL_VIEW = {"Simple": True, "BackgroundColor2": 123456}
+
 MISSING = {
     "Sketcher_Offset",
     "PartDesign_SubtractiveLoft",
@@ -245,8 +248,33 @@ def _make_stubs():
         def SetString(self, key, value):
             self.d[key] = value
 
+        # Bool/Unsigned wie FreeCAD: Get mit Standard, Set, Remove.
+        def GetBool(self, key, default=False):
+            return self.d.get(key, default)
+
+        def SetBool(self, key, value):
+            self.d[key] = bool(value)
+
+        def RemoveBool(self, key):
+            self.d.pop(key, None)
+
+        def GetUnsigned(self, key, default=0):
+            return self.d.get(key, default)
+
+        def SetUnsigned(self, key, value):
+            self.d[key] = int(value)
+
+        def RemoveUnsigned(self, key):
+            self.d.pop(key, None)
+
+        def GetContents(self):
+            return [("?", k, v) for k, v in self.d.items()]
+
     freecad.ParamGet = _Group
     freecad._params = params
+    # Ausgangszustand von Dominiks Ansichts-Einstellungen (ausgedacht):
+    # zwei Schluessel existieren, alle anderen nicht.
+    params["User parameter:BaseApp/Preferences/View"] = dict(ORIGINAL_VIEW)
 
     gui = types.ModuleType("FreeCADGui")
     gui.Workbench = type("Workbench", (), {})
@@ -261,7 +289,24 @@ def _make_stubs():
     gui.getMainWindow = lambda: mw
     gui._mw = mw
     gui.Control = types.SimpleNamespace(activeDialog=lambda: mw.dialog_open)
-    gui.activeWorkbench = lambda: types.SimpleNamespace(name=lambda: "SolidWorksUIWorkbench")
+    gui._active_wb = "SolidWorksUIWorkbench"
+    gui.activeWorkbench = lambda: types.SimpleNamespace(name=lambda: gui._active_wb)
+
+    # FreeCADs Show-Modul: TempoVis wechselt beim Skizzieren die Workbench.
+    switched = []
+
+    class TempoVis:
+        def activateWorkbench(self, wb_name):
+            switched.append(wb_name)
+
+    show = types.ModuleType("Show")
+    show.mTempoVis = types.ModuleType("Show.mTempoVis")
+    show.mTempoVis.TempoVis = TempoVis
+    show.TempoVis = TempoVis
+    show._switched = switched
+    sys.modules["Show"] = show
+    sys.modules["Show.mTempoVis"] = show.mTempoVis
+    gui.ActiveDocument = None
     gui.listCommands = lambda: sorted(
         ({c.split("#")[0] for c in _all_layout_commands()} | EXTRA_AVAILABLE) - MISSING
     )
@@ -419,6 +464,27 @@ def run(split_namespace):
             return False
 
     print("  Befehle  :", list(commands) or "KEINE")
+
+    # --- Skizze bleibt in SolidWorks UI -------------------------------
+    show = sys.modules["Show"]
+    gui = sys.modules["FreeCADGui"]
+    tv = show.TempoVis()
+    tv.activateWorkbench("SketcherWorkbench")
+    if show._switched:
+        print("  FEHLER: In SolidWorks UI wurde trotzdem zum Sketcher gewechselt")
+        return False
+    gui._active_wb = "PartDesignWorkbench"
+    tv.activateWorkbench("SketcherWorkbench")
+    gui._active_wb = "SolidWorksUIWorkbench"
+    if show._switched != ["SketcherWorkbench"]:
+        print("  FEHLER: Part Design wechselt nicht mehr in den Sketcher", show._switched)
+        return False
+    sys.modules["swui.sketch_edit"].install()  # zweites Einhaken
+    orig = show.mTempoVis.TempoVis.activateWorkbench._swui_original
+    if getattr(orig, "_swui_original", None) is not None:
+        print("  FEHLER: doppelt eingehakt")
+        return False
+    print("  Skizze   : bleibt in SolidWorks UI; Part Design wechselt weiter zum Sketcher")
     if not (bool(commands) and icon_ok):
         return False
 
@@ -494,6 +560,41 @@ def run(split_namespace):
         return False
     print("  Ausklapp : %d Knöpfe; Auswahl wird ausgeführt, gemerkt und gespeichert" % len(flys))
 
+    # --- Reiter wechselt beim Skizzieren --------------------------------
+    gui = sys.modules["FreeCADGui"]
+    tabs = ribbon._tabs
+    sketch_idx = ribbon._tab_titles.index("Skizze")
+
+    def editing(type_id):
+        vp = None if type_id is None else types.SimpleNamespace(
+            Object=types.SimpleNamespace(TypeId=type_id)
+        )
+        gui.ActiveDocument = types.SimpleNamespace(getInEdit=lambda: vp)
+
+    editing("PartDesign::Pad")  # Feature bearbeiten: KEIN Wechsel
+    n0 = tabs.setCurrentIndex.call_count
+    ribbon._refresh_enabled()
+    if tabs.setCurrentIndex.call_count != n0:
+        print("  FEHLER: Reiter gewechselt, obwohl keine Skizze bearbeitet wird")
+        return False
+    editing("Sketcher::SketchObject")
+    ribbon._refresh_enabled()
+    if tabs.setCurrentIndex.call_args[0][0] != sketch_idx:
+        print("  FEHLER: beim Skizzieren nicht auf Reiter Skizze gewechselt")
+        return False
+    n = tabs.setCurrentIndex.call_count
+    ribbon._refresh_enabled()
+    if tabs.setCurrentIndex.call_count != n:
+        print("  FEHLER: Reiter wird bei jedem Takt neu gesetzt (Benutzer kann nicht wechseln)")
+        return False
+    editing(None)
+    ribbon._refresh_enabled()
+    if tabs.setCurrentIndex.call_args[0][0] is not tabs.currentIndex.return_value:
+        print("  FEHLER: nach der Skizze nicht zum vorherigen Reiter zurück")
+        return False
+    gui.ActiveDocument = None
+    print("  Kontext  : Skizze -> Reiter Skizze, danach zurück; Benutzerwahl bleibt")
+
     # Zweites Activated darf nicht neu bauen (sonst doppelte Knoepfe).
     wb.Activated()
     if len(ribbon.button_names()) != len(built):
@@ -539,6 +640,21 @@ def run(split_namespace):
         return False
     print("  Farben   : Stylesheet angehängt, Syntax OK (%d Regeln)" % theme.build_qss().count("{"))
 
+    # --- 3D-Hintergrund ----------------------------------------------
+    fc = sys.modules["FreeCAD"]
+    vb = sys.modules["swui.view_background"]
+    view = fc._params[VIEW]
+    want_top = vb._packed(theme.COLORS["view_top"])
+    if not (view.get("Gradient") is True and view.get("RadialGradient") is False
+            and view.get("BackgroundColor2") == want_top
+            and "BackgroundColor3" in view):
+        print("  FEHLER: Verlauf nicht gesetzt", view)
+        return False
+    if not fc._params[vb.OWN_PARAMS].get(vb.BACKUP_KEY):
+        print("  FEHLER: keine Absturz-Sicherung angelegt")
+        return False
+    print("  3D-Hgrd  : Verlauf gesetzt (oben %s), Sicherung angelegt" % theme.COLORS["view_top"])
+
     log.clear()
     wb.Deactivated()
     if any(level == "ERR" for level, _ in log):
@@ -555,7 +671,10 @@ def run(split_namespace):
     if mw.qss != mw.ORIGINAL_QSS:
         print("  FEHLER: Stylesheet nach Verlassen nicht exakt zurück")
         return False
-    print("  Verlassen: alle Leisten, Panels und Farben wiederhergestellt")
+    if fc._params[VIEW] != ORIGINAL_VIEW or fc._params[vb.OWN_PARAMS].get(vb.BACKUP_KEY):
+        print("  FEHLER: Ansichts-Einstellungen nicht exakt zurück", fc._params[VIEW])
+        return False
+    print("  Verlassen: alle Leisten, Panels, Farben und 3D-Einstellungen wiederhergestellt")
 
     # Beenden von FreeCAD im SOLIDWORKS-Layout
     wb.Activated()
@@ -565,6 +684,9 @@ def run(split_namespace):
         return False
     if mw.qss != mw.ORIGINAL_QSS:
         print("  FEHLER: Stylesheet beim Schließen nicht zurück")
+        return False
+    if fc._params[VIEW] != ORIGINAL_VIEW:
+        print("  FEHLER: 3D-Einstellungen beim Schließen nicht zurück")
         return False
     print("  Schließen: Originalzustand vor dem Speichern hergestellt")
 
@@ -583,6 +705,19 @@ def run(split_namespace):
         return False
 
     wb.Deactivated()
+
+    # Absturz im SOLIDWORKS-Layout: naechster Start muss aufraeumen.
+    wb.Activated()
+    vb._applied = False  # "neuer Prozess"
+    vb.recover()
+    if fc._params[VIEW] != ORIGINAL_VIEW:
+        print("  FEHLER: nach Absturz nicht aufgeräumt", fc._params[VIEW])
+        return False
+    wb.Deactivated()
+    if fc._params[VIEW] != ORIGINAL_VIEW:
+        print("  FEHLER: Verlassen nach Wiederherstellung verändert Einstellungen")
+        return False
+    print("  Absturz  : Einstellungen beim nächsten Start zurückgesetzt")
     print("  Wechsel  : Activated/Deactivated OK")
     return True
 

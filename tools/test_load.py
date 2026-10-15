@@ -49,11 +49,11 @@ MISSING = {
 EXTRA_AVAILABLE = {"Sketcher_External"}
 
 
-def _all_layout_commands():
-    """Alle Befehlsnamen aus ribbon_layout.py, ohne swui zu importieren."""
+def _all_layout_commands(filename="ribbon_layout.py"):
+    """Alle Befehls-IDs aus einer Layout-Datei, ohne swui zu importieren."""
     import ast
 
-    path = os.path.join(ADDON, "swui", "ribbon_layout.py")
+    path = os.path.join(ADDON, "swui", filename)
     if not os.path.isfile(path):
         return []
     tree = ast.parse(open(path, encoding="utf-8").read())
@@ -308,7 +308,11 @@ def _make_stubs():
     sys.modules["Show.mTempoVis"] = show.mTempoVis
     gui.ActiveDocument = None
     gui.listCommands = lambda: sorted(
-        ({c.split("#")[0] for c in _all_layout_commands()} | EXTRA_AVAILABLE) - MISSING
+        (
+            {c.split("#")[0] for c in _all_layout_commands()}
+            | EXTRA_AVAILABLE
+        )
+        - MISSING
     )
     ran = []
     gui.runCommand = lambda name, *idx: ran.append((name,) + idx)

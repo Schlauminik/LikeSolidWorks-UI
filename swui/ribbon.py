@@ -201,44 +201,59 @@ def button_id(command, opts):
     return command if index is None else "%s#%d" % (command, index)
 
 
-def _make_button(parent, command, label, opts):
-    """Ein grosser Knopf: Symbol oben, Text darunter."""
+def _style_button(button, icon_size, show_text):
+    """Gemeinsame Optik: gross mit Text (Ribbon) oder klein ohne (Heads-up)."""
+    if show_text:
+        button.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+    else:
+        button.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonIconOnly)
+    button.setIconSize(QtCore.QSize(icon_size, icon_size))
+    button.setAutoRaise(True)
+
+
+def _make_button(parent, command, label, opts, icon_size=ICON_SIZE, show_text=True, register=True):
+    """
+    Ein Knopf fuer einen FreeCAD-Befehl.
+
+    icon_size / show_text: Ribbon = gross mit Text, Heads-up = klein ohne.
+    register: nur Ribbon-Knoepfe werden angemeldet (Aktiv-Status, Tests).
+    """
     key = button_id(command, opts)
     index = opts.get("index")
 
     button = QtWidgets.QToolButton(parent)
     button.setObjectName("SWUI_Btn_" + key.replace("#", "_"))
-    button.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
-    button.setIconSize(QtCore.QSize(ICON_SIZE, ICON_SIZE))
-    button.setAutoRaise(True)
+    _style_button(button, icon_size, show_text)
     button.setText(label)
 
     info = _command_info(command)
     button.setIcon(_command_icon(command, info, opts))
     tooltip = info.get("toolTip") or info.get("menuText") or command
-    if index is not None:
-        tooltip = label.replace("\n", " ")
+    if index is not None or not show_text:
+        tooltip = _menu_text(label)
     button.setToolTip(_strip_html(tooltip))
 
     button.clicked.connect(functools.partial(_run, command, index))
-    _buttons[key] = button
+    if register:
+        _buttons[key] = button
     return button
 
 
-def _make_flyout(parent, variants):
+def _make_flyout(parent, variants, icon_size=ICON_SIZE, show_text=True, register=True, param_prefix=""):
     """
     Ausklappknopf wie in SOLIDWORKS: Klick auf das Symbol startet die
     aktuelle Variante, der Pfeil daneben oeffnet das Menue mit allen.
     Eine im Menue gewaehlte Variante wird ausgefuehrt UND zur neuen
     aktuellen - auch ueber einen Neustart hinweg.
+
+    param_prefix trennt die gemerkten Varianten verschiedener Leisten
+    (z.B. Heads-up vs. Ribbon), auch wenn sie mit demselben Befehl beginnen.
     """
     button = QtWidgets.QToolButton(parent)
-    button.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
-    button.setIconSize(QtCore.QSize(ICON_SIZE, ICON_SIZE))
-    button.setAutoRaise(True)
+    _style_button(button, icon_size, show_text)
     button.setPopupMode(QtWidgets.QToolButton.ToolButtonPopupMode.MenuButtonPopup)
 
-    fly = {"button": button, "variants": [], "current": 0}
+    fly = {"button": button, "variants": [], "current": 0, "show_text": show_text}
     menu = QtWidgets.QMenu(button)
     for i, (command, label, opts) in enumerate(variants):
         info = _command_info(command)
@@ -256,12 +271,13 @@ def _make_flyout(parent, variants):
         )
         action = menu.addAction(icon, _menu_text(label))
         action.triggered.connect(functools.partial(_choose_variant, fly, i))
-    fly["id"] = fly["variants"][0]["key"]
+    fly["id"] = param_prefix + fly["variants"][0]["key"]
     button.setMenu(menu)
     button.clicked.connect(functools.partial(_run_flyout, fly))
 
     _set_variant(fly, _remembered_variant(fly))
-    _flyouts.append(fly)
+    if register:
+        _flyouts.append(fly)
     return button
 
 
@@ -287,7 +303,8 @@ def _set_variant(fly, i):
     button.setObjectName("SWUI_Fly_" + v["key"].replace("#", "_"))
     button.setText(v["label"])
     button.setIcon(v["icon"])
-    button.setToolTip(v["tooltip"] + "\n(Pfeil rechts: weitere Varianten)")
+    name = v["tooltip"] if fly.get("show_text", True) else _menu_text(v["label"])
+    button.setToolTip(name + "\n(Pfeil rechts: weitere Varianten)")
 
 
 def _choose_variant(fly, i, *_args):

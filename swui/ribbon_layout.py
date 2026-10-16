@@ -48,37 +48,55 @@ Oberflaeche.
 FEATURES = (
     "Features",
     [
+        # Aufteilung wie im SOLIDWORKS-CommandManager (eigene Anordnung):
+        # haeufige Features gross, seltenere als Zeilen mit Text daneben.
         [
-            ("PartDesign_Body", "Körper"),
+            ("PartDesign_Pad", "Linear\naustragen", {"svg": "sketch/f_pad"}),
+            ("PartDesign_Revolution", "Rotieren", {"svg": "sketch/f_revolve"}),
+            {"stack": [
+                ("PartDesign_AdditivePipe", "Entlang Pfad", {"svg": "sketch/f_pipe"}),
+                ("PartDesign_AdditiveLoft", "Ausformen", {"svg": "sketch/f_loft"}),
+                ("PartDesign_AdditiveHelix", "Helix", {"svg": "sketch/f_helix"}),
+            ], "style": "text"},
         ],
         [
-            ("PartDesign_Pad", "Linear\naustragen"),
-            ("PartDesign_Revolution", "Rotieren"),
-            ("PartDesign_AdditivePipe", "Entlang\nPfad"),
-            ("PartDesign_AdditiveLoft", "Aus-\nformen"),
+            ("PartDesign_Pocket", "Linearer\nSchnitt", {"svg": "sketch/f_pocket"}),
+            ("PartDesign_Hole", "Bohrungs-\nassistent", {"svg": "sketch/f_hole"}),
+            ("PartDesign_Groove", "Rotierter\nSchnitt", {"svg": "sketch/f_groove"}),
+            {"stack": [
+                ("PartDesign_SubtractivePipe", "Schnitt entlang Pfad", {"svg": "sketch/f_sub_pipe"}),
+                ("PartDesign_SubtractiveLoft", "Ausgeformter Schnitt", {"svg": "sketch/f_sub_loft"}),
+                ("PartDesign_SubtractiveHelix", "Helix-Schnitt", {"svg": "sketch/f_helix"}),
+            ], "style": "text"},
         ],
         [
-            ("PartDesign_Pocket", "Linearer\nSchnitt"),
-            ("PartDesign_Hole", "Bohrungs-\nassistent"),
-            ("PartDesign_Groove", "Rotierter\nSchnitt"),
-            ("PartDesign_SubtractivePipe", "Schnitt\nentlang Pfad"),
-            ("PartDesign_SubtractiveLoft", "Ausgeformter\nSchnitt"),
+            {"flyout": [
+                ("PartDesign_Fillet", "Verrundung", {"svg": "sketch/f_fillet"}),
+                ("PartDesign_Chamfer", "Fase", {"svg": "sketch/f_chamfer"}),
+            ]},
+            {"flyout": [
+                ("PartDesign_LinearPattern", "Lineares\nMuster", {"svg": "sketch/f_pattern_linear"}),
+                ("PartDesign_PolarPattern", "Kreis-\nmuster", {"svg": "sketch/f_pattern_polar"}),
+            ]},
+            {"stack": [
+                ("PartDesign_Draft", "Formschräge", {"svg": "sketch/f_draft"}),
+                ("PartDesign_Thickness", "Wandung", {"svg": "sketch/f_shell"}),
+                ("PartDesign_Mirrored", "Spiegeln", {"svg": "sketch/f_mirror"}),
+            ], "style": "text"},
         ],
         [
-            ("PartDesign_Fillet", "Verrundung"),
-            ("PartDesign_Chamfer", "Fase"),
-            ("PartDesign_Draft", "Form-\nschräge"),
-            ("PartDesign_Thickness", "Wandung"),
-        ],
-        [
-            ("PartDesign_LinearPattern", "Lineares\nMuster"),
-            ("PartDesign_PolarPattern", "Kreis-\nmuster"),
-            ("PartDesign_Mirrored", "Spiegeln"),
-        ],
-        [
-            ("PartDesign_Plane", "Ebene"),
-            ("PartDesign_Line", "Achse"),
-            ("PartDesign_Point", "Punkt"),
+            # Referenzgeometrie wie in SW: ein Knopf, Varianten im Menue.
+            {"flyout": [
+                ("PartDesign_Plane", "Ebene", {"svg": "sketch/f_plane"}),
+                ("PartDesign_Line", "Achse", {"svg": "sketch/f_axis"}),
+                ("PartDesign_Point", "Punkt", {"svg": "sketch/f_point"}),
+                ("PartDesign_CoordinateSystem", "Koordinaten-\nsystem", {"svg": "sketch/f_cs"}),
+            ]},
+            # FreeCAD-Eigenheit ohne SW-Gegenstueck: Koerper. Wird bei
+            # Bedarf automatisch angelegt, daher nur klein.
+            {"stack": [
+                ("PartDesign_Body", "Körper", {"svg": "sketch/f_body"}),
+            ], "style": "text"},
         ],
     ],
 )

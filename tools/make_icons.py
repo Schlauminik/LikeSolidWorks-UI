@@ -532,6 +532,310 @@ def _():
     return [big(geo("M6 34 L36 10"), dot(6, 34, 4), dot(36, 10, 4)), badge("M41 41 H53 M41 47 H53 M41 53 H53")]
 
 
+# --- 3D-Bausteine (Features) -----------------------------------------
+# Isometrische Darstellung. GRAU = vorhandener Koerper, BLAU = was das
+# Feature erzeugt (neues Material bzw. neue Schnittflaechen), WEISS =
+# Skizzenprofil, ROT = Auswahl (Kante, Mittelpunkt), BLAU gestrichelt =
+# Referenzgeometrie.
+
+BODY_FACES = ("#c3c7ce", "#9aa0a8", "#7b818a")  # oben, links, rechts
+NEW_FACES = ("#8cbcff", "#3d8bff", "#2a6bc9")
+ISO_S = 1.12
+ISO_O = (32.0, 44.0)
+
+
+def iso(x, y, z=0.0):
+    """3D -> Bildschirm (Isometrie, x nach rechts-vorn, y nach links-vorn)."""
+    c, s_ = 0.866, 0.5
+    return (ISO_O[0] + (x - y) * c * ISO_S, ISO_O[1] + (x + y) * s_ * ISO_S - z * ISO_S)
+
+
+def poly(pts, fill, w=1.6):
+    d = "M" + " L".join("%.1f %.1f" % p for p in pts) + " Z"
+    return '<path d="%s" fill="%s" stroke="%s" stroke-width="%.1f" stroke-linejoin="round"/>' % (
+        d, fill, OUTLINE, w)
+
+
+def prism(base, z0, z1, faces=BODY_FACES):
+    """Senkrechtes Prisma ueber einem Grundriss (Liste von (x, y), gegen den Uhrzeigersinn)."""
+    out = []
+    n = len(base)
+    sides = []
+    for i in range(n):
+        (x0, y0), (x1, y1) = base[i], base[(i + 1) % n]
+        nx, ny = (y1 - y0), -(x1 - x0)  # Aussennormale bei Gegen-Uhrzeigersinn
+        if nx + ny <= 0:
+            continue  # Rueckseite
+        col = faces[2] if nx > ny else faces[1]
+        depth = (x0 + x1 + y0 + y1)
+        sides.append((depth, [iso(x0, y0, z0), iso(x1, y1, z0), iso(x1, y1, z1), iso(x0, y0, z1)], col))
+    for _d, pts, col in sorted(sides, key=lambda t: t[0]):
+        out.append(poly(pts, col))
+    out.append(poly([iso(x, y, z1) for x, y in base], faces[0]))
+    return "".join(out)
+
+
+def box(x, y, z, dx, dy, dz, faces=BODY_FACES):
+    return prism([(x, y), (x + dx, y), (x + dx, y + dy), (x, y + dy)], z, z + dz, faces)
+
+
+def circle_pts(cx, cy, r, n=20, a0=0.0, a1=360.0):
+    return [(cx + r * math.cos(math.radians(a0 + (a1 - a0) * i / n)),
+             cy + r * math.sin(math.radians(a0 + (a1 - a0) * i / n))) for i in range(n + (0 if a1 - a0 >= 360 else 1))]
+
+
+def cyl(cx, cy, r, z0, z1, faces=BODY_FACES, n=20):
+    """Zylinder als feines Prisma, Seiten weich (ohne Kanten zwischen Facetten)."""
+    base = circle_pts(cx, cy, r, n)
+    out = []
+    side = [p for p in base if (p[0] - cx) + (p[1] - cy) >= -0.01]
+    # sichtbare Mantelflaeche als ein Polygon
+    vis = sorted(side, key=lambda p: math.atan2(p[1] - cy, p[0] - cx) - 0.0)
+    ang = lambda p: (math.degrees(math.atan2(p[1] - cy, p[0] - cx)) + 360 + 45) % 360
+    vis = sorted(side, key=ang)
+    pts = [iso(x, y, z0) for x, y in vis] + [iso(x, y, z1) for x, y in reversed(vis)]
+    out.append(poly(pts, faces[1]))
+    out.append(poly([iso(x, y, z1) for x, y in base], faces[0]))
+    return "".join(out)
+
+
+def profile(pts, z=0.0):
+    """Skizzenprofil (weiss) in der Ebene z."""
+    d = "M" + " L".join("%.1f %.1f" % iso(x, y, z) for x, y in pts) + " Z"
+    return geo(d)
+
+
+def iso_line(p0, p1, kind=con):
+    a, b = iso(*p0), iso(*p1)
+    return kind("M%.1f %.1f L%.1f %.1f" % (a[0], a[1], b[0], b[1]))
+
+
+def iso_arrow(p0, p1, color=NEW):
+    a, b = iso(*p0), iso(*p1)
+    return arrow(a[0], a[1], b[0], b[1], color=color, w=2.8, head=6.5)
+
+
+# --- Symbole: Features ------------------------------------------------
+
+
+@icon("f_pad", "Linear austragen")
+def _():
+    sq = [(-12, -12), (12, -12), (12, 12), (-12, 12)]
+    return [box(-12, -12, 0, 24, 24, 18, NEW_FACES), iso_arrow((0, 0, 20), (0, 0, 34))]
+
+
+@icon("f_revolve", "Rotieren")
+def _():
+    # Drehkoerper (blau) um die gestrichelte Achse, weisser Drehpfeil oben
+    top = [iso(14 * math.cos(math.radians(a)), 14 * math.sin(math.radians(a)), 26) for a in range(-60, 181, 10)]
+    d = "M" + " L".join("%.1f %.1f" % q for q in top)
+    tip = iso(14 * math.cos(math.radians(200)), 14 * math.sin(math.radians(200)), 26)
+    return [cyl(0, 0, 14, 0, 22, NEW_FACES), iso_line((0, 0, -6), (0, 0, 38)),
+            '<path d="%s" stroke="%s" stroke-width="5.6" fill="none"/>' % (d, OUTLINE),
+            '<path d="%s" stroke="%s" stroke-width="3" fill="none"/>' % (d, GEO),
+            arrow(top[-1][0], top[-1][1], tip[0], tip[1], color=GEO, w=3, head=6.5)]
+
+
+@icon("f_pocket", "Linearer Schnitt")
+def _():
+    out = [box(-16, -16, 0, 32, 32, 14)]
+    # Vertiefung: neue Innenwaende blau
+    a = [(-6, -6), (8, -6), (8, 8), (-6, 8)]
+    out.append(poly([iso(x, y, 14) for x, y in a], NEW_FACES[2]))
+    out.append(poly([iso(-6, -6, 14), iso(8, -6, 14), iso(8, -6, 6), iso(-6, -6, 6)], NEW_FACES[1]))
+    out.append(poly([iso(-6, -6, 14), iso(-6, 8, 14), iso(-6, 8, 6), iso(-6, -6, 6)], NEW_FACES[0]))
+    out.append(iso_arrow((1, 1, 32), (1, 1, 17)))
+    return out
+
+
+@icon("f_hole", "Bohrungsassistent")
+def _():
+    out = [box(-16, -16, 0, 32, 32, 14)]
+    hole = circle_pts(0, 0, 7, 20)
+    out.append(poly([iso(x, y, 14) for x, y in hole], NEW_FACES[2]))
+    inner = [p for p in hole if p[0] + p[1] <= 0.01]
+    ang = lambda p: (math.degrees(math.atan2(p[1], p[0])) + 360 - 135) % 360
+    inner = sorted(inner, key=ang)
+    out.append(poly([iso(x, y, 14) for x, y in inner] + [iso(x, y, 7) for x, y in reversed(inner)], NEW_FACES[1]))
+    c = iso(0, 0, 14)
+    out.append(pt(c[0], c[1] - 0, r=3.4))
+    return out
+
+
+@icon("f_groove", "Rotierter Schnitt")
+def _():
+    out = [cyl(0, 0, 16, 0, 26)]
+    # Ringnut: blaues Band
+    band = circle_pts(0, 0, 16, 20)
+    vis = [p for p in band if p[0] + p[1] >= -0.01]
+    ang = lambda p: (math.degrees(math.atan2(p[1], p[0])) + 360 + 45) % 360
+    vis = sorted(vis, key=ang)
+    out.append(poly([iso(x, y, 11) for x, y in vis] + [iso(x, y, 17) for x, y in reversed(vis)], NEW_FACES[1]))
+    out.append(iso_line((0, 0, -4), (0, 0, 40)))
+    return out
+
+
+@icon("f_pipe", "Entlang Pfad")
+def _():
+    path = "M10 52 C10 30 30 30 52 14"
+    return ['<path d="%s" stroke="%s" stroke-width="13" fill="none" stroke-linecap="butt"/>' % (path, OUTLINE),
+            '<path d="%s" stroke="%s" stroke-width="10" fill="none" stroke-linecap="butt"/>' % (path, NEW_FACES[1]),
+            '<path d="%s" stroke="%s" stroke-width="3" fill="none" opacity="0.8"/>' % ("M8 50 C8 28 28 27 50 11", NEW_FACES[0]),
+            con(path), '<ellipse cx="10" cy="54" rx="6.5" ry="3" fill="none" stroke="%s" stroke-width="3"/>' % GEO]
+
+
+@icon("f_loft", "Ausformen")
+def _():
+    bot = [(-14, -14), (14, -14), (14, 14), (-14, 14)]
+    top = circle_pts(0, 0, 9, 16)
+    out = []
+    # Mantel grob: blaue Flaeche zwischen Profilen (Umriss)
+    l0, r0 = iso(-14, 14, 0), iso(14, -14, 0)
+    l1, r1 = iso(-9 * 0.707, 9 * 0.707, 26), iso(9 * 0.707, -9 * 0.707, 26)
+    front = iso(14, 14, 0)
+    out.append(poly([l0, front, r0, r1, l1], NEW_FACES[1]))
+    out.append(poly([iso(x, y, 26) for x, y in top], NEW_FACES[0]))
+    out.append(profile(bot, 0))
+    out.append(profile(top, 26))
+    return out
+
+
+@icon("f_helix", "Helix")
+def _():
+    d = ""
+    pts = []
+    for i in range(0, 73):
+        a = math.radians(i * 10)
+        pts.append(iso(12 * math.cos(a), 12 * math.sin(a), i * 0.42))
+    d = "M" + " L".join("%.1f %.1f" % p for p in pts)
+    return ['<path d="%s" stroke="%s" stroke-width="8" fill="none" stroke-linejoin="round"/>' % (d, OUTLINE),
+            '<path d="%s" stroke="%s" stroke-width="5" fill="none" stroke-linejoin="round"/>' % (d, NEW_FACES[1]),
+            iso_line((0, 0, -4), (0, 0, 36))]
+
+
+@icon("f_sub_pipe", "Schnitt entlang Pfad")
+def _():
+    path = "M8 40 C20 30 34 44 56 26"
+    return [box(-18, -18, 0, 36, 36, 16),
+            '<path d="%s" stroke="%s" stroke-width="10" fill="none"/>' % (path, OUTLINE),
+            '<path d="%s" stroke="%s" stroke-width="7" fill="none"/>' % (path, NEW_FACES[2]),
+            con(path)]
+
+
+@icon("f_sub_loft", "Ausgeformter Schnitt")
+def _():
+    out = [box(-18, -18, 0, 36, 36, 16)]
+    out.append(poly([iso(-10, -10, 16), iso(10, -10, 16), iso(10, 10, 16), iso(-10, 10, 16)], NEW_FACES[2]))
+    out.append(poly([iso(-10, -10, 16), iso(10, -10, 16), iso(5, -5, 4), iso(-5, -5, 4)], NEW_FACES[1]))
+    out.append(poly([iso(-10, -10, 16), iso(-10, 10, 16), iso(-5, 5, 4), iso(-5, -5, 4)], NEW_FACES[0]))
+    return out
+
+
+@icon("f_fillet", "Verrundung")
+def _():
+    out = [box(-16, -16, 0, 32, 32, 20)]
+    r = 12
+    pts_top, pts_bot = [], []
+    for i in range(9):
+        a = math.radians(90 * i / 8)
+        x, y = 16 - r + r * math.cos(a), 16 - r + r * math.sin(a)
+        pts_top.append(iso(x, y, 20)); pts_bot.append(iso(x, y, 0))
+    out.append(poly(pts_top + list(reversed(pts_bot)), NEW_FACES[1]))
+    out.append(poly([iso(-16, -16, 20), iso(16, -16, 20)] + pts_top + [iso(-16, 16, 20)], BODY_FACES[0]))
+    return out
+
+
+@icon("f_chamfer", "Fase")
+def _():
+    out = [box(-16, -16, 0, 32, 32, 20)]
+    out.append(poly([iso(16, 4, 20), iso(4, 16, 20), iso(4, 16, 0), iso(16, 4, 0)], NEW_FACES[1]))
+    out.append(poly([iso(-16, -16, 20), iso(16, -16, 20), iso(16, 4, 20), iso(4, 16, 20), iso(-16, 16, 20)], BODY_FACES[0]))
+    return out
+
+
+@icon("f_draft", "Formschräge")
+def _():
+    base = [(-16, -16), (16, -16), (16, 16), (-16, 16)]
+    top = [(-10, -10), (10, -10), (10, 10), (-10, 10)]
+    out = [poly([iso(16, -16, 0), iso(16, 16, 0), iso(10, 10, 24), iso(10, -10, 24)], NEW_FACES[2]),
+           poly([iso(-16, 16, 0), iso(16, 16, 0), iso(10, 10, 24), iso(-10, 10, 24)], NEW_FACES[1]),
+           poly([iso(x, y, 24) for x, y in top], NEW_FACES[0]),
+           iso_line((16, 16, 0), (16, 16, 26))]
+    return out
+
+
+@icon("f_shell", "Wandung")
+def _():
+    out = [box(-16, -16, 0, 32, 32, 20)]
+    inner = [(-11, -11), (11, -11), (11, 11), (-11, 11)]
+    out.append(poly([iso(x, y, 20) for x, y in inner], NEW_FACES[2]))
+    out.append(poly([iso(-11, -11, 20), iso(11, -11, 20), iso(11, -11, 6), iso(-11, -11, 6)], NEW_FACES[1]))
+    out.append(poly([iso(-11, -11, 20), iso(-11, 11, 20), iso(-11, 11, 6), iso(-11, -11, 6)], NEW_FACES[0]))
+    return out
+
+
+@icon("f_pattern_linear", "Lineares Muster")
+def _():
+    out = []
+    for i, x in enumerate((-22, -6, 10)):
+        out.append(box(x, -6, 0, 10, 10, 10, BODY_FACES if i == 0 else NEW_FACES))
+    out.append(iso_arrow((-22, 10, 0), (22, 10, 0)))
+    return out
+
+
+@icon("f_pattern_polar", "Kreismuster")
+def _():
+    out = [iso_line((0, 0, -2), (0, 0, 30))]
+    items = []
+    for i in range(6):
+        a = math.radians(60 * i + 15)
+        x, y = 17 * math.cos(a), 17 * math.sin(a)
+        items.append((x + y, x, y, i))
+    for _d, x, y, i in sorted(items):
+        out.append(cyl(x, y, 4.5, 0, 7, BODY_FACES if i == 3 else NEW_FACES, n=12))
+    return out
+
+
+@icon("f_mirror", "Spiegeln")
+def _():
+    return [poly([iso(0, -24, -2), iso(0, 24, -2), iso(0, 24, 26), iso(0, -24, 26)], "none", 0.01),
+            iso_line((0, -24, 0), (0, 24, 0)), iso_line((0, -24, 26), (0, 24, 26)),
+            iso_line((0, 24, 0), (0, 24, 26)), iso_line((0, -24, 0), (0, -24, 26)),
+            box(-20, -6, 0, 12, 12, 16), box(8, -6, 0, 12, 12, 16, NEW_FACES)]
+
+
+@icon("f_plane", "Ebene")
+def _():
+    a, b, c, d = iso(-22, -22, 4), iso(22, -22, 4), iso(22, 22, 4), iso(-22, 22, 4)
+    return ['<path d="M%.1f %.1f L%.1f %.1f L%.1f %.1f L%.1f %.1f Z" fill="%s" fill-opacity="0.35"/>' % (
+                a + b + c + d + (CON,)),
+            con("M%.1f %.1f L%.1f %.1f L%.1f %.1f L%.1f %.1f Z" % (a + b + c + d))]
+
+
+@icon("f_axis", "Achse")
+def _():
+    return [con("M10 56 L54 8"), con("M18 60 L60 14"), arrow(14, 52, 52, 10, color=CON, w=2.6, head=7)]
+
+
+@icon("f_point", "Punkt (Referenz)")
+def _():
+    return [cross(32, 32, 14), pt(32, 32, r=5)]
+
+
+@icon("f_cs", "Koordinatensystem")
+def _():
+    o = iso(0, 0, 0)
+    return [arrow(o[0], o[1], *iso(26, 0, 0), color=RED, w=3, head=7),
+            arrow(o[0], o[1], *iso(0, 26, 0), color=NEW, w=3, head=7),
+            arrow(o[0], o[1], *iso(0, 0, 30), color=GEO, w=3, head=7),
+            pt(o[0], o[1], r=3.2)]
+
+
+@icon("f_body", "Körper")
+def _():
+    return [box(-14, -14, 0, 28, 28, 22)]
+
+
 # --- Ausgabe ---------------------------------------------------------
 
 

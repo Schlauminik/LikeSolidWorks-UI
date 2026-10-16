@@ -22,7 +22,9 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | 6b+ | Reiter Skizze aufgeteilt wie SW-CommandManager: große Hauptknöpfe, 3-Zeilen-Stapel, Zeilen mit Text; Skizze/Skizze beenden umschaltend; Offset-Elemente | **fertig** |
 | 6c | Symbole Paket 2: Bearbeiten-Werkzeuge (Skizze, Bemaßung, Trimmen, Offset, Spiegeln, Muster …) | **fertig** |
 | 6d | Symbole Paket 3: Beziehungen (Ribbon und Panel), Farben nur Weiß/Grau/Rot/Blau | **fertig** |
-| 7 | 3D-Features (Extrude, Cut, Fillet, Chamfer) | offen |
+| 7a | Reiter Features aufgeteilt wie SW, eigene 3D-Symbole (grau = Körper, blau = Ergebnis) | **fertig** |
+| 7b | Direkt aus offener Skizze austragen | offen |
+| 7c | Feature-Dialoge mit SW-Begriffen | offen |
 
 Später: 3D-Skizzen, Baugruppen.
 

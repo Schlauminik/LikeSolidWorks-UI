@@ -193,6 +193,46 @@ QFrame#SWUI_RibbonSeparator {
     margin: 4px 3px;
 }
 
+/* ---------- Panel "Beziehungen hinzufuegen" (sketch_relations.py) ---------- */
+
+QFrame#SWUI_RelationsPanel {
+    background: %(panel)s;
+    border: 1px solid %(accent)s;
+    border-radius: 3px;
+}
+QFrame#SWUI_RelationsPanel QLabel {
+    color: %(text)s;
+}
+QLabel#SWUI_RelationsTitle {
+    font-weight: bold;
+    padding-bottom: 2px;
+}
+QLabel#SWUI_RelationsHeading {
+    color: %(text_dim)s;
+    border-bottom: 1px solid %(border)s;
+    padding-top: 4px;
+}
+QListWidget#SWUI_RelationsList {
+    background: %(window)s;
+    color: %(text)s;
+    border: 1px solid %(border)s;
+}
+QListWidget#SWUI_RelationsList::item:selected {
+    background: %(selection)s;
+    color: #ffffff;
+}
+QFrame#SWUI_RelationsPanel QToolButton {
+    color: %(text)s;
+    text-align: left;
+    padding: 2px 4px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+}
+QFrame#SWUI_RelationsPanel QToolButton:hover {
+    background: %(hover)s;
+    border: 1px solid %(accent)s;
+}
+
 /* ---------- Panels (Modell, Aufgaben, ...) ---------- */
 
 QMainWindow {

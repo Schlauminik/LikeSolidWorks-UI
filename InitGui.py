@@ -117,6 +117,14 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
             App.Console.PrintError(
                 "[SWUI] Ribbon konnte nicht angezeigt werden:\n%s\n" % tb.format_exc()
             )
+        try:
+            from swui import sketch_relations
+
+            sketch_relations.install()
+        except Exception:
+            App.Console.PrintError(
+                "[SWUI] Beziehungs-Panel nicht gestartet:\n%s\n" % tb.format_exc()
+            )
 
     def Deactivated(self):
         """Workbench verlassen: Originalzustand herstellen, Ribbon weg."""
@@ -139,6 +147,14 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
         except Exception:
             App.Console.PrintError(
                 "[SWUI] Ribbon konnte nicht ausgeblendet werden:\n%s\n" % tb.format_exc()
+            )
+        try:
+            from swui import sketch_relations
+
+            sketch_relations.uninstall()
+        except Exception:
+            App.Console.PrintError(
+                "[SWUI] Beziehungs-Panel nicht beendet:\n%s\n" % tb.format_exc()
             )
 
     def GetClassName(self):

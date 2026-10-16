@@ -46,7 +46,10 @@ MISSING = {
 }
 
 # Ersatzbefehle, die es in der Attrappe gibt (fuer "fallback" im Layout).
-EXTRA_AVAILABLE = {"Sketcher_External"}
+# Befehle, die nicht im Ribbon stehen, aber in FreeCAD 1.1.4 sicher
+# existieren (geprueft in CommandConstraints.cpp, CreateSketcherCommandsConstraints):
+# Sketcher_ConstrainCoincident nutzt das Beziehungs-Panel.
+EXTRA_AVAILABLE = {"Sketcher_External", "Sketcher_ConstrainCoincident"}
 
 
 def _all_layout_commands(filename="ribbon_layout.py"):
@@ -350,6 +353,15 @@ def _make_stubs():
     )
     ran = []
     gui.runCommand = lambda name, *idx: ran.append((name,) + idx)
+
+    # Auswahl (fuer das Beziehungs-Panel)
+    gui._sel = []
+    gui._sel_observers = []
+    gui.Selection = types.SimpleNamespace(
+        addObserver=lambda o: gui._sel_observers.append(o),
+        removeObserver=lambda o: gui._sel_observers.remove(o),
+        getSelectionEx=lambda: list(gui._sel),
+    )
     gui._ran = ran
 
     class _Cmd:
@@ -894,6 +906,161 @@ def run(split_namespace):
         print("  FEHLER: Verlassen der Skizze beendet die Mittellinie nicht")
         return False
     print("  Mittellin: Gegenseite gespiegelt (Deckungsgleich+Symmetrisch), nicht gestrichelt, Ende bei Wechsel/Skizzenende")
+
+    # --- Beziehungs-Panel (SW "Beziehungen hinzufuegen") ---------------
+    rel = sys.modules["swui.sketch_relations"]
+    if not rel.is_installed():
+        print("  FEHLER: Workbench-Activated hat das Beziehungs-Panel nicht angemeldet")
+        return False
+    T = lambda t: Geo("Part::Geom" + t)
+
+    class RelSketch:
+        TypeId = "Sketcher::SketchObject"
+
+        def __init__(self):
+            self.Document = Doc()
+            # 0,1 Linie  2 Kreis  3 Bogen  4 Ellipse  5 Punkt  6 Spline
+            self.Geometry = [T("LineSegment"), T("LineSegment"), T("Circle"),
+                             T("ArcOfCircle"), T("Ellipse"), T("Point"), T("BSplineCurve")]
+            self.ExternalGeo = [T("LineSegment"), T("LineSegment"), T("LineSegment")]
+            self.vertices = {0: (0, 1), 1: (0, 2), 2: (1, 1), 3: (1, 2), 4: (5, 1)}
+            self.Constraints = [
+                types.SimpleNamespace(Type="Horizontal", First=0, FirstPos=0, Second=-2000, SecondPos=0, Third=-2000, ThirdPos=0),
+                types.SimpleNamespace(Type="Coincident", First=0, FirstPos=2, Second=1, SecondPos=1, Third=-2000, ThirdPos=0),
+                types.SimpleNamespace(Type="Distance", First=0, FirstPos=0, Second=-2000, SecondPos=0, Third=-2000, ThirdPos=0),
+                types.SimpleNamespace(Type="Tangent", First=2, FirstPos=0, Second=3, SecondPos=0, Third=-2000, ThirdPos=0),
+            ]
+            self.deleted = []
+
+        def getGeoVertexIndex(self, v):
+            return self.vertices[v]
+
+        def delConstraint(self, idx):
+            self.deleted.append(idx)
+
+        def solve(self):
+            return 0
+
+    rsk = RelSketch()
+
+    def offer(*names):
+        return rel.suggest(rel.classify(rsk, list(names)))
+
+    cases = [
+        (("Edge1",), ["horizontal", "vertical", "block"]),
+        (("Edge1", "Edge2"), ["horizontal", "vertical", "collinear", "parallel", "perpendicular", "equal", "block"]),
+        (("Edge1", "H_Axis"), ["collinear", "parallel", "perpendicular"]),
+        (("Edge3", "Edge4"), ["tangent", "concentric", "equal", "block"]),
+        (("Edge1", "Edge3"), ["tangent", "block"]),
+        (("Edge3", "Edge5"), ["tangent", "concentric", "block"]),
+        (("Edge7",), ["block"]),
+        (("ExternalEdge1", "Edge1"), ["collinear", "parallel", "perpendicular", "equal"]),
+        (("Vertex1", "Vertex3"), ["horizontal", "vertical", "coincident", "lock"]),
+        (("Vertex1", "RootPoint"), ["horizontal", "vertical", "coincident"]),
+        (("Vertex1", "Vertex3", "Vertex5"), ["coincident", "symmetric", "lock"]),
+        (("Vertex3", "Edge1"), ["on_object", "midpoint"]),
+        (("Vertex1", "Edge1"), []),  # eigener Endpunkt: FreeCAD lehnt ab
+        (("Vertex3", "Vertex4", "Edge1"), ["on_object", "symmetric"]),
+        (("RootPoint", "Edge1"), ["on_object", "midpoint"]),
+        (("Vertex3", "Edge3"), ["on_object"]),
+        (("Constraint3",), []),
+    ]
+    for names, want in cases:
+        got = offer(*names)
+        if got != want:
+            print("  FEHLER: Beziehungen für", names, "->", got, "erwartet", want)
+            return False
+    for key, (command, _text) in rel.RELATIONS.items():
+        if command not in sys.modules["FreeCADGui"].listCommands():
+            print("  FEHLER: Beziehungsbefehl existiert nicht in FreeCAD 1.1.4:", command)
+            return False
+    labels = [e.label for e in rel.classify(rsk, ["Edge1", "Edge3", "Vertex4", "RootPoint", "H_Axis", "ExternalEdge1"])]
+    if labels != ["Linie1", "Kreis3", "Punkt4", "Ursprung", "Horizontale Achse", "Übernommen1"]:
+        print("  FEHLER: Elementnamen", labels)
+        return False
+    ex = rel.existing(rsk, rel.classify(rsk, ["Edge1"]))
+    if ex != [(0, "Horizontal"), (1, "Deckungsgleich")]:
+        print("  FEHLER: vorhandene Beziehungen der Linie (ohne Bemaßung)", ex)
+        return False
+    if rel.existing(rsk, rel.classify(rsk, ["Vertex2"])) != [(1, "Deckungsgleich")] or rel.existing(
+        rsk, rel.classify(rsk, ["Vertex1"])
+    ):
+        print("  FEHLER: vorhandene Beziehungen eines Punkts")
+        return False
+
+    # Ablauf mit Auswahl-Beobachter
+    rel.uninstall()
+    rel.install()
+    if not rel.is_installed() or len(gui._sel_observers) != 1:
+        print("  FEHLER: Auswahl-Beobachter nicht (genau einmal) angemeldet", gui._sel_observers)
+        return False
+    vp3 = types.SimpleNamespace(Object=rsk)
+    gui.ActiveDocument = types.SimpleNamespace(getInEdit=lambda: vp3)
+    gui._sel = [types.SimpleNamespace(Object=rsk, SubElementNames=("Edge1", "Edge2"))]
+    log.clear()
+    rel.refresh()
+    if any(level in ("ERR", "WARN") for level, _t in log):
+        print("  FEHLER: Panel-Aufbau meldet Fehler:", log)
+        return False
+    if rel._panel is None or rel._panel.offered != cases[1][1]:
+        print("  FEHLER: Panel zeigt nicht die passenden Beziehungen")
+        return False
+    if rel._panel.existing_ids != [0, 1]:
+        print("  FEHLER: Panel zeigt vorhandene Beziehungen nicht", rel._panel.existing_ids)
+        return False
+    rel.run_relation("parallel")
+    if ran[-1:] != [("Sketcher_ConstrainParallel",)]:
+        print("  FEHLER: Knopf startet die Beziehung nicht", ran[-1:])
+        return False
+    rel.delete_relations(rsk, [0, 1])
+    if rsk.deleted != [1, 0] or rsk.Document.opened != rsk.Document.committed:
+        print("  FEHLER: Löschen nicht von hinten / ohne Rückgängig-Schritt", rsk.deleted)
+        return False
+    w = rel._panel.widget
+    w.hide.reset_mock()
+    gui._sel = []
+    rel.refresh()
+    if not w.hide.called:
+        print("  FEHLER: Panel bleibt ohne Auswahl sichtbar")
+        return False
+    gui._sel = [types.SimpleNamespace(Object=rsk, SubElementNames=("Edge1",))]
+    w.hide.reset_mock()
+    gui.ActiveDocument = types.SimpleNamespace(getInEdit=lambda: None)  # Skizze zu
+    rel.refresh()
+    if not w.hide.called:
+        print("  FEHLER: Panel bleibt nach Skizzenende sichtbar")
+        return False
+    # Einhaengen OBEN in FreeCADs Aufgaben-Panel (TaskPanel in QScrollArea)
+    lay = sys.modules["swui.layout"]
+    host = mock.MagicMock(name="TaskPanel")
+    host.metaObject.return_value.className.return_value = "Gui::TaskView::TaskPanel"
+    other = mock.MagicMock(name="AndereScrollArea")
+    other.widget.return_value.metaObject.return_value.className.return_value = "QWidget"
+    area = mock.MagicMock(name="TaskScrollArea")
+    area.widget.return_value = host
+    tasks = mock.MagicMock(name="TasksDock")
+    tasks.findChildren.return_value = [other, area]
+    real_find = lay._find_dock
+    lay._find_dock = lambda _mw, _keys: tasks
+    try:
+        gui.ActiveDocument = types.SimpleNamespace(getInEdit=lambda: vp3)
+        gui._sel = [types.SimpleNamespace(Object=rsk, SubElementNames=("Vertex3", "Edge1"))]
+        rel.refresh()
+    finally:
+        lay._find_dock = real_find
+    ins = host.layout.return_value.insertWidget
+    if not ins.called or ins.call_args[0][0] != 0 or ins.call_args[0][1] is not rel._panel.widget:
+        print("  FEHLER: Panel nicht oben ins Aufgaben-Panel eingehängt", ins.call_args)
+        return False
+    if not tasks.raise_.called or rel._panel.offered != ["on_object", "midpoint"]:
+        print("  FEHLER: Aufgaben-Panel nicht nach vorn / falsche Beziehungen")
+        return False
+    rel.uninstall()
+    if rel.is_installed() or gui._sel_observers:
+        print("  FEHLER: Beobachter nach dem Verlassen noch aktiv")
+        return False
+    gui._sel = []
+    print("  Bezieh.  : %d Auswahl-Fälle passend; vorhandene ohne Maße; Knopf, Löschen, Ein-/Ausblenden OK" % len(cases))
 
     gui.ActiveDocument = None
     print("  Konstrukt: nur neue Linien gestrichelt, Kreise/alte Linien bleiben; Ende bei Werkzeugwechsel/Skizzenende")

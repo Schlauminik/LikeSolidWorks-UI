@@ -40,6 +40,14 @@ COLORS = {
     # 3D-Ansicht: Verlauf von oben nach unten (view_background.py)
     "view_top": "#a4b6cb",  # grau-blau
     "view_bottom": "#f2f5f9",  # fast weiss
+    # Skizzen wie in SOLIDWORKS (view_background.py):
+    "sketch_open": "#1c3fd4",  # unterbestimmt: blau
+    "sketch_defined": "#000000",  # vollstaendig bestimmt: schwarz
+    "sketch_construction": "#5b7be0",  # Konstruktionslinien: helleres Blau
+    "sketch_construction_defined": "#3a3a3a",  # ... vollstaendig bestimmt
+    "sketch_dim": "#000000",  # Bemassungen: schwarz
+    "sketch_dim_driven": "#7a7a7a",  # gesteuerte (Referenz-)Bemassung: grau
+    "sketch_relation": "#1e7d32",  # Beziehungssymbole: gruen
 }
 
 # Marker, damit remove() unseren Block sicher wiederfindet.

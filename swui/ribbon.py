@@ -409,6 +409,15 @@ def _command_icon(command, info, opts):
 
     names = [n for n in (opts.get("icon"), info.get("pixmap")) if n]
 
+    # Eigene Befehle geben einen Dateipfad als Symbol an.
+    import os
+
+    for name in names:
+        if os.path.isabs(name) and os.path.isfile(name):
+            icon = QtGui.QIcon(name)
+            if not icon.isNull():
+                return icon
+
     index_map = _resource_icons()
     for name in names:
         path = index_map.get(name) or index_map.get(name.lower())
@@ -469,6 +478,21 @@ def _run(command, index=None, *_args):
     index: Unterpunkt eines Gruppenbefehls oder None.
     *_args faengt das 'checked'-Argument von Qt ab.
     """
+    # Ein anderer Ribbon-Befehl beendet laufende eigene Werkzeuge.
+    if command != "SWUI_Centerline":
+        try:
+            from swui.commands import centerline
+
+            centerline.stop()
+        except Exception:
+            pass
+    if command != "SWUI_MidpointLine":
+        try:
+            from swui.commands import midpoint_line
+
+            midpoint_line.stop()
+        except Exception:
+            pass
     try:
         if index is None:
             FreeCADGui.runCommand(command)

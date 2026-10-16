@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-view_background.py - Grau-blauer Verlauf in der 3D-Ansicht, wie in
-SOLIDWORKS - aber nur, solange die Workbench aktiv ist.
+view_background.py - Ansichts-Einstellungen wie in SOLIDWORKS, nur
+solange die Workbench aktiv ist:
+
+  - grau-blauer Verlauf in der 3D-Ansicht
+  - Skizzenfarben: blau = unterbestimmt, schwarz = vollstaendig
+    bestimmt, schwarze Bemassungen, gruene Beziehungssymbole
 
 Der Hintergrund ist bei FreeCAD keine Fensterfarbe, sondern eine
 EINSTELLUNG (Bearbeiten -> Einstellungen -> Anzeige -> Farben). FreeCAD
@@ -45,6 +49,18 @@ def _target_values():
         ("Bool", "UseBackgroundColorMid", False),
         ("Unsigned", "BackgroundColor2", _packed(COLORS["view_top"])),
         ("Unsigned", "BackgroundColor3", _packed(COLORS["view_bottom"])),
+        # Skizzenfarben wie in SOLIDWORKS. Liegen in derselben Gruppe und
+        # werden von FreeCAD sofort uebernommen (geprueft gegen 1.1.4,
+        # src/Mod/Sketcher/Gui/EditModeCoinManager.cpp, updateColor).
+        ("Unsigned", "EditedEdgeColor", _packed(COLORS["sketch_open"])),
+        ("Unsigned", "FullyConstraintElementColor", _packed(COLORS["sketch_defined"])),
+        ("Unsigned", "FullyConstrainedColor", _packed(COLORS["sketch_defined"])),
+        ("Unsigned", "ConstructionColor", _packed(COLORS["sketch_construction"])),
+        ("Unsigned", "FullyConstraintConstructionElementColor",
+         _packed(COLORS["sketch_construction_defined"])),
+        ("Unsigned", "ConstrainedDimColor", _packed(COLORS["sketch_dim"])),
+        ("Unsigned", "NonDrivingConstrDimColor", _packed(COLORS["sketch_dim_driven"])),
+        ("Unsigned", "ConstrainedIcoColor", _packed(COLORS["sketch_relation"])),
     ]
 
 

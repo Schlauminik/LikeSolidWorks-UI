@@ -15,8 +15,8 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | 2d | 3D-Hintergrund grau-blau, Reiter Skizze automatisch | **fertig** |
 | 2e | Schwebende Ansichtsleiste (Heads-up) | verworfen – Reiter *Ansicht* deckt es ab |
 | 3 | Baum: SOLIDWORKS-Namen für neue Features und Ebenen (`swui/naming.py`) | **fertig** |
-| 4 | Skizzier-Grundgerüst (Hybrid: FreeCAD-Sketcher + SW-Optik) | offen |
-| 5 | Weitere Skizzen-Elemente | offen |
+| 4 | Skizzen: SW-Farben (blau/schwarz), Beziehungen im Ribbon | **fertig** |
+| 5 | Mittellinie symmetrisch mit gespiegelter Gegenseite (`midpoint_line.py`), Konstruktionslinie gestrichelt (`centerline.py`) | **fertig** |
 | 6 | Constraints im SW-Stil | offen |
 | 7 | 3D-Features (Extrude, Cut, Fillet, Chamfer) | offen |
 

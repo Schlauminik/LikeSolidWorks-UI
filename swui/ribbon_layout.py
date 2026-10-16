@@ -84,6 +84,23 @@ SKIZZE = (
         ],
         [
             ("Sketcher_Dimension", "Intelligente\nBemaßung"),
+            # Beziehungen wie in SOLIDWORKS ("Beziehung hinzufuegen"):
+            # erst Elemente waehlen, dann Beziehung. Der Knopf merkt sich
+            # die zuletzt benutzte. Alle Namen gegen FreeCAD 1.1.4 geprueft.
+            {"flyout": [
+                ("Sketcher_ConstrainCoincidentUnified", "Deckungs-\ngleich"),
+                ("Sketcher_ConstrainHorizontal", "Horizontal"),
+                ("Sketcher_ConstrainVertical", "Vertikal"),
+                ("Sketcher_ConstrainParallel", "Parallel"),
+                ("Sketcher_ConstrainPerpendicular", "Senkrecht"),
+                ("Sketcher_ConstrainTangent", "Tangential"),
+                ("Sketcher_ConstrainEqual", "Gleich"),
+                ("Sketcher_ConstrainSymmetric", "Symmetrisch"),
+                ("Sketcher_ConstrainPointOnObject", "Auf\nElement"),
+                ("Sketcher_ConstrainLock", "Fixieren"),
+                ("Sketcher_ConstrainBlock", "Blockieren"),
+            ]},
+            ("Sketcher_ToggleDrivingConstraint", "Gesteuerte\nBemaßung"),
         ],
         [
             # Ausklappmenues wie in SOLIDWORKS: ein Knopf, Varianten
@@ -95,6 +112,12 @@ SKIZZE = (
                 # zwischen Linie und Tangentialbogen.
                 ("Sketcher_CreatePolyline", "Linie"),
                 ("Sketcher_CreateLine", "Einzel-\nlinie"),
+                # Eigener Befehl (swui/commands/midpoint_line.py): vom
+                # Mittelpunkt aus ziehen, Gegenseite entsteht gespiegelt.
+                ("SWUI_MidpointLine", "Mittel-\nlinie"),
+                # Eigener Befehl (swui/commands/centerline.py): Linie, die
+                # automatisch gestrichelt (Konstruktionslinie) wird.
+                ("SWUI_Centerline", "Konstruktions-\nlinie"),
             ]},
             {"flyout": [
                 ("Sketcher_CreateRectangle", "Eck-\nrechteck"),

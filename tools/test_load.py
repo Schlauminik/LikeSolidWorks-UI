@@ -70,6 +70,7 @@ def _all_layout_commands(filename="ribbon_layout.py"):
                 "Sketcher",
                 "Std",
                 "Part",
+                "SWUI",
             ):
                 name = first.value
                 if len(node.elts) == 3:
@@ -270,6 +271,37 @@ def _make_stubs():
         def GetContents(self):
             return [("?", k, v) for k, v in self.d.items()]
 
+    class Vector:
+        def __init__(self, x=0.0, y=0.0, z=0.0):
+            self.x, self.y, self.z = float(x), float(y), float(z)
+
+        def __repr__(self):
+            return "V(%g,%g,%g)" % (self.x, self.y, self.z)
+
+    class _Rot:
+        def multVec(self, v):
+            return v
+
+    class Placement:  # Skizze liegt im Ursprung (Identitaet)
+        Rotation = _Rot()
+
+        def inverse(self):
+            return self
+
+        def multVec(self, v):
+            return v
+
+    freecad.Vector = Vector
+    freecad.Placement = Placement
+    part = types.ModuleType("Part")
+    part.LineSegment = lambda a, b: ("Line", (a.x, a.y), (b.x, b.y))
+    sys.modules["Part"] = part
+    sketcher = types.ModuleType("Sketcher")
+    sketcher.Constraint = lambda *a: a
+    sys.modules["Sketcher"] = sketcher
+    sys.modules["pivy"] = mock.MagicMock(name="pivy")
+    sys.modules["pivy.coin"] = sys.modules["pivy"].coin
+
     freecad._observers = []
     freecad.addDocumentObserver = lambda o: freecad._observers.append(o)
     freecad.ParamGet = _Group
@@ -351,10 +383,10 @@ def _make_stubs():
     for sub in ("QtCore", "QtGui", "QtWidgets"):
         sys.modules["PySide." + sub] = getattr(pyside, sub)
 
-    # Sketcher und pivy absichtlich NICHT bereitstellen:
-    # compat.py muss fehlende optionale Module sauber abfangen.
-    for name in ("Sketcher", "pivy", "pivy.coin", "draftutils"):
-        sys.modules.pop(name, None)
+    # draftutils absichtlich NICHT bereitstellen: compat.py muss fehlende
+    # optionale Module sauber abfangen. (Sketcher und pivy sind oben als
+    # Attrappen angelegt - die Mittelpunktlinie braucht sie.)
+    sys.modules.pop("draftutils", None)
 
     return registered, commands
 
@@ -674,6 +706,198 @@ def run(split_namespace):
     gui.ActiveDocument = None
     print("  Kontext  : Skizze -> Reiter Skizze, danach zurück; Benutzerwahl bleibt")
 
+    # --- Mittellinie --------------------------------------------------
+    cl = sys.modules["swui.commands.centerline"]
+    LINE, CIRCLE = "Part::GeomLineSegment", "Part::GeomCircle"
+
+    class Geo:
+        def __init__(self, t):
+            self.TypeId = t
+
+    class Doc:
+        HasPendingTransaction = False
+
+        def __init__(self):
+            self.opened = self.committed = 0
+
+        def openTransaction(self, _name):
+            self.opened += 1
+
+        def commitTransaction(self):
+            self.committed += 1
+
+    class Sk:
+        TypeId = "Sketcher::SketchObject"
+
+        def __init__(self):
+            self.Document = Doc()
+            self.Geometry = [Geo(LINE)]  # schon vorhandene normale Linie
+            self.constr = set()
+
+        def getConstruction(self, i):
+            return i in self.constr
+
+        def setConstruction(self, i, state):
+            (self.constr.add if state else self.constr.discard)(i)
+
+    sk = Sk()
+    vp = types.SimpleNamespace(Object=sk)
+    gui.ActiveDocument = types.SimpleNamespace(getInEdit=lambda: vp)
+
+    if "SWUI_Centerline" not in commands or not commands["SWUI_Centerline"].IsActive():
+        print("  FEHLER: Befehl Mittellinie fehlt oder ist in der Skizze nicht aktiv")
+        return False
+    commands["SWUI_Centerline"].Activated()
+    if ran[-1:] != [("Sketcher_CreateLine",)] or not cl.is_running():
+        print("  FEHLER: Mittellinie startet das Linienwerkzeug nicht", ran[-1:])
+        return False
+    sk.Geometry += [Geo(LINE), Geo(CIRCLE)]  # neue Linie + Kreis gezeichnet
+    cl._tick()
+    if sk.constr != {1} or sk.Document.committed != 1:
+        print("  FEHLER: nur die neue Linie hätte umgewandelt werden dürfen", sk.constr)
+        return False
+    sk.Document.HasPendingTransaction = True  # FreeCAD hat Transaktion offen
+    sk.Geometry.append(Geo(LINE))
+    opened_before = sk.Document.opened
+    cl._tick()
+    sk.Document.HasPendingTransaction = False
+    if 3 not in sk.constr:
+        print("  FEHLER: bei offener FreeCAD-Transaktion nicht sofort umgewandelt (Fehler vom 16.10.)")
+        return False
+    if sk.Document.opened != opened_before:
+        print("  FEHLER: eigene Transaktion in eine offene hinein geöffnet")
+        return False
+    sk.constr.discard(3)  # Abbrechen nimmt die Umwandlung zurück ...
+    cl._tick()
+    if 3 not in sk.constr:  # ... der nächste Takt holt sie nach
+        print("  FEHLER: zurückgenommene Umwandlung wird nicht nachgeholt")
+        return False
+    ribbon._run("Sketcher_CreateCircle", None, False)  # anderes Werkzeug
+    if cl.is_running() or sk.constr != {1, 3}:
+        print("  FEHLER: Werkzeugwechsel beendet die Mittellinie nicht sauber", sk.constr)
+        return False
+    sk.Geometry.append(Geo(LINE))  # danach: normale Linie bleibt normal
+    cl._tick()
+    if 4 in sk.constr:
+        print("  FEHLER: nach dem Beenden wird weiter umgewandelt")
+        return False
+    cl.start()
+    gui.ActiveDocument = types.SimpleNamespace(getInEdit=lambda: None)  # Skizze verlassen
+    sk.Geometry.append(Geo(LINE))
+    cl._tick()
+    if cl.is_running() or 5 in sk.constr:
+        print("  FEHLER: Verlassen der Skizze beendet die Mittellinie nicht")
+        return False
+    # --- Mittellinie (symmetrisch, gespiegelte Gegenseite) -------------
+    ml = sys.modules["swui.commands.midpoint_line"]
+    fc = sys.modules["FreeCAD"]
+    V = fc.Vector
+
+    class MlSketch:
+        TypeId = "Sketcher::SketchObject"
+
+        def __init__(self):
+            self.Document = Doc()
+            self.Geometry, self.pts, self.constraints = [], {}, []
+            self.constr = set()
+
+        def draw(self, a, b, constr=False, kind=LINE):
+            """So legt FreeCADs Linienwerkzeug eine Linie an."""
+            gid = len(self.Geometry)
+            self.Geometry.append(Geo(kind))
+            self.pts[(gid, 1)], self.pts[(gid, 2)] = a, b
+            if constr:
+                self.constr.add(gid)
+            return gid
+
+        def getPoint(self, gid, pos):
+            return V(*self.pts[(gid, pos)])
+
+        def getConstruction(self, i):
+            return i in self.constr
+
+        def addGeometry(self, line, constr=False):
+            _kind, a, b = line
+            return self.draw(a, b, constr)
+
+        def addConstraint(self, c):
+            self.constraints.append(c)
+
+        def solve(self):
+            return 0
+
+    msk = MlSketch()
+    msk.draw((0.0, 0.0), (5.0, 5.0))  # schon vorhanden: bleibt unberuehrt
+    vp2 = types.SimpleNamespace(Object=msk)
+    gui.ActiveDocument = types.SimpleNamespace(getInEdit=lambda: vp2)
+
+    if "SWUI_MidpointLine" not in commands or not commands["SWUI_MidpointLine"].IsActive():
+        print("  FEHLER: Befehl Mittellinie fehlt oder nicht aktiv")
+        return False
+    commands["SWUI_MidpointLine"].Activated()
+    if ran[-1:] != [("Sketcher_CreateLine",)] or not ml.is_running():
+        print("  FEHLER: Mittellinie startet das Linienwerkzeug nicht", ran[-1:])
+        return False
+    msk.draw((10.0, 5.0), (40.0, 25.0))  # Index 1: vom Mittelpunkt gezogen
+    msk.draw((0.0, 0.0), (1.0, 0.0), kind=CIRCLE)  # Index 2: Kreis
+    ml._tick()
+    if len(msk.Geometry) != 4 or msk.pts.get((3, 1)) != (10.0, 5.0) or msk.pts.get((3, 2)) != (-20.0, -15.0):
+        print("  FEHLER: Gegenseite fehlt oder nicht gespiegelt", msk.pts)
+        return False
+    if msk.constraints != [("Coincident", 3, 1, 1, 1), ("Symmetric", 1, 2, 3, 2, 1, 1)]:
+        print("  FEHLER: Beziehungen der Gegenseite", msk.constraints)
+        return False
+    if msk.constr:
+        print("  FEHLER: Mittellinie ist gestrichelt", msk.constr)
+        return False
+    ml._tick()
+    if len(msk.Geometry) != 4:
+        print("  FEHLER: Gegenseite wurde selbst nochmal gespiegelt")
+        return False
+    msk.Document.HasPendingTransaction = True
+    opened_before = msk.Document.opened
+    msk.draw((0.0, 0.0), (0.0, 7.0), constr=True)  # Index 4, Konstruktionsmodus
+    ml._tick()
+    msk.Document.HasPendingTransaction = False
+    if len(msk.Geometry) != 6 or 5 not in msk.constr or msk.pts.get((5, 2)) != (0.0, -7.0):
+        print("  FEHLER: Gegenseite im Konstruktionsmodus/offener Transaktion", msk.pts.get((5, 2)))
+        return False
+    if msk.Document.opened != opened_before:
+        print("  FEHLER: eigene Transaktion in eine offene hinein geöffnet")
+        return False
+    msk.draw((3.0, 3.0), (3.0, 3.0))  # Null-Linie (Doppelklick)
+    ml._tick()
+    if len(msk.Geometry) != 7:
+        print("  FEHLER: Null-Linie gespiegelt")
+        return False
+    del msk.Geometry[4:]  # Rueckgaengig
+    ml._tick()
+    msk.draw((1.0, 1.0), (2.0, 1.0))  # Index 4 neu
+    ml._tick()
+    if len(msk.Geometry) != 6 or msk.pts.get((5, 2)) != (0.0, 1.0):
+        print("  FEHLER: nach Rückgängig keine Gegenseite", len(msk.Geometry))
+        return False
+    msk.draw((0.0, 0.0), (9.0, 0.0))  # letzte Linie direkt vor Werkzeugwechsel
+    ribbon._run("Sketcher_CreateCircle", None, False)
+    if ml.is_running() or len(msk.Geometry) != 8:
+        print("  FEHLER: Werkzeugwechsel beendet nicht sauber / letzte Linie nicht gespiegelt")
+        return False
+    msk.draw((0.0, 0.0), (4.0, 0.0))  # danach: normale Linie bleibt einseitig
+    ml._tick()
+    if len(msk.Geometry) != 9:
+        print("  FEHLER: nach dem Beenden wird weiter gespiegelt")
+        return False
+    commands["SWUI_MidpointLine"].Activated()
+    gui.ActiveDocument = types.SimpleNamespace(getInEdit=lambda: None)  # Skizze verlassen
+    ml._tick()
+    if ml.is_running():
+        print("  FEHLER: Verlassen der Skizze beendet die Mittellinie nicht")
+        return False
+    print("  Mittellin: Gegenseite gespiegelt (Deckungsgleich+Symmetrisch), nicht gestrichelt, Ende bei Wechsel/Skizzenende")
+
+    gui.ActiveDocument = None
+    print("  Konstrukt: nur neue Linien gestrichelt, Kreise/alte Linien bleiben; Ende bei Werkzeugwechsel/Skizzenende")
+
     # Zweites Activated darf nicht neu bauen (sonst doppelte Knoepfe).
     wb.Activated()
     if len(ribbon.button_names()) != len(built):
@@ -732,7 +956,18 @@ def run(split_namespace):
     if not fc._params[vb.OWN_PARAMS].get(vb.BACKUP_KEY):
         print("  FEHLER: keine Absturz-Sicherung angelegt")
         return False
+    sketch_keys = {
+        "EditedEdgeColor": "sketch_open",
+        "FullyConstraintElementColor": "sketch_defined",
+        "ConstrainedDimColor": "sketch_dim",
+        "ConstructionColor": "sketch_construction",
+    }
+    for key, color in sketch_keys.items():
+        if view.get(key) != vb._packed(theme.COLORS[color]):
+            print("  FEHLER: Skizzenfarbe %s nicht gesetzt" % key, view.get(key))
+            return False
     print("  3D-Hgrd  : Verlauf gesetzt (oben %s), Sicherung angelegt" % theme.COLORS["view_top"])
+    print("  Skizze   : unterbestimmt %s, bestimmt %s" % (theme.COLORS["sketch_open"], theme.COLORS["sketch_defined"]))
 
     log.clear()
     wb.Deactivated()

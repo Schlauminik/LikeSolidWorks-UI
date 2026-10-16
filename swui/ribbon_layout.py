@@ -70,10 +70,9 @@ FEATURES = (
             ], "style": "text"},
         ],
         [
-            {"flyout": [
-                ("PartDesign_Fillet", "Verrundung", {"svg": "sketch/f_fillet"}),
-                ("PartDesign_Chamfer", "Fase", {"svg": "sketch/f_chamfer"}),
-            ]},
+            # Auf Dominiks Wunsch einzeln statt im Ausklappmenue (SW buendelt sie).
+            ("PartDesign_Fillet", "Verrundung", {"svg": "sketch/f_fillet"}),
+            ("PartDesign_Chamfer", "Fase", {"svg": "sketch/f_chamfer"}),
             {"flyout": [
                 ("PartDesign_LinearPattern", "Lineares\nMuster", {"svg": "sketch/f_pattern_linear"}),
                 ("PartDesign_PolarPattern", "Kreis-\nmuster", {"svg": "sketch/f_pattern_polar"}),

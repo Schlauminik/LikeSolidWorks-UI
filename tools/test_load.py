@@ -700,7 +700,7 @@ def run(split_namespace):
     for _title, groups in layout_mod.TABS:
         for g in groups:
             _walk(g)
-    if len(svgs) < 18:
+    if len(svgs) < 36:
         print("  FEHLER: zu wenige eigene Symbole im Ribbon", len(svgs))
         return False
     for cmd, opts in svgs:

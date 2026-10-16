@@ -95,10 +95,10 @@ SKIZZE = (
             # (PartDesign_NewSketch legt bei Bedarf einen Koerper an),
             # beim Skizzieren "Skizze beenden".
             {"toggle": [
-                ("PartDesign_NewSketch", "Skizze"),
-                ("Sketcher_LeaveSketch", "Skizze\nbeenden"),
+                ("PartDesign_NewSketch", "Skizze", {"svg": "sketch/sketch_new"}),
+                ("Sketcher_LeaveSketch", "Skizze\nbeenden", {"svg": "sketch/sketch_leave"}),
             ]},
-            ("Sketcher_Dimension", "Intelligente\nBemaßung"),
+            ("Sketcher_Dimension", "Intelligente\nBemaßung", {"svg": "sketch/dimension"}),
         ],
         [
             # Zeichenwerkzeuge: kleine Symbole, spaltenweise 3 untereinander.
@@ -141,37 +141,37 @@ SKIZZE = (
                     ("Sketcher_CreateArcOfEllipse", "Teil-\nellipse", {"svg": "sketch/ellipse_arc"}),
                 ]},
                 {"flyout": [
-                    ("Sketcher_CreateFillet", "Skizzen-\nverrundung"),
-                    ("Sketcher_CreateChamfer", "Skizzen-\nfase"),
+                    ("Sketcher_CreateFillet", "Skizzen-\nverrundung", {"svg": "sketch/fillet"}),
+                    ("Sketcher_CreateChamfer", "Skizzen-\nfase", {"svg": "sketch/chamfer"}),
                 ]},
                 ("Sketcher_CreatePoint", "Punkt", {"svg": "sketch/point"}),
-                ("Sketcher_ToggleConstruction", "Konstruktions-\ngeometrie"),
+                ("Sketcher_ToggleConstruction", "Konstruktions-\ngeometrie", {"svg": "sketch/construction_toggle"}),
             ], "style": "icon"},
         ],
         [
             {"flyout": [
-                ("Sketcher_Trimming", "Elemente\ntrimmen"),
-                ("Sketcher_Extend", "Elemente\nverlängern"),
-                ("Sketcher_Split", "Elemente\nteilen"),
+                ("Sketcher_Trimming", "Elemente\ntrimmen", {"svg": "sketch/trim"}),
+                ("Sketcher_Extend", "Elemente\nverlängern", {"svg": "sketch/extend"}),
+                ("Sketcher_Split", "Elemente\nteilen", {"svg": "sketch/split"}),
             ]},
             # "Elemente uebernehmen" = Modellkanten in die Skizze
             # projizieren. Name in FreeCAD 1.x: Sketcher_Projection,
             # in aelteren Versionen: Sketcher_External.
             {"flyout": [
-                ("Sketcher_Projection", "Elemente\nübernehmen", {"fallback": ["Sketcher_External"]}),
-                ("Sketcher_Intersection", "Schnitt-\nkurve"),
+                ("Sketcher_Projection", "Elemente\nübernehmen", {"fallback": ["Sketcher_External"], "svg": "sketch/project"}),
+                ("Sketcher_Intersection", "Schnitt-\nkurve", {"svg": "sketch/intersection"}),
             ]},
             # Erst Elemente waehlen, dann klicken (FreeCAD-Regel).
-            ("Sketcher_Offset", "Offset-\nElemente"),
+            ("Sketcher_Offset", "Offset-\nElemente", {"svg": "sketch/offset"}),
         ],
         [
             {"stack": [
-                ("Sketcher_Symmetry", "Elemente spiegeln"),
-                ("Sketcher_RectangularArray", "Lineares Skizzenmuster"),
+                ("Sketcher_Symmetry", "Elemente spiegeln", {"svg": "sketch/mirror"}),
+                ("Sketcher_RectangularArray", "Lineares Skizzenmuster", {"svg": "sketch/pattern_linear"}),
                 {"flyout": [
-                    ("Sketcher_Translate", "Elemente verschieben"),
-                    ("Sketcher_Rotate", "Elemente drehen"),
-                    ("Sketcher_Scale", "Elemente skalieren"),
+                    ("Sketcher_Translate", "Elemente verschieben", {"svg": "sketch/move"}),
+                    ("Sketcher_Rotate", "Elemente drehen", {"svg": "sketch/rotate"}),
+                    ("Sketcher_Scale", "Elemente skalieren", {"svg": "sketch/scale"}),
                 ]},
             ], "style": "text"},
         ],
@@ -194,7 +194,7 @@ SKIZZE = (
                 ("Sketcher_ConstrainLock", "Fixieren"),
                 ("Sketcher_ConstrainBlock", "Blockieren"),
             ]},
-            ("Sketcher_ToggleDrivingConstraint", "Gesteuerte\nBemaßung"),
+            ("Sketcher_ToggleDrivingConstraint", "Gesteuerte\nBemaßung", {"svg": "sketch/dimension_driven"}),
         ],
     ],
 )

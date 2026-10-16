@@ -3,6 +3,7 @@
 Erzeugt die eigenen Skizzen-Symbole des Add-ons (resources/icons/sketch/).
 
 Eigene Entwuerfe - KEINE Kopie von SOLIDWORKS- oder FreeCAD-Symbolen.
+Farben: NUR Weiss, Grau, Rot und Blau (Wunsch von Dominik, 16.10.).
 Die Bildsprache verbindet beide Welten:
   - von FreeCAD: weisse Geometrie mit dunkler Kontur, rote Punkte,
     blaue Konstruktionslinien
@@ -10,6 +11,8 @@ Die Bildsprache verbindet beide Welten:
         ROT        = hier klickst du (Reihenfolge der Bedienung)
         BLAU, gestrichelt = Hilfs-/Konstruktionslinie
         kleines blaues Kreuz = Punkt, der sich ergibt (nicht geklickt)
+        BLAU, durchgezogen = Ergebnis des Werkzeugs (neue Geometrie, Bewegung)
+        GRAU, gestrichelt = faellt weg / alter Zustand
 
 Aufruf (im Repo-Ordner):
     python3 tools/make_icons.py
@@ -27,6 +30,10 @@ OUTLINE = "#1b1b1b"  # dunkle Kontur (FreeCAD-Erbe)
 GEO = "#f4f4f4"  # Geometrie: fast weiss
 RED = "#e0261b"  # Klickpunkte
 CON = "#7aa6ff"  # Konstruktion / Hilfslinien
+NEW = "#3d8bff"  # Ergebnis: neue Geometrie, Bewegungspfeile (kraeftiges Blau)
+OLD = "#9a9a9a"  # faellt weg / alter Zustand
+PLANE = "#8b9099"  # Skizzierebene (Flaeche): grau, damit Blau darauf sichtbar bleibt
+OK = NEW  # bestaetigen (Haken) - nur Weiss, Grau, Rot, Blau
 GEO_W = 4.0  # Strichbreite Geometrie
 OUT_W = 7.0  # Strichbreite Kontur (darunter)
 POINT_R = 4.2  # Radius Klickpunkt
@@ -85,6 +92,57 @@ def cross(x, y, s=4.0):
         '<path d="%s" stroke="%s" stroke-width="4" stroke-linecap="round"/>'
         '<path d="%s" stroke="%s" stroke-width="2" stroke-linecap="round"/>' % (d, OUTLINE, d, CON)
     )
+
+
+def new(d):
+    """Ergebnis-Geometrie: kraeftiges Blau, durchgezogen, auf dunkler Kontur."""
+    join = 'stroke-linejoin="round" stroke-linecap="round" fill="none"'
+    return (
+        '<path d="%s" stroke="%s" stroke-width="%.1f" %s/>'
+        '<path d="%s" stroke="%s" stroke-width="%.1f" %s/>'
+        % (d, OUTLINE, OUT_W, join, d, NEW, GEO_W, join)
+    )
+
+
+def old(d):
+    """Faellt weg: grau gestrichelt."""
+    return ('<path d="%s" stroke="%s" stroke-width="3" stroke-dasharray="4 3" '
+            'fill="none" stroke-linecap="butt"/>' % (d, OLD))
+
+
+def thin(d, color=GEO, w=1.8):
+    """Duenne Linie (Masshilfslinien)."""
+    return '<path d="%s" stroke="%s" stroke-width="%.1f" fill="none" stroke-linecap="round"/>' % (
+        d, color, w)
+
+
+def arrow(x0, y0, x1, y1, color=NEW, head=7.0, w=3.2):
+    """Pfeil von (x0,y0) nach (x1,y1) mit gefuellter Spitze."""
+    ang = math.atan2(y1 - y0, x1 - x0)
+    bx, by = x1 - head * math.cos(ang), y1 - head * math.sin(ang)
+    lx, ly = bx + head * 0.55 * math.sin(ang), by - head * 0.55 * math.cos(ang)
+    rx, ry = bx - head * 0.55 * math.sin(ang), by + head * 0.55 * math.cos(ang)
+    line = "M%.1f %.1f L%.1f %.1f" % (x0, y0, bx, by)
+    tip = "M%.1f %.1f L%.1f %.1f L%.1f %.1f Z" % (x1, y1, lx, ly, rx, ry)
+    return (
+        '<path d="%s" stroke="%s" stroke-width="%.1f" stroke-linecap="round"/>'
+        '<path d="%s" fill="%s" stroke="%s" stroke-width="1.2" stroke-linejoin="round"/>'
+        '<path d="%s" stroke="%s" stroke-width="%.1f" stroke-linecap="round"/>'
+        % (line, OUTLINE, w + 2.4, tip, color, OUTLINE, line, color, w)
+    )
+
+
+def plane(d="M6 44 L22 22 H58 L42 44 Z"):
+    """Skizzierebene: halbtransparente blaue Flaeche."""
+    return '<path d="%s" fill="%s" fill-opacity="0.55" stroke="%s" stroke-width="1.6" stroke-linejoin="round"/>' % (
+        d, PLANE, OUTLINE)
+
+
+def label(x, y, text, color=GEO, size=13):
+    """Kleiner Text (Masszahl)."""
+    return ('<text x="%.1f" y="%.1f" font-family="DejaVu Sans, Arial, sans-serif" font-size="%d" '
+            'font-weight="bold" text-anchor="middle" fill="%s" stroke="%s" stroke-width="0.6" '
+            'paint-order="stroke">%s</text>' % (x, y, size, color, OUTLINE, text))
 
 
 def arc_d(cx, cy, r, a0, a1, large=None, sweep=0):
@@ -244,6 +302,129 @@ def _():
 @icon("point", "Punkt")
 def _():
     return [con("M32 12 V24 M32 40 V52 M12 32 H24 M40 32 H52"), pt(32, 32, r=6.5)]
+
+
+# --- Symbole: Paket 2 - Bearbeiten-Werkzeuge -------------------------
+
+
+@icon("sketch_new", "Skizze")
+def _():
+    return [plane("M4 56 L18 14 H60 L46 56 Z"), geo("M18 46 L24 26 H44 L38 46 Z"), pt(18, 46)]
+
+
+@icon("sketch_leave", "Skizze beenden")
+def _():
+    check = "M30 40 L40 52 L60 24"
+    return [plane("M2 50 L14 12 H50 L38 50 Z"), geo("M12 40 L17 22 H34 L29 40 Z"),
+            '<path d="%s" stroke="%s" stroke-width="11" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' % (check, OUTLINE),
+            '<path d="%s" stroke="%s" stroke-width="6.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' % (check, OK)]
+
+
+@icon("dimension", "Intelligente Bemaßung")
+def _():
+    return [geo("M10 52 L54 52"), thin("M10 48 V22 M54 48 V22"),
+            arrow(32, 28, 11, 28, w=2.4, head=6), arrow(32, 28, 53, 28, w=2.4, head=6),
+            label(32, 20, "25", color=NEW), pt(10, 52, r=3.6), pt(54, 52, r=3.6)]
+
+
+@icon("dimension_driven", "Gesteuerte Bemaßung")
+def _():
+    return [geo("M10 52 L54 52"), thin("M10 48 V22 M54 48 V22", color=OLD),
+            thin("M12 28 H52", color=OLD, w=2.2), label(32, 20, "(25)", color=OLD, size=12)]
+
+
+@icon("fillet", "Skizzenverrundung")
+def _():
+    return [old("M30 50 L14 50 L14 34"), geo("M58 50 H30 M14 34 V8"),
+            new("M14 34 A16 16 0 0 0 30 50"), pt(40, 50, r=3.6), pt(14, 22, r=3.6)]
+
+
+@icon("chamfer", "Skizzenfase")
+def _():
+    return [old("M30 50 L14 50 L14 34"), geo("M58 50 H30 M14 34 V8"),
+            new("M14 34 L30 50"), pt(40, 50, r=3.6), pt(14, 22, r=3.6)]
+
+
+@icon("construction_toggle", "Konstruktionsgeometrie")
+def _():
+    # normale Linie -> Konstruktionslinie (und zurueck)
+    return [geo("M6 52 L20 12"), con_geo("M44 52 L58 12"), arrow(22, 32, 44, 32, w=3, head=7)]
+
+
+@icon("trim", "Elemente trimmen")
+def _():
+    return [geo("M8 40 H56"), geo("M32 58 V40"), old("M32 38 V8"), pt(32, 22)]
+
+
+@icon("extend", "Elemente verlängern")
+def _():
+    return [geo("M52 8 V56"), geo("M8 32 H30"), new("M30 32 H50"), pt(18, 32, r=3.6)]
+
+
+@icon("split", "Elemente teilen")
+def _():
+    return [geo("M6 50 L26 30"), geo("M38 34 L58 14"), thin("M22 22 L42 42", color=OLD, w=2.4), pt(32, 32)]
+
+
+@icon("project", "Elemente übernehmen")
+def _():
+    cube = "M14 10 H34 V26 H14 Z M14 10 L22 4 H42 L34 10 M42 4 V20 L34 26"
+    return [geo(cube), plane("M4 58 L16 42 H60 L48 58 Z"), arrow(24, 30, 24, 44, w=2.4, head=6),
+            new("M14 54 L20 46 H40 L34 54 Z")]
+
+
+@icon("intersection", "Schnittkurve")
+def _():
+    return [plane("M4 46 L18 28 H60 L46 46 Z"), geo("M32 8 A13 13 0 1 1 31.99 8"),
+            new("M19.5 37 A12.5 5 0 0 0 44.5 37"), thin("M19.5 37 A12.5 5 0 0 1 44.5 37", color=NEW, w=1.6)]
+
+
+@icon("offset", "Offset-Elemente")
+def _():
+    return [geo("M22 44 V30 Q22 22 30 22 H44"), new("M10 44 V30 Q10 10 30 10 H44"),
+            arrow(22, 30, 13, 30, w=2.2, head=5.5), pt(30, 22, r=3.6)]
+
+
+@icon("mirror", "Elemente spiegeln")
+def _():
+    return [con("M32 4 V60"), geo("M26 14 L8 46 H26 Z"), new("M38 14 L56 46 H38 Z")]
+
+
+@icon("pattern_linear", "Lineares Skizzenmuster")
+def _():
+    out = [con("M8 58 H58 M8 58 V6")]
+    for i, (x, y) in enumerate([(14, 38), (32, 38), (50, 38), (14, 18), (32, 18), (50, 18)]):
+        box = "M%d %d h10 v10 h-10 Z" % (x - 5, y - 5)
+        out.append(geo(box) if i == 0 else new(box))
+    return out
+
+
+@icon("move", "Elemente verschieben")
+def _():
+    return [old("M8 34 H26 V52 H8 Z"), new("M38 12 H56 V30 H38 Z"), arrow(22, 38, 40, 22), pt(17, 43, r=3.6)]
+
+
+@icon("rotate", "Elemente drehen")
+def _():
+    px, py = 12, 50
+    def rect(a):
+        c = [polar(px, py, 0, 0), polar(px, py, 38, a), None, None]
+        w = polar(0, 0, 9, a + 90)
+        c[2] = (c[1][0] + w[0], c[1][1] + w[1])
+        c[3] = (px + w[0], py + w[1])
+        return "M" + " L".join("%.1f %.1f" % q for q in c) + " Z"
+    a0, a1 = polar(px, py, 46, 4), polar(px, py, 46, 40)
+    arc = "M%.1f %.1f A46 46 0 0 0 %.1f %.1f" % (a0[0], a0[1], a1[0], a1[1])
+    tip = polar(px, py, 46, 46)
+    return [old(rect(0)), new(rect(45)),
+            '<path d="%s" stroke="%s" stroke-width="5.6" fill="none"/>' % (arc, OUTLINE),
+            '<path d="%s" stroke="%s" stroke-width="3.2" fill="none"/>' % (arc, NEW),
+            arrow(a1[0], a1[1], tip[0], tip[1], head=7), pt(px, py)]
+
+
+@icon("scale", "Elemente skalieren")
+def _():
+    return [new("M10 54 V14 H50 V54 Z"), geo("M10 54 V36 H28 V54 Z"), arrow(28, 36, 46, 18), pt(10, 54)]
 
 
 # --- Ausgabe ---------------------------------------------------------

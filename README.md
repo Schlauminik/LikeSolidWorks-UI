@@ -20,7 +20,7 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | 6a | Panel „Beziehungen hinzufügen“: nur passende Beziehungen zur Auswahl, vorhandene anzeigen/löschen (`swui/sketch_relations.py`) | **fertig** |
 | 6b | Eigene Skizzen-Symbole (SW-Klarheit + FreeCAD-Stil), Paket 1: Zeichenwerkzeuge (`tools/make_icons.py`) | **fertig** |
 | 6b+ | Reiter Skizze aufgeteilt wie SW-CommandManager: große Hauptknöpfe, 3-Zeilen-Stapel, Zeilen mit Text; Skizze/Skizze beenden umschaltend; Offset-Elemente | **fertig** |
-| 6c | Symbole Paket 2: Bearbeiten-Werkzeuge | offen |
+| 6c | Symbole Paket 2: Bearbeiten-Werkzeuge (Skizze, Bemaßung, Trimmen, Offset, Spiegeln, Muster …) | **fertig** |
 | 6d | Symbole Paket 3: Beziehungen | offen |
 | 7 | 3D-Features (Extrude, Cut, Fillet, Chamfer) | offen |
 

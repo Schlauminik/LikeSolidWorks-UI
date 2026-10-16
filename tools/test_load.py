@@ -39,7 +39,6 @@ VIEW = "User parameter:BaseApp/Preferences/View"
 ORIGINAL_VIEW = {"Simple": True, "BackgroundColor2": 123456}
 
 MISSING = {
-    "Sketcher_Offset",
     "PartDesign_SubtractiveLoft",
     "Sketcher_Projection",  # prueft den Ersatzbefehl
     "Sketcher_CreateArcSlot",  # prueft Ausklappknopf mit fehlender Variante
@@ -694,7 +693,7 @@ def run(split_namespace):
     def _walk(entries):
         for e in entries:
             if isinstance(e, dict):
-                _walk(e["flyout"])
+                _walk(e.get("flyout") or e.get("stack") or e.get("toggle") or [])
             elif len(e) > 2 and e[2].get("svg"):
                 svgs.append((e[0], e[2]))
 
@@ -741,6 +740,36 @@ def run(split_namespace):
                     print("  FEHLER: Symbol veraltet - make_icons.py neu laufen lassen:", os.path.basename(f))
                     return False
     print("  Symbole  : %d eigene Skizzen-Symbole vorhanden, gültig, im Ribbon mit Vorrang" % len(svgs))
+
+    # --- Aufteilung wie im SW-CommandManager ----------------------------
+    if "Sketcher_Offset" not in built:
+        print("  FEHLER: Offset-Elemente fehlt im Ribbon")
+        return False
+    qtw = sys.modules["PySide.QtWidgets"]
+    small_calls = [c for c in qtw.QGridLayout.return_value.addWidget.call_args_list]
+    cells = {(c[0][1], c[0][2]) for c in small_calls}
+    if max((r for r, _c in cells), default=-1) != 2 or (0, 3) not in cells:
+        print("  FEHLER: Zeichenwerkzeuge nicht als 3-Zeilen-Stapel angeordnet", sorted(cells))
+        return False
+    togs = ribbon.toggles()
+    if len(togs) != 1 or [v["command"] for v in togs[0]["variants"]] != ["PartDesign_NewSketch", "Sketcher_LeaveSketch"]:
+        print("  FEHLER: Umschaltknopf Skizze/Skizze beenden fehlt", togs)
+        return False
+    tog = togs[0]
+    gui_ = sys.modules["FreeCADGui"]
+    gui_.ActiveDocument = types.SimpleNamespace(
+        getInEdit=lambda: types.SimpleNamespace(Object=types.SimpleNamespace(TypeId="Sketcher::SketchObject")))
+    ribbon._refresh_enabled()
+    in_sketch = tog["current"]
+    ribbon._run_toggle(tog)
+    ran_leave = ran[-1:]
+    gui_.ActiveDocument = None
+    ribbon._refresh_enabled()
+    ribbon._run_toggle(tog)
+    if in_sketch != 1 or ran_leave != [("Sketcher_LeaveSketch",)] or ran[-1:] != [("PartDesign_NewSketch",)]:
+        print("  FEHLER: Umschaltknopf wechselt nicht mit der Skizze", in_sketch, ran_leave, ran[-1:])
+        return False
+    print("  Aufteil. : Zeichenwerkzeuge im 3-Zeilen-Stapel, Skizze/Skizze beenden umschaltend, Offset da")
 
     # --- Reiter wechselt beim Skizzieren --------------------------------
     gui = sys.modules["FreeCADGui"]

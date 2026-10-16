@@ -6,7 +6,11 @@ Aufbau
 ------
 Ein QDockWidget oben im FreeCAD-Hauptfenster. Darin ein QTabWidget mit
 einem Reiter pro Eintrag in ribbon_layout.TABS. Jeder Reiter enthaelt
-eine Reihe grosser Knoepfe, in Gruppen durch Trennstriche getrennt.
+Gruppen, getrennt durch Trennstriche. Wie im SOLIDWORKS-CommandManager
+gibt es drei Knopfarten:
+  - grosse Knoepfe mit Text darunter (Hauptfunktionen)
+  - Stapel kleiner Symbol-Knoepfe, 3 Zeilen hoch (Zeichenwerkzeuge)
+  - Stapel kleiner Knoepfe mit Text daneben (Spiegeln, Muster ...)
 
 Warum ein Dock und keine Toolbar: FreeCAD blendet beim Workbench-
 Wechsel alle Toolbars aus, die es nicht selbst verwaltet. Ein Dock
@@ -30,7 +34,9 @@ from swui import ribbon_layout
 from swui.compat import QtCore, QtGui, QtWidgets
 
 DOCK_NAME = "SWUI_Ribbon"
-ICON_SIZE = 32
+ICON_SIZE = 32  # grosse Knoepfe (Text darunter)
+SMALL_ICON_SIZE = 20  # kleine Knoepfe in Stapeln (wie im SW-CommandManager)
+STACK_ROWS = 3  # Zeilen je Stapel-Spalte
 REFRESH_MS = 500
 
 # Modulzustand. Das Ribbon wird einmal gebaut und danach nur noch
@@ -39,6 +45,7 @@ _dock = None
 _timer = None
 _buttons = {}  # Knopf-ID -> QToolButton. ID = Befehl oder "Befehl#Index"
 _flyouts = []  # Ausklappknoepfe: {"button", "variants", "current", "id"}
+_toggles = []  # Umschaltknoepfe: {"button", "variants", "current"}
 _skipped = []  # Befehle, die es nicht gibt
 _tabs = None  # das QTabWidget des Ribbons
 _tab_titles = []  # Reiternamen in Reihenfolge
@@ -80,7 +87,14 @@ def button_names():
     names = list(_buttons)
     for fly in _flyouts:
         names.extend(v["key"] for v in fly["variants"])
+    for tog in _toggles:
+        names.extend(v["key"] for v in tog["variants"])
     return names
+
+
+def toggles():
+    """Die Umschaltknoepfe (fuer Tests)."""
+    return list(_toggles)
 
 
 def flyouts():
@@ -153,29 +167,77 @@ def _build_page(parent, groups, available):
 
     first_group = True
     for group in groups:
-        group_buttons = []
+        widgets = []
         for entry in group:
-            if isinstance(entry, dict) and "flyout" in entry:
-                variants = [_resolve(e, available) for e in entry["flyout"]]
-                variants = [v for v in variants if v is not None]
-                if variants:
-                    group_buttons.append(_make_flyout(page, variants))
-                continue
-            resolved = _resolve(entry, available)
-            if resolved is not None:
-                group_buttons.append(_make_button(page, *resolved))
+            w = _build_entry(page, entry, available)
+            if w is not None:
+                widgets.append(w)
 
         # Leere Gruppen (alle Befehle fehlen) erzeugen keinen Strich.
-        if not group_buttons:
+        if not widgets:
             continue
         if not first_group:
             row.addWidget(_make_separator(page))
         first_group = False
-        for button in group_buttons:
-            row.addWidget(button)
+        for w in widgets:
+            row.addWidget(w)
 
     row.addStretch(1)
     return page
+
+
+def _build_entry(parent, entry, available, small=False, beside=False):
+    """
+    Ein Layout-Eintrag -> Widget (oder None, wenn kein Befehl existiert).
+
+    small/beside: innerhalb eines Stapels - kleines Symbol, ohne Text
+    (beside=False) oder mit Text daneben (beside=True).
+    """
+    size = SMALL_ICON_SIZE if small else ICON_SIZE
+    show_text = beside or not small
+    if isinstance(entry, dict) and "stack" in entry:
+        return _make_stack(parent, entry, available)
+    if isinstance(entry, dict) and "flyout" in entry:
+        variants = [_resolve(e, available) for e in entry["flyout"]]
+        variants = [v for v in variants if v is not None]
+        if not variants:
+            return None
+        return _make_flyout(parent, variants, icon_size=size, show_text=show_text, beside=beside)
+    if isinstance(entry, dict) and "toggle" in entry:
+        variants = [_resolve(e, available) for e in entry["toggle"]]
+        if any(v is None for v in variants):
+            variants = [v for v in variants if v is not None]
+            if not variants:
+                return None
+            return _make_button(parent, *variants[0])
+        return _make_toggle(parent, variants)
+    resolved = _resolve(entry, available)
+    if resolved is None:
+        return None
+    return _make_button(parent, *resolved, icon_size=size, show_text=show_text, beside=beside)
+
+
+def _make_stack(parent, entry, available):
+    """
+    Stapel wie im SW-CommandManager: kleine Knoepfe spaltenweise,
+    STACK_ROWS Zeilen hoch. style "icon" = nur Symbol, "text" = Symbol
+    mit Text daneben.
+    """
+    beside = entry.get("style") == "text"
+    box = QtWidgets.QWidget(parent)
+    box.setObjectName("SWUI_RibbonStack")
+    grid = QtWidgets.QGridLayout(box)
+    grid.setContentsMargins(0, 0, 0, 0)
+    grid.setHorizontalSpacing(1)
+    grid.setVerticalSpacing(1)
+    n = 0
+    for sub in entry["stack"]:
+        w = _build_entry(box, sub, available, small=True, beside=beside)
+        if w is None:
+            continue
+        grid.addWidget(w, n % STACK_ROWS, n // STACK_ROWS)
+        n += 1
+    return box if n else None
 
 
 def _resolve(entry, available):
@@ -201,9 +263,14 @@ def button_id(command, opts):
     return command if index is None else "%s#%d" % (command, index)
 
 
-def _style_button(button, icon_size, show_text):
-    """Gemeinsame Optik: gross mit Text (Ribbon) oder klein ohne (Heads-up)."""
-    if show_text:
+def _style_button(button, icon_size, show_text, beside=False):
+    """Gemeinsame Optik: gross mit Text darunter, klein ohne Text oder klein mit Text daneben."""
+    if show_text and beside:
+        button.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        button.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Preferred
+        )
+    elif show_text:
         button.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
     else:
         button.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonIconOnly)
@@ -211,7 +278,8 @@ def _style_button(button, icon_size, show_text):
     button.setAutoRaise(True)
 
 
-def _make_button(parent, command, label, opts, icon_size=ICON_SIZE, show_text=True, register=True):
+def _make_button(parent, command, label, opts, icon_size=ICON_SIZE, show_text=True, register=True,
+                 beside=False):
     """
     Ein Knopf fuer einen FreeCAD-Befehl.
 
@@ -223,8 +291,8 @@ def _make_button(parent, command, label, opts, icon_size=ICON_SIZE, show_text=Tr
 
     button = QtWidgets.QToolButton(parent)
     button.setObjectName("SWUI_Btn_" + key.replace("#", "_"))
-    _style_button(button, icon_size, show_text)
-    button.setText(label)
+    _style_button(button, icon_size, show_text, beside)
+    button.setText(_menu_text(label) if beside else label)
 
     info = _command_info(command)
     button.setIcon(_command_icon(command, info, opts))
@@ -239,7 +307,8 @@ def _make_button(parent, command, label, opts, icon_size=ICON_SIZE, show_text=Tr
     return button
 
 
-def _make_flyout(parent, variants, icon_size=ICON_SIZE, show_text=True, register=True, param_prefix=""):
+def _make_flyout(parent, variants, icon_size=ICON_SIZE, show_text=True, register=True, param_prefix="",
+                 beside=False):
     """
     Ausklappknopf wie in SOLIDWORKS: Klick auf das Symbol startet die
     aktuelle Variante, der Pfeil daneben oeffnet das Menue mit allen.
@@ -250,10 +319,10 @@ def _make_flyout(parent, variants, icon_size=ICON_SIZE, show_text=True, register
     (z.B. Heads-up vs. Ribbon), auch wenn sie mit demselben Befehl beginnen.
     """
     button = QtWidgets.QToolButton(parent)
-    _style_button(button, icon_size, show_text)
+    _style_button(button, icon_size, show_text, beside)
     button.setPopupMode(QtWidgets.QToolButton.ToolButtonPopupMode.MenuButtonPopup)
 
-    fly = {"button": button, "variants": [], "current": 0, "show_text": show_text}
+    fly = {"button": button, "variants": [], "current": 0, "show_text": show_text, "beside": beside}
     menu = QtWidgets.QMenu(button)
     for i, (command, label, opts) in enumerate(variants):
         info = _command_info(command)
@@ -281,6 +350,50 @@ def _make_flyout(parent, variants, icon_size=ICON_SIZE, show_text=True, register
     return button
 
 
+def _make_toggle(parent, variants):
+    """
+    Umschaltknopf wie "Skizze" in SOLIDWORKS: ausserhalb einer Skizze
+    Variante 0 (Skizze anlegen), beim Bearbeiten einer Skizze Variante 1
+    (Skizze beenden). Gleicher Platz, anderer Befehl.
+    """
+    button = QtWidgets.QToolButton(parent)
+    _style_button(button, ICON_SIZE, True)
+    tog = {"button": button, "variants": [], "current": -1}
+    for command, label, opts in variants:
+        info = _command_info(command)
+        tog["variants"].append(
+            {
+                "command": command,
+                "label": label,
+                "index": opts.get("index"),
+                "icon": _command_icon(command, info, opts),
+                "tooltip": _strip_html(info.get("toolTip") or info.get("menuText") or command),
+                "key": button_id(command, opts),
+            }
+        )
+    button.clicked.connect(functools.partial(_run_toggle, tog))
+    _toggles.append(tog)
+    _set_toggle(tog, 0)
+    return button
+
+
+def _set_toggle(tog, i):
+    if tog["current"] == i:
+        return
+    tog["current"] = i
+    v = tog["variants"][i]
+    b = tog["button"]
+    b.setObjectName("SWUI_Tog_" + v["key"].replace("#", "_"))
+    b.setText(v["label"])
+    b.setIcon(v["icon"])
+    b.setToolTip(v["tooltip"])
+
+
+def _run_toggle(tog, *_args):
+    v = tog["variants"][tog["current"]]
+    _run(v["command"], v["index"])
+
+
 def _menu_text(label):
     """
     Knopf-Beschriftung einzeilig fuers Menue:
@@ -301,7 +414,7 @@ def _set_variant(fly, i):
     fly["current"] = i
     button = fly["button"]
     button.setObjectName("SWUI_Fly_" + v["key"].replace("#", "_"))
-    button.setText(v["label"])
+    button.setText(_menu_text(v["label"]) if fly.get("beside") else v["label"])
     button.setIcon(v["icon"])
     name = v["tooltip"] if fly.get("show_text", True) else _menu_text(v["label"])
     button.setToolTip(name + "\n(Pfeil rechts: weitere Varianten)")
@@ -568,6 +681,11 @@ def _refresh_enabled():
     for fly in _flyouts:
         v = fly["variants"][fly["current"]]
         fly["button"].setEnabled(_is_active(v["command"]))
+    editing = _editing_sketch()
+    for tog in _toggles:
+        _set_toggle(tog, 1 if (editing and len(tog["variants"]) > 1) else 0)
+        v = tog["variants"][tog["current"]]
+        tog["button"].setEnabled(_is_active(v["command"]))
 
 
 def _is_active(command):

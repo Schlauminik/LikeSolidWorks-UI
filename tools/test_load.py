@@ -700,7 +700,7 @@ def run(split_namespace):
     for _title, groups in layout_mod.TABS:
         for g in groups:
             _walk(g)
-    if len(svgs) < 36:
+    if len(svgs) < 47:
         print("  FEHLER: zu wenige eigene Symbole im Ribbon", len(svgs))
         return False
     for cmd, opts in svgs:
@@ -1062,6 +1062,11 @@ def run(split_namespace):
         if command not in sys.modules["FreeCADGui"].listCommands():
             print("  FEHLER: Beziehungsbefehl existiert nicht in FreeCAD 1.1.4:", command)
             return False
+    pmod = sys.modules["swui.paths"]
+    missing_icons = [k for k in rel.RELATIONS if not pmod.icon(rel.RELATION_ICONS.get(k) or "-")]
+    if missing_icons:
+        print("  FEHLER: Beziehungen ohne eigenes Symbol:", missing_icons)
+        return False
     labels = [e.label for e in rel.classify(rsk, ["Edge1", "Edge3", "Vertex4", "RootPoint", "H_Axis", "ExternalEdge1"])]
     if labels != ["Linie1", "Kreis3", "Punkt4", "Ursprung", "Horizontale Achse", "Übernommen1"]:
         print("  FEHLER: Elementnamen", labels)

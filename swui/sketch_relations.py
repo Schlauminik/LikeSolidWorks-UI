@@ -78,6 +78,24 @@ RELATIONS = {
     "block": ("Sketcher_ConstrainBlock", "Blockieren"),
 }
 
+# Eigene Symbole (resources/icons/sketch/, erzeugt von tools/make_icons.py)
+RELATION_ICONS = {
+    "horizontal": "sketch/rel_horizontal",
+    "vertical": "sketch/rel_vertical",
+    "collinear": "sketch/rel_collinear",
+    "parallel": "sketch/rel_parallel",
+    "perpendicular": "sketch/rel_perpendicular",
+    "tangent": "sketch/rel_tangent",
+    "concentric": "sketch/rel_concentric",
+    "coincident": "sketch/rel_coincident",
+    "on_object": "sketch/rel_on_object",
+    "midpoint": "sketch/rel_midpoint",
+    "symmetric": "sketch/rel_symmetric",
+    "equal": "sketch/rel_equal",
+    "lock": "sketch/rel_lock",
+    "block": "sketch/rel_block",
+}
+
 # Vorhandene Beziehungen: FreeCAD-Typ -> deutscher Name. Bemassungen
 # (Distance, Radius, Angle ...) fehlen absichtlich - wie in SW.
 _CONSTRAINT_NAMES = {
@@ -604,7 +622,7 @@ class _Panel:
             from swui import ribbon
 
             info = FreeCADGui.Command.get(command).getInfo()
-            b.setIcon(ribbon._command_icon(command, info, {}))
+            b.setIcon(ribbon._command_icon(command, info, {"svg": RELATION_ICONS.get(key)}))
             b.setToolTip(info.get("toolTip", text))
         except Exception:
             pass

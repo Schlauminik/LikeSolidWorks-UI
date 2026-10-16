@@ -427,6 +427,111 @@ def _():
     return [new("M10 54 V14 H50 V54 Z"), geo("M10 54 V36 H28 V54 Z"), arrow(28, 36, 46, 18), pt(10, 54)]
 
 
+# --- Symbole: Paket 3 - Beziehungen ----------------------------------
+# Gemeinsames Muster: betroffene Geometrie weiss, unten rechts ein runder
+# blauer Marker mit weissem Zeichen fuer die Beziehung.
+
+BADGE = (47, 47, 12.5)  # Mittelpunkt x, y und Radius des Markers
+
+
+def badge(glyph, fill_glyph=None):
+    """Runder blauer Marker; glyph = weisse Striche, fill_glyph = weisse Flaechen."""
+    x, y, r = BADGE
+    out = '<circle cx="%d" cy="%d" r="%.1f" fill="%s" stroke="%s" stroke-width="2"/>' % (
+        x, y, r, NEW, OUTLINE)
+    if glyph:
+        out += ('<path d="%s" stroke="%s" stroke-width="3" fill="none" stroke-linecap="round" '
+                'stroke-linejoin="round"/>' % (glyph, GEO))
+    if fill_glyph:
+        out += '<path d="%s" fill="%s"/>' % (fill_glyph, GEO)
+    return out
+
+
+GEO_SCALE = 1.3  # Geometrie der Beziehungs-Symbole vergroessern
+
+
+def big(*parts):
+    """Geometrie vergroessert zeichnen (der Marker bleibt gleich gross)."""
+    return '<g transform="scale(%.2f)">%s</g>' % (GEO_SCALE, "".join(parts))
+
+
+def dot(x, y, r=4.2, color=GEO):
+    return '<circle cx="%.1f" cy="%.1f" r="%.1f" fill="%s" stroke="%s" stroke-width="1.6"/>' % (
+        x, y, r, color, OUTLINE)
+
+
+@icon("rel_coincident", "Deckungsgleich")
+def _():
+    return [big(geo("M6 30 L26 18"), geo("M26 18 L38 4"), dot(26, 18, 5, NEW)), badge(None, "M47 42 a5 5 0 1 0 0.01 0 Z")]
+
+
+@icon("rel_horizontal", "Horizontal")
+def _():
+    return [big(geo("M6 18 H38"), hollow(6, 18), hollow(38, 18)), badge("M40 47 H54")]
+
+
+@icon("rel_vertical", "Vertikal")
+def _():
+    return [big(geo("M16 6 V38"), hollow(16, 6), hollow(16, 38)), badge("M47 40 V54")]
+
+
+@icon("rel_parallel", "Parallel")
+def _():
+    return [big(geo("M4 30 L28 6"), geo("M10 46 L40 16")), badge("M40 52 L46 40 M48 54 L54 42")]
+
+
+@icon("rel_perpendicular", "Senkrecht")
+def _():
+    return [big(geo("M10 6 V36 H40")), badge("M47 39 V53 M40 53 H54")]
+
+
+@icon("rel_tangent", "Tangential")
+def _():
+    return [big(geo("M22 6 A14 14 0 1 1 21.99 6"), geo("M2 34 H44")), badge("M40 52 H54 M42 52 A5 5 0 0 1 52 52")]
+
+
+@icon("rel_collinear", "Kollinear")
+def _():
+    return [big(geo("M4 36 L18 24"), geo("M28 16 L42 4"), con("M18 24 L28 16")), badge("M40 53 L54 41", "M44 48 a1.8 1.8 0 1 0 0.01 0 Z")]
+
+
+@icon("rel_equal", "Gleich")
+def _():
+    return [big(geo("M6 10 H36"), geo("M6 28 H36")), badge("M41 43 H53 M41 51 H53")]
+
+
+@icon("rel_symmetric", "Symmetrisch")
+def _():
+    return [big(con("M22 2 V44"), dot(8, 22, 4.6), dot(36, 22, 4.6)), badge("M43 40 H40 V54 H43 M51 40 H54 V54 H51")]
+
+
+@icon("rel_midpoint", "Mittelpunkt")
+def _():
+    return [big(geo("M4 34 L40 10"), dot(22, 22, 5, NEW)), badge("M40 47 H54", "M47 43 a4 4 0 1 0 0.01 0 Z")]
+
+
+@icon("rel_on_object", "Auf Element")
+def _():
+    return [big(geo("M4 38 A30 30 0 0 1 40 6"), dot(14, 21, 5, NEW)), badge("M40 52 L54 44", "M47 44.5 a3.5 3.5 0 1 0 0.01 0 Z")]
+
+
+@icon("rel_concentric", "Konzentrisch")
+def _():
+    return [big(geo("M22 4 A18 18 0 1 1 21.99 4"), geo("M22 13 A9 9 0 1 1 21.99 13"), cross(22, 22, 3)), badge("M47 39 A8 8 0 1 1 46.99 39", "M47 44.5 a2.5 2.5 0 1 0 0.01 0 Z")]
+
+
+@icon("rel_lock", "Fixieren")
+def _():
+    # Schloss: Punkt wird festgehalten
+    return [big(geo("M6 34 L32 12"), dot(32, 12, 5)), badge("M43 46 V43 A4 4 0 0 1 51 43 V46", "M41 46 H53 V53 H41 Z")]
+
+
+@icon("rel_block", "Blockieren")
+def _():
+    # ganzes Element festgesetzt: Linie mit beiden Enden, Riegel-Zeichen
+    return [big(geo("M6 34 L36 10"), dot(6, 34, 4), dot(36, 10, 4)), badge("M41 41 H53 M41 47 H53 M41 53 H53")]
+
+
 # --- Ausgabe ---------------------------------------------------------
 
 

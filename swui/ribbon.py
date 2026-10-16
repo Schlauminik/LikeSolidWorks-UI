@@ -391,6 +391,20 @@ def _command_icon(command, info, opts):
     3. FreeCADGui.getIcon() - zuletzt, weil es bei unbekannten Namen
        ein rotes Platzhalter-Kreuz statt "nichts" liefern kann.
     """
+    # 0. Eigenes Add-on-Symbol (resources/icons/<svg>.svg) hat Vorrang -
+    #    nur im Ribbon; FreeCADs eigene Leisten bleiben unveraendert.
+    if opts.get("svg"):
+        try:
+            from swui import paths
+
+            path = paths.icon(opts["svg"])
+            if path:
+                icon = QtGui.QIcon(path)
+                if not icon.isNull():
+                    return icon
+        except Exception:
+            pass
+
     index = opts.get("index")
     try:
         actions = FreeCADGui.Command.get(command).getAction() or []

@@ -20,6 +20,9 @@ nur diese Datei. Aufbau:
       "icon":  Symbolname, falls der Befehl selbst keinen liefert
       "fallback": Liste von Ersatzbefehlen, falls der erste in der
                installierten FreeCAD-Version nicht existiert
+      "svg":   eigenes Add-on-Symbol, z.B. "sketch/rect_center"
+               (resources/icons/sketch/rect_center.svg, erzeugt von
+               tools/make_icons.py). Hat im Ribbon Vorrang.
 
 Statt eines Tupels kann ein Gruppeneintrag auch ein Ausklappmenue sein:
 
@@ -110,39 +113,39 @@ SKIZZE = (
                 # Polyline = Kette wie die SW-Linie: Klick fuer Klick
                 # weiter, Esc beendet. Taste M wechselt waehrenddessen
                 # zwischen Linie und Tangentialbogen.
-                ("Sketcher_CreatePolyline", "Linie"),
-                ("Sketcher_CreateLine", "Einzel-\nlinie"),
+                ("Sketcher_CreatePolyline", "Linie", {"svg": "sketch/line_chain"}),
+                ("Sketcher_CreateLine", "Einzel-\nlinie", {"svg": "sketch/line_single"}),
                 # Eigener Befehl (swui/commands/midpoint_line.py): vom
                 # Mittelpunkt aus ziehen, Gegenseite entsteht gespiegelt.
-                ("SWUI_MidpointLine", "Mittel-\nlinie"),
+                ("SWUI_MidpointLine", "Mittel-\nlinie", {"svg": "sketch/line_mid"}),
                 # Eigener Befehl (swui/commands/centerline.py): Linie, die
                 # automatisch gestrichelt (Konstruktionslinie) wird.
-                ("SWUI_Centerline", "Konstruktions-\nlinie"),
+                ("SWUI_Centerline", "Konstruktions-\nlinie", {"svg": "sketch/line_construction"}),
             ]},
             {"flyout": [
-                ("Sketcher_CreateRectangle", "Eck-\nrechteck"),
-                ("Sketcher_CreateRectangle_Center", "Mittelpunkt-\nrechteck"),
-                ("Sketcher_CreateOblong", "Abgerundetes\nRechteck"),
+                ("Sketcher_CreateRectangle", "Eck-\nrechteck", {"svg": "sketch/rect_corner"}),
+                ("Sketcher_CreateRectangle_Center", "Mittelpunkt-\nrechteck", {"svg": "sketch/rect_center"}),
+                ("Sketcher_CreateOblong", "Abgerundetes\nRechteck", {"svg": "sketch/rect_rounded"}),
             ]},
             {"flyout": [
-                ("Sketcher_CreateCircle", "Kreis"),
-                ("Sketcher_Create3PointCircle", "3-Punkt-\nKreis"),
+                ("Sketcher_CreateCircle", "Kreis", {"svg": "sketch/circle_center"}),
+                ("Sketcher_Create3PointCircle", "3-Punkt-\nKreis", {"svg": "sketch/circle_3pt"}),
             ]},
             {"flyout": [
-                ("Sketcher_CreateArc", "Mittelpunkt-\nbogen"),
-                ("Sketcher_Create3PointArc", "3-Punkt-\nBogen"),
+                ("Sketcher_CreateArc", "Mittelpunkt-\nbogen", {"svg": "sketch/arc_center"}),
+                ("Sketcher_Create3PointArc", "3-Punkt-\nBogen", {"svg": "sketch/arc_3pt"}),
             ]},
             {"flyout": [
-                ("Sketcher_CreateSlot", "Langloch"),
-                ("Sketcher_CreateArcSlot", "Bogen-\nlangloch"),
+                ("Sketcher_CreateSlot", "Langloch", {"svg": "sketch/slot"}),
+                ("Sketcher_CreateArcSlot", "Bogen-\nlangloch", {"svg": "sketch/slot_arc"}),
             ]},
-            ("Sketcher_CreateRegularPolygon", "Polygon"),
+            ("Sketcher_CreateRegularPolygon", "Polygon", {"svg": "sketch/polygon"}),
             {"flyout": [
-                ("Sketcher_CreateEllipseByCenter", "Ellipse"),
-                ("Sketcher_CreateArcOfEllipse", "Teil-\nellipse"),
+                ("Sketcher_CreateEllipseByCenter", "Ellipse", {"svg": "sketch/ellipse"}),
+                ("Sketcher_CreateArcOfEllipse", "Teil-\nellipse", {"svg": "sketch/ellipse_arc"}),
             ]},
-            ("Sketcher_CreateBSpline", "Spline"),
-            ("Sketcher_CreatePoint", "Punkt"),
+            ("Sketcher_CreateBSpline", "Spline", {"svg": "sketch/spline"}),
+            ("Sketcher_CreatePoint", "Punkt", {"svg": "sketch/point"}),
         ],
         [
             # "Elemente uebernehmen" = Modellkanten in die Skizze

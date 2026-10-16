@@ -25,6 +25,7 @@ Darum:
 import FreeCAD
 import FreeCADGui
 
+from swui import paths
 from swui.compat import QtCore, QtWidgets
 
 LINE_COMMAND = "Sketcher_CreateLine"
@@ -43,8 +44,7 @@ class Centerline:
 
     def GetResources(self):
         return {
-            # FreeCADs eigenes Symbol fuer "Linie im Konstruktionsmodus".
-            "Pixmap": "Sketcher_CreateLine_Constr",
+            "Pixmap": paths.icon("sketch/line_construction"),
             "MenuText": "Konstruktionslinie",
             "ToolTip": "Konstruktionslinie zeichnen: Linie, die automatisch zur "
             "Konstruktionslinie wird. Esc oder Rechtsklick beendet.",

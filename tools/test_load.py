@@ -683,6 +683,65 @@ def run(split_namespace):
         return False
     print("  Ausklapp : %d Knöpfe; Auswahl wird ausgeführt, gemerkt und gespeichert" % len(flys))
 
+    # --- Eigene Skizzen-Symbole ----------------------------------------
+    import xml.etree.ElementTree as ET
+    import tempfile
+
+    paths_mod = sys.modules["swui.paths"]
+    layout_mod = sys.modules["swui.ribbon_layout"]
+    svgs = []
+
+    def _walk(entries):
+        for e in entries:
+            if isinstance(e, dict):
+                _walk(e["flyout"])
+            elif len(e) > 2 and e[2].get("svg"):
+                svgs.append((e[0], e[2]))
+
+    for _title, groups in layout_mod.TABS:
+        for g in groups:
+            _walk(g)
+    if len(svgs) < 18:
+        print("  FEHLER: zu wenige eigene Symbole im Ribbon", len(svgs))
+        return False
+    for cmd, opts in svgs:
+        path = paths_mod.icon(opts["svg"])
+        if not path:
+            print("  FEHLER: Symbol fehlt:", opts["svg"])
+            return False
+        try:
+            ET.parse(path)
+        except Exception as exc:
+            print("  FEHLER: Symbol kein gültiges SVG:", path, exc)
+            return False
+    qicon = sys.modules["PySide.QtGui"].QIcon
+    qicon.reset_mock()
+    qicon.return_value.isNull.return_value = False
+    cmd0, opts0 = svgs[0]
+    got_icon = ribbon._command_icon(cmd0, {"pixmap": cmd0}, opts0)
+    qicon.return_value.isNull.return_value = mock.DEFAULT
+    first = qicon.call_args_list[0][0] if qicon.call_args_list else ()
+    if first != (paths_mod.icon(opts0["svg"]),) or got_icon is not qicon.return_value:
+        print("  FEHLER: eigenes Symbol hat im Ribbon keinen Vorrang", qicon.call_args_list[:2])
+        return False
+    gen_path = os.path.join(ADDON, "tools", "make_icons.py")
+    if os.path.exists(gen_path):  # nur im Repo, nicht in der Installation
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("_make_icons", gen_path)
+        gen = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(gen)
+        with tempfile.TemporaryDirectory() as tmp:
+            for f in gen.build(tmp):
+                mine = os.path.join(paths_mod.ICONS_DIR, "sketch", os.path.basename(f))
+                # Vergleich nur des Bildinhalts: Beim Uebertragen koennen
+                # Metadaten (C2PA) dazukommen - die sind harmlos.
+                body = open(f, encoding="utf-8").read().split("<title>", 1)[1].split("</svg>")[0]
+                if not os.path.exists(mine) or body not in open(mine, encoding="utf-8").read():
+                    print("  FEHLER: Symbol veraltet - make_icons.py neu laufen lassen:", os.path.basename(f))
+                    return False
+    print("  Symbole  : %d eigene Skizzen-Symbole vorhanden, gültig, im Ribbon mit Vorrang" % len(svgs))
+
     # --- Reiter wechselt beim Skizzieren --------------------------------
     gui = sys.modules["FreeCADGui"]
     tabs = ribbon._tabs

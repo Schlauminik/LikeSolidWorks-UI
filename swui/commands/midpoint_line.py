@@ -52,7 +52,7 @@ class MidpointLine:
 
     def GetResources(self):
         return {
-            "Pixmap": paths.icon("swui_midpoint_line"),
+            "Pixmap": paths.icon("sketch/line_mid"),
             "MenuText": "Mittellinie",
             "ToolTip": "Mittellinie: Mittelpunkt klicken, eine Seite ziehen - die "
             "Gegenseite entsteht automatisch gespiegelt. Esc oder Rechtsklick beendet.",

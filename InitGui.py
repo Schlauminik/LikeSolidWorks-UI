@@ -125,6 +125,14 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
             App.Console.PrintError(
                 "[SWUI] Beziehungs-Panel nicht gestartet:\n%s\n" % tb.format_exc()
             )
+        try:
+            from swui import feature_terms
+
+            feature_terms.install()
+        except Exception:
+            App.Console.PrintError(
+                "[SWUI] SW-Begriffe in Dialogen nicht gestartet:\n%s\n" % tb.format_exc()
+            )
 
     def Deactivated(self):
         """Workbench verlassen: Originalzustand herstellen, Ribbon weg."""
@@ -155,6 +163,14 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
         except Exception:
             App.Console.PrintError(
                 "[SWUI] Beziehungs-Panel nicht beendet:\n%s\n" % tb.format_exc()
+            )
+        try:
+            from swui import feature_terms
+
+            feature_terms.uninstall()
+        except Exception:
+            App.Console.PrintError(
+                "[SWUI] SW-Begriffe in Dialogen nicht beendet:\n%s\n" % tb.format_exc()
             )
 
     def GetClassName(self):

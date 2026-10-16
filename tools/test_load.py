@@ -162,8 +162,10 @@ class _FakeMainWindow:
         self.filters = 0
         self.dialog_open = False
 
-    def findChildren(self, cls):
+    def findChildren(self, cls, name=None):
         qtw = sys.modules["PySide"].QtWidgets
+        if name is not None:  # Suche nach Objektname (Feature-Dialoge)
+            return list(getattr(self, "dialog_roots", {}).get(name, []))
         if cls is qtw.QToolBar:
             return list(self.toolbars)
         if cls is qtw.QDockWidget:
@@ -801,6 +803,95 @@ def run(split_namespace):
         print("  FEHLER: normale Befehle werden umgeleitet", ran[n0:])
         return False
     print("  Aus Skizze: Linear austragen beendet Skizze, wählt sie und startet das Feature")
+
+    # --- SW-Begriffe in Feature-Dialogen --------------------------------
+    ft = sys.modules["swui.feature_terms"]
+    if not ft.is_installed():
+        print("  FEHLER: Workbench-Activated hat die SW-Begriffe nicht eingeschaltet")
+        return False
+
+    class FLabel:
+        def __init__(self, t):
+            self.t = t
+
+        def text(self):
+            return self.t
+
+        def setText(self, t):
+            self.t = t
+
+    class FGroup:
+        def __init__(self, t):
+            self.t = t
+
+        def title(self):
+            return self.t
+
+        def setTitle(self, t):
+            self.t = t
+
+    class FCombo:
+        def __init__(self, items):
+            self.items = list(items)
+
+        def count(self):
+            return len(self.items)
+
+        def itemText(self, i):
+            return self.items[i]
+
+        def setItemText(self, i, t):
+            self.items[i] = t
+
+    class FRoot:
+        def __init__(self, kids):
+            self.kids = kids
+
+        def findChild(self, _cls, name):
+            return self.kids.get(name)
+
+    pad = FRoot({
+        "side1Label": FLabel("Seite 1"), "textLabel1": FLabel("Typ"), "labelLength": FLabel("Länge"),
+        "checkBoxReversed": FLabel("Umgekehrt"), "groupBox": FGroup("Richtung"),
+        "changeMode": FCombo(["Bemaßung", "Bis zum letzten", "Bis zum ersten", "Bis zur Fläche", "Bis zur Form"]),
+        "sidesMode": FCombo(["Einseitig", "Zweiseitig", "Symmetrisch"]),
+        "changeMode2": FCombo(["A", "B", "C", "D", "E", "F"]),  # andere Version: 6 Eintraege
+    })
+    ft.apply(pad, ft.PAD_POCKET)
+    k = pad.kids
+    if (k["side1Label"].t, k["textLabel1"].t, k["labelLength"].t, k["checkBoxReversed"].t, k["groupBox"].t) != (
+            "Richtung 1", "Endbedingung", "Tiefe", "Richtung umkehren", "Austragungsrichtung"):
+        print("  FEHLER: Beschriftungen nicht auf SW-Begriffe umgestellt")
+        return False
+    if k["changeMode"].items[0] != "Blind" or k["changeMode"].items[3] != "Bis Fläche" or k["sidesMode"].items[2] != "Mittelebene":
+        print("  FEHLER: Endbedingungen nicht umbenannt", k["changeMode"].items, k["sidesMode"].items)
+        return False
+    if k["changeMode2"].items[0] != "A":
+        print("  FEHLER: Liste mit unerwarteter Länge wurde trotzdem umbenannt")
+        return False
+    if ft.apply(pad, ft.PAD_POCKET) != 0:
+        print("  FEHLER: zweiter Durchlauf ändert erneut (unnötiges Neuzeichnen)")
+        return False
+    rev = FRoot({"checkBoxMidplane": FLabel("Symmetrisch zur Ebene"),
+                 "changeMode": FCombo(["Winkel", "Durch alles", "Bis zum ersten", "Bis zur Fläche", "Zwei Winkel"])})
+    ft.apply(rev, ft.REVOLUTION)
+    if rev.kids["checkBoxMidplane"].t != "Mittelebene" or rev.kids["changeMode"].items[4] != "Zwei Richtungen":
+        print("  FEHLER: Rotieren-Dialog nicht umgestellt")
+        return False
+    mwf = sys.modules["FreeCADGui"]._mw
+    pad2 = FRoot({"side1Label": FLabel("Seite 1")})
+    mwf.dialog_roots = {ft.PAD_POCKET["root"]: [pad2]}
+    mwf.dialog_open = False
+    ft.tick()
+    closed_text = pad2.kids["side1Label"].t
+    mwf.dialog_open = True
+    ft.tick()
+    mwf.dialog_open = False
+    mwf.dialog_roots = {}
+    if closed_text != "Seite 1" or pad2.kids["side1Label"].t != "Richtung 1":
+        print("  FEHLER: Takt findet offenen Dialog nicht / arbeitet ohne Dialog", closed_text, pad2.kids["side1Label"].t)
+        return False
+    print("  Dialoge : Linear austragen/Schnitt/Rotieren mit SW-Begriffen; fremde Listenlängen bleiben unberührt")
 
     # --- Reiter wechselt beim Skizzieren --------------------------------
     gui = sys.modules["FreeCADGui"]

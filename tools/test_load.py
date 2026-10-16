@@ -771,6 +771,37 @@ def run(split_namespace):
         return False
     print("  Aufteil. : Zeichenwerkzeuge im 3-Zeilen-Stapel, Skizze/Skizze beenden umschaltend, Offset da")
 
+    # --- Direkt aus Skizze austragen -----------------------------------
+    fs = sys.modules.get("swui.from_sketch")
+    import importlib
+    fs = fs or importlib.import_module("swui.from_sketch")
+    pending = []
+    fs._later = lambda fn: pending.append(fn)  # Timer in der Attrappe von Hand ausloesen
+    selected = []
+    gui_.Selection.clearSelection = lambda *a: selected.clear()
+    gui_.Selection.addSelection = lambda obj, *a: selected.append(obj)
+    skobj = types.SimpleNamespace(TypeId="Sketcher::SketchObject", Name="Sketch")
+    gui_.ActiveDocument = types.SimpleNamespace(getInEdit=lambda: types.SimpleNamespace(Object=skobj))
+    n0 = len(ran)
+    ribbon._run("PartDesign_Pad", None, False)
+    if ran[n0:] != [("Sketcher_LeaveSketch",)] or len(pending) != 1:
+        print("  FEHLER: offene Skizze wird nicht zuerst beendet", ran[n0:])
+        return False
+    gui_.ActiveDocument = None  # FreeCAD hat die Skizze inzwischen geschlossen
+    pending.pop()()
+    if ran[n0:] != [("Sketcher_LeaveSketch",), ("PartDesign_Pad",)] or selected != [skobj]:
+        print("  FEHLER: Feature nicht mit der Skizze gestartet", ran[n0:], selected)
+        return False
+    n0 = len(ran)
+    ribbon._run("PartDesign_Pocket", None, False)  # ohne offene Skizze: ganz normal
+    gui_.ActiveDocument = types.SimpleNamespace(getInEdit=lambda: types.SimpleNamespace(Object=skobj))
+    ribbon._run("PartDesign_Fillet", None, False)  # kein Profil-Feature: unveraendert
+    gui_.ActiveDocument = None
+    if ran[n0:] != [("PartDesign_Pocket",), ("PartDesign_Fillet",)] or pending:
+        print("  FEHLER: normale Befehle werden umgeleitet", ran[n0:])
+        return False
+    print("  Aus Skizze: Linear austragen beendet Skizze, wählt sie und startet das Feature")
+
     # --- Reiter wechselt beim Skizzieren --------------------------------
     gui = sys.modules["FreeCADGui"]
     tabs = ribbon._tabs

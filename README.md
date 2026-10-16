@@ -23,7 +23,7 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | 6c | Symbole Paket 2: Bearbeiten-Werkzeuge (Skizze, Bemaßung, Trimmen, Offset, Spiegeln, Muster …) | **fertig** |
 | 6d | Symbole Paket 3: Beziehungen (Ribbon und Panel), Farben nur Weiß/Grau/Rot/Blau | **fertig** |
 | 7a | Reiter Features aufgeteilt wie SW, eigene 3D-Symbole (grau = Körper, blau = Ergebnis) | **fertig** |
-| 7b | Direkt aus offener Skizze austragen | offen |
+| 7b | Direkt aus offener Skizze austragen: Skizze beenden, auswählen, Feature starten (`swui/from_sketch.py`) | **fertig** |
 | 7c | Feature-Dialoge mit SW-Begriffen | offen |
 
 Später: 3D-Skizzen, Baugruppen.

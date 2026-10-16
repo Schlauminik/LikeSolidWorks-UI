@@ -620,6 +620,16 @@ def _run(command, index=None, *_args):
             midpoint_line.stop()
         except Exception:
             pass
+    # Feature-Knopf bei offener Skizze: erst Skizze beenden, dann
+    # Feature mit dieser Skizze starten (wie SOLIDWORKS).
+    if index is None:
+        try:
+            from swui import from_sketch
+
+            if from_sketch.handle(command):
+                return
+        except Exception as exc:
+            FreeCAD.Console.PrintWarning("[SWUI] Austragen aus Skizze: %s\n" % exc)
     try:
         if index is None:
             FreeCADGui.runCommand(command)

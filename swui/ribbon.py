@@ -480,6 +480,18 @@ def _load_gui_modules():
             FreeCAD.Console.PrintWarning(
                 "[SWUI] Modul %s nicht ladbar: %s\n" % (name, exc)
             )
+    # Baugruppen-Befehle (Python-Module der Assembly-Werkbank). Fehlt die
+    # Werkbank, fehlen nur diese Knoepfe - Meldung im Ausgabefenster.
+    missing = []
+    for name in getattr(ribbon_layout, "ASSEMBLY_COMMAND_MODULES", ()):
+        try:
+            __import__(name)
+        except Exception:
+            missing.append(name)
+    if missing:
+        FreeCAD.Console.PrintLog(
+            "[SWUI] Baugruppen-Module nicht ladbar: %s\n" % ", ".join(missing)
+        )
 
 
 def _command_info(command):

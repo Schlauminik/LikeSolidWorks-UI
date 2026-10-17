@@ -270,9 +270,74 @@ ANSICHT = (
     ],
 )
 
-TABS = [FEATURES, SKIZZE, EVALUIEREN, ANSICHT]
+BAUGRUPPE = (
+    "Baugruppe",
+    [
+        # Befehle der FreeCAD-Baugruppen-Werkbank (Assembly_*, in 1.1.4
+        # geprueft). Ob die Baugruppe eine eigene Datei bekommt oder im
+        # aktuellen Dokument bleibt, entscheidet man wie in FreeCAD ueblich
+        # selbst (neues Dokument anlegen oder nicht).
+        [
+            ("Assembly_CreateAssembly", "Neue\nBaugruppe"),
+            ("Assembly_InsertLink", "Komponente\neinfügen"),
+            {"stack": [
+                ("Assembly_InsertNewPart", "Neues Teil"),
+                ("Assembly_ToggleGrounded", "Fixieren / Lösen"),
+                ("Assembly_ActivateAssembly", "Baugruppe aktivieren"),
+            ], "style": "text"},
+        ],
+        [
+            # Dominiks haeufigste Verknuepfungen einzeln und gross.
+            # SW-Begriff -> FreeCAD-Gelenk:
+            #   Deckungsgleich = Abstands-Gelenk (Abstand 0 legt Ebenen aufeinander)
+            #   Konzentrisch   = Zylinder-Gelenk (gleiche Achse, drehen/schieben frei)
+            ("Assembly_CreateJointDistance", "Deckungs-\ngleich"),
+            ("Assembly_CreateJointParallel", "Parallel"),
+            ("Assembly_CreateJointCylindrical", "Konzen-\ntrisch"),
+            {"flyout": [
+                ("Assembly_CreateJointPerpendicular", "Senkrecht"),
+                ("Assembly_CreateJointAngle", "Winkel"),
+                ("Assembly_CreateJointFixed", "Starr"),
+                ("Assembly_CreateJointRevolute", "Drehgelenk"),
+                ("Assembly_CreateJointSlider", "Linear"),
+                ("Assembly_CreateJointBall", "Kugelgelenk"),
+            ]},
+            {"flyout": [
+                ("Assembly_CreateJointGears", "Zahnrad"),
+                ("Assembly_CreateJointRackPinion", "Zahnstange"),
+                ("Assembly_CreateJointScrew", "Schraube"),
+                ("Assembly_CreateJointBelt", "Riemen"),
+            ]},
+        ],
+        [
+            ("Assembly_CreateView", "Explosions-\nansicht"),
+            ("Assembly_CreateBom", "Stückliste"),
+            {"stack": [
+                ("Assembly_SolveAssembly", "Baugruppe lösen"),
+                ("Assembly_CreateSimulation", "Bewegungsstudie"),
+            ], "style": "text"},
+        ],
+    ],
+)
+
+TABS = [FEATURES, SKIZZE, EVALUIEREN, ANSICHT, BAUGRUPPE]
 
 # FreeCAD-Module, die die obigen Befehle bereitstellen. Sie werden vor
 # dem Aufbau geladen, sonst existieren die Befehle noch nicht, solange
 # PartDesign bzw. Sketcher nie aktiviert wurde.
 REQUIRED_GUI_MODULES = ("PartGui", "SketcherGui", "PartDesignGui")
+
+# Die Baugruppen-Befehle sind in Python geschrieben und werden von FreeCAD
+# erst beim ersten Oeffnen der Baugruppen-Werkbank angemeldet (dort in
+# Initialize). Das Ribbon laedt dieselben Module selbst - Liste wie in
+# src/Mod/Assembly/InitGui.py (1.1.4).
+ASSEMBLY_COMMAND_MODULES = (
+    "CommandCreateAssembly",
+    "CommandInsertLink",
+    "CommandInsertNewPart",
+    "CommandCreateJoint",
+    "CommandSolveAssembly",
+    "CommandCreateView",
+    "CommandCreateSimulation",
+    "CommandCreateBom",
+)

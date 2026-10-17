@@ -73,6 +73,7 @@ def _all_layout_commands(filename="ribbon_layout.py"):
                 "Std",
                 "Part",
                 "SWUI",
+                "Assembly",
             ):
                 name = first.value
                 if len(node.elts) == 3:
@@ -803,6 +804,37 @@ def run(split_namespace):
         print("  FEHLER: normale Befehle werden umgeleitet", ran[n0:])
         return False
     print("  Aus Skizze: Linear austragen beendet Skizze, wählt sie und startet das Feature")
+
+    # --- Reiter Baugruppe -------------------------------------------------
+    titles = list(ribbon._tab_titles)
+    if titles[-2:] != ["Ansicht", "Baugruppe"]:
+        print("  FEHLER: Reiter Baugruppe nicht rechts neben Ansicht", titles)
+        return False
+    for big in ("Assembly_CreateJointDistance", "Assembly_CreateJointParallel", "Assembly_CreateJointCylindrical",
+                "Assembly_CreateView", "Assembly_CreateBom", "Assembly_InsertLink"):
+        if big not in ribbon._buttons:
+            print("  FEHLER: Baugruppen-Knopf fehlt oder steckt im Ausklappmenü:", big)
+            return False
+    import builtins
+    tried = []
+    real_import = builtins.__import__
+
+    def spy(name, *a, **k):
+        if name in ribbon_layout_mod.ASSEMBLY_COMMAND_MODULES:
+            tried.append(name)
+            raise ImportError("Attrappe: keine Assembly-Werkbank")
+        return real_import(name, *a, **k)
+
+    ribbon_layout_mod = sys.modules["swui.ribbon_layout"]
+    builtins.__import__ = spy
+    try:
+        ribbon._load_gui_modules()
+    finally:
+        builtins.__import__ = real_import
+    if tried != list(ribbon_layout_mod.ASSEMBLY_COMMAND_MODULES):
+        print("  FEHLER: Baugruppen-Befehlsmodule werden nicht geladen", tried)
+        return False
+    print("  Baugruppe: Reiter rechts von Ansicht, Deckungsgleich/Parallel/Konzentrisch groß, Module werden geladen")
 
     # --- SW-Begriffe in Feature-Dialogen --------------------------------
     ft = sys.modules["swui.feature_terms"]

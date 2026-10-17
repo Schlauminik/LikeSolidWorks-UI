@@ -162,5 +162,5 @@ def _restore_from_backup():
         if existed:
             getattr(view, "Set" + kind)(name, value)
         else:
-            getattr(view, "Remove" + kind)(name)
+            getattr(view, "Rem" + kind)(name)  # FreeCAD: RemBool/RemUnsigned (src/Base/ParameterPy.cpp)
     own.SetString(BACKUP_KEY, "")

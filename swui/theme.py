@@ -37,6 +37,7 @@ COLORS = {
     "hover": "#3f5a75",  # Knopf unter der Maus
     "pressed": "#2f6db3",  # Knopf gedrueckt / Auswahl
     "selection": "#2f6db3",  # Auswahl im Baum
+    "tree_text": "#505050",  # Baum-Schrift grau (Baum liegt durchsichtig auf der 3D-Ansicht)
     # 3D-Ansicht: Verlauf von oben nach unten (view_background.py)
     "view_top": "#a4b6cb",  # grau-blau
     "view_bottom": "#f2f5f9",  # fast weiss
@@ -276,8 +277,8 @@ QMainWindow > QTabBar::tab:hover {
 /* ---------- Modellbaum (spaeter: FeatureManager) ---------- */
 
 QDockWidget#Model QTreeView {
-    background: %(panel)s;
-    color: %(text)s;
+    background: transparent;
+    color: %(tree_text)s;
     border: none;
     selection-background-color: %(selection)s;
     selection-color: #ffffff;

@@ -37,6 +37,7 @@ log = []
 # dass das Ribbon fehlende Befehle sauber auslaesst.
 VIEW = "User parameter:BaseApp/Preferences/View"
 ORIGINAL_VIEW = {"Simple": True, "BackgroundColor2": 123456}
+ORIGINAL_OVERLAY_RIGHT = {"Widgets": "Tasks,", "Transparent": True}
 
 MISSING = {
     "PartDesign_SubtractiveLoft",
@@ -109,6 +110,19 @@ def _expected_buttons():
 # --- Attrappen -------------------------------------------------------
 
 
+class _FakeTree:
+    """Baum im Modell-Panel: nur das eigene Stylesheet."""
+
+    def __init__(self):
+        self.qss = "/* FreeCAD-Baum */"
+
+    def styleSheet(self):
+        return self.qss
+
+    def setStyleSheet(self, qss):
+        self.qss = qss
+
+
 class _FakeBar:
     """Toolbar oder Dock: Name, Sichtbarkeit, Bereich."""
 
@@ -116,6 +130,18 @@ class _FakeBar:
         self.name = name
         self.area = area
         self.visible = visible
+        self.trees = [_FakeTree()] if name == "Model" else []
+        # Wie bei Dominik nach dem Werkbank-Wechsel: Ausgabefenster schwebt.
+        self.floating = name == "Report view"
+
+    def isFloating(self):
+        return self.floating
+
+    def setFloating(self, value):
+        self.floating = bool(value)
+
+    def findChildren(self, cls, name=None):
+        return list(self.trees)
 
     def objectName(self):
         return self.name
@@ -156,6 +182,7 @@ class _FakeMainWindow:
         ]
         self.raised = []
         self.tabified = []
+        self.split = []
         # So tut, als haette FreeCAD bereits ein eigenes Stylesheet.
         self.ORIGINAL_QSS = "/* FreeCAD-Theme */\nQWidget { color: #ff0000; }"
         self.qss = self.ORIGINAL_QSS
@@ -193,7 +220,10 @@ class _FakeMainWindow:
 
     def addDockWidget(self, area, dock):
         if isinstance(dock, _FakeBar):
-            dock.area = "left"
+            dock.area = area
+
+    def splitDockWidget(self, first, second, orientation):
+        self.split.append((first.name, second.name, orientation))
 
     def tabifyDockWidget(self, first, second):
         self.tabified.append((first.name, second.name))
@@ -261,7 +291,11 @@ def _make_stubs():
         def SetBool(self, key, value):
             self.d[key] = bool(value)
 
-        def RemoveBool(self, key):
+        # Namen wie in FreeCAD (src/Base/ParameterPy.cpp): Rem..., nicht Remove...
+        def RemBool(self, key):
+            self.d.pop(key, None)
+
+        def RemString(self, key):
             self.d.pop(key, None)
 
         def GetUnsigned(self, key, default=0):
@@ -270,7 +304,7 @@ def _make_stubs():
         def SetUnsigned(self, key, value):
             self.d[key] = int(value)
 
-        def RemoveUnsigned(self, key):
+        def RemUnsigned(self, key):
             self.d.pop(key, None)
 
         def GetContents(self):
@@ -314,6 +348,8 @@ def _make_stubs():
     # Ausgangszustand von Dominiks Ansichts-Einstellungen (ausgedacht):
     # zwei Schluessel existieren, alle anderen nicht.
     params["User parameter:BaseApp/Preferences/View"] = dict(ORIGINAL_VIEW)
+    # FreeCAD 1.1-Standard: Aufgaben rechts ueberlagert; links nie benutzt.
+    params["User parameter:BaseApp/MainWindow/DockWindows/OverlayRight"] = dict(ORIGINAL_OVERLAY_RIGHT)
 
     gui = types.ModuleType("FreeCADGui")
     gui.Workbench = type("Workbench", (), {})
@@ -1565,20 +1601,31 @@ def run(split_namespace):
         return False
     print("  Layout   : sichtbar bleiben", mw.visible_bars())
 
-    if ("Model", "Tasks") not in mw.tabified:
-        print("  FEHLER: Aufgaben-Panel nicht neben den Baum gelegt", mw.tabified)
+    op = sys.modules.get("swui.overlay_panels")
+    fcp = sys.modules["FreeCAD"]._params
+    left, right = fcp.get(op.DOCK_PARAMS + "OverlayLeft", {}), fcp.get(op.DOCK_PARAMS + "OverlayRight", {})
+    others = [fcp.get(op.DOCK_PARAMS + g, {}).get("Widgets") for g in ("OverlayTop", "OverlayBottom")]
+    if (left.get("Widgets") != "Model," or left.get("Transparent") is not True or right.get("Widgets") != ""
+            or others != ["", ""]):
+        print("  FEHLER: Überlagerung (nur Baum links durchsichtig, rechts nichts überlagert)", left, right)
         return False
-    print("  Layout   : Aufgaben-Panel als Reiter neben dem Baum")
-
-    mw.raised.clear()
-    mw.dialog_open = True
-    layout._tick()
-    mw.dialog_open = False
-    layout._tick()
-    if mw.raised != ["Tasks", "Model"]:
-        print("  FEHLER: automatisches Umschalten", mw.raised)
+    qt = sys.modules["PySide.QtCore"].Qt
+    by = {d.name: d for d in mw.docks}
+    if (by["Tasks"].area is not qt.DockWidgetArea.RightDockWidgetArea
+            or by["Report view"].area is not qt.DockWidgetArea.RightDockWidgetArea
+            or ("Tasks", "Report view", qt.Orientation.Vertical) not in mw.split
+            or not by["Tasks"].visible or not by["Report view"].visible
+            or by["Report view"].floating or by["Tasks"].floating):
+        print("  FEHLER: Aufgaben/Ausgabe nicht rechts untereinander angedockt", mw.split)
         return False
-    print("  Layout   : Dialog auf -> Aufgaben vorne, Dialog zu -> Baum vorne")
+    if not fcp[op.OWN_PARAMS].get(op.BACKUP_KEY):
+        print("  FEHLER: keine Sicherung der Panel-Einstellungen")
+        return False
+    model_tree = [d for d in mw.docks if d.name == "Model"][0].trees[0]
+    if op.TREE_TEXT not in model_tree.qss or "transparent" not in model_tree.qss:
+        print("  FEHLER: Baum-Schrift nicht grau / Baum nicht durchsichtig", model_tree.qss)
+        return False
+    print("  Layout   : Baum links durchsichtig + grau, Aufgaben oben + Ausgabe unten rechts fest angedockt")
 
     # --- Farbschema ---------------------------------------------------
     if not mw.qss.startswith(mw.ORIGINAL_QSS) or "SWUI_RibbonTabs" not in mw.qss:
@@ -1636,6 +1683,15 @@ def run(split_namespace):
     if fc._params[VIEW] != ORIGINAL_VIEW or fc._params[vb.OWN_PARAMS].get(vb.BACKUP_KEY):
         print("  FEHLER: Ansichts-Einstellungen nicht exakt zurück", fc._params[VIEW])
         return False
+    op = sys.modules["swui.overlay_panels"]
+    if (fc._params[op.DOCK_PARAMS + "OverlayRight"] != ORIGINAL_OVERLAY_RIGHT
+            or fc._params[op.DOCK_PARAMS + "OverlayLeft"] or fc._params[op.OWN_PARAMS].get(op.BACKUP_KEY)
+            or fc._params[op.DOCK_PARAMS + "OverlayBottom"] or fc._params[op.DOCK_PARAMS + "OverlayTop"]):
+        print("  FEHLER: Panel-Überlagerung nicht exakt zurück", fc._params[op.DOCK_PARAMS + "OverlayLeft"])
+        return False
+    if [d for d in mw.docks if d.name == "Model"][0].trees[0].qss != "/* FreeCAD-Baum */":
+        print("  FEHLER: Baum-Schrift nicht zurück")
+        return False
     print("  Verlassen: alle Leisten, Panels, Farben und 3D-Einstellungen wiederhergestellt")
 
     # Beenden von FreeCAD im SOLIDWORKS-Layout
@@ -1674,6 +1730,12 @@ def run(split_namespace):
     vb.recover()
     if fc._params[VIEW] != ORIGINAL_VIEW:
         print("  FEHLER: nach Absturz nicht aufgeräumt", fc._params[VIEW])
+        return False
+    op._applied = False  # "neuer Prozess"
+    op._tree_saved.clear()
+    op.recover()
+    if fc._params[op.DOCK_PARAMS + "OverlayRight"] != ORIGINAL_OVERLAY_RIGHT or fc._params[op.DOCK_PARAMS + "OverlayLeft"]:
+        print("  FEHLER: Panel-Überlagerung nach Absturz nicht aufgeräumt")
         return False
     wb.Deactivated()
     if fc._params[VIEW] != ORIGINAL_VIEW:

@@ -6,12 +6,11 @@ Beim Betreten der Workbench (enter):
   1. Den kompletten Fensterzustand merken (QMainWindow.saveState).
   2. Alle FreeCAD-Leisten ausblenden ausser denen in KEEP_TOOLBARS -
      das entspricht der Schnellzugriffsleiste von SOLIDWORKS.
-  3. Das Aufgaben-Panel als Reiter neben den Modellbaum nach links
-     legen - wie der PropertyManager in SOLIDWORKS.
-  4. Ein Timer schaltet automatisch zwischen Baum und Aufgaben um:
-     Oeffnet FreeCAD einen Aufgaben-Dialog (Feature bearbeiten,
-     Skizze ...), kommt das Aufgaben-Panel nach vorne; danach wieder
-     der Baum.
+  3. Panels als durchsichtige Ueberlagerung (swui/overlay_panels.py):
+     Modellbaum links durchsichtig mit grauer Schrift.
+  4. Aufgaben (oben) und Ausgabefenster (unten) rechts fest angedockt,
+     untereinander - die 3D-Ansicht endet davor (Dominiks Wunsch vom 17.10.; vorher lagen die Aufgaben als
+     Reiter neben dem Baum).
 
 Beim Verlassen (leave): Fensterzustand exakt wiederherstellen.
 
@@ -41,16 +40,11 @@ KEEP_TOOLBARS = ("File", "Edit", "Workbench")
 TASK_DOCK_KEYS = ("Tasks", "TaskView", "TaskList", "Task")
 MODEL_DOCK_KEYS = ("Model", "ComboView", "TreeView", "Tree")
 
-POLL_MS = 300
 WB_NAME = "SolidWorksUIWorkbench"
 
 _active = False
 _saved_state = None
-_timer = None
 _close_filter = None
-_dialog_open = False
-_task_dock = None
-_model_dock = None
 
 
 # --- Oeffentliche Schnittstelle --------------------------------------
@@ -58,7 +52,7 @@ _model_dock = None
 
 def enter():
     """SOLIDWORKS-Layout anwenden. Mehrfacher Aufruf ist unschaedlich."""
-    global _active, _saved_state, _timer, _dialog_open
+    global _active, _saved_state
 
     if _active:
         return
@@ -67,16 +61,15 @@ def enter():
     _saved_state = mw.saveState()
 
     hidden, kept = _hide_toolbars(mw)
-    _move_tasks_left(mw)
     _apply_theme(mw)
+    _apply_overlay(mw)
+    _dock_right(mw)
+    # FreeCAD baut die Ueberlagerung erst zeitversetzt neu auf (Timer im
+    # OverlayManager, beim Werkbank-Wechsel auch spaeter) und legt dabei
+    # Panels ab - danach mehrmals nachpruefen und wieder rechts andocken.
+    for ms in REDOCK_MS:
+        QtCore.QTimer.singleShot(ms, _dock_right_again)
     _install_close_guard(mw)
-
-    if _timer is None:
-        _timer = QtCore.QTimer(mw)
-        _timer.setInterval(POLL_MS)
-        _timer.timeout.connect(_tick)
-    _dialog_open = False
-    _timer.start()
 
     _active = True
     FreeCAD.Console.PrintLog(
@@ -92,15 +85,43 @@ def leave():
     if not _active:
         return
 
-    if _timer is not None:
-        _timer.stop()
-
     mw = FreeCADGui.getMainWindow()
     _remove_theme(mw)
+    _remove_overlay()
     if _saved_state is not None:
         mw.restoreState(_saved_state)
+        # FreeCAD baut die Ueberlagerung erst nach ~100 ms neu auf (Timer
+        # im OverlayManager) - danach den Fensterzustand nochmal setzen.
+        QtCore.QTimer.singleShot(250, _restore_state_again)
 
     _active = False
+
+
+def _restore_state_again():
+    if _active or _saved_state is None:
+        return
+    try:
+        FreeCADGui.getMainWindow().restoreState(_saved_state)
+    except Exception:
+        pass
+
+
+def _apply_overlay(mw):
+    try:
+        from swui import overlay_panels
+
+        overlay_panels.apply(mw)
+    except Exception as exc:
+        FreeCAD.Console.PrintWarning("[SWUI] Panel-Überlagerung nicht anwendbar: %s\n" % exc)
+
+
+def _remove_overlay():
+    try:
+        from swui import overlay_panels
+
+        overlay_panels.restore()
+    except Exception as exc:
+        FreeCAD.Console.PrintWarning("[SWUI] Panel-Überlagerung nicht zurücksetzbar: %s\n" % exc)
 
 
 def _apply_theme(mw):
@@ -182,61 +203,51 @@ def _find_dock(mw, keys):
     return None
 
 
-def _move_tasks_left(mw):
-    """Aufgaben-Panel als Reiter hinter den Modellbaum legen."""
-    global _task_dock, _model_dock
+REDOCK_MS = (300, 1000, 2500)
+TASK_NAME = "Tasks"
+REPORT_NAME = "Report view"  # FreeCAD: src/Gui/MainWindow.cpp
 
-    _task_dock = _find_dock(mw, TASK_DOCK_KEYS)
-    _model_dock = _find_dock(mw, MODEL_DOCK_KEYS)
 
-    if _task_dock is None:
-        FreeCAD.Console.PrintWarning(
-            "[SWUI] Layout: Aufgaben-Panel nicht gefunden. Docks: %s\n"
-            % _dock_names(mw)
-        )
+def _dock_right(mw):
+    """Aufgaben oben, Ausgabefenster unten - beide rechts, beide sichtbar."""
+    docks = {d.objectName(): d for d in mw.findChildren(QtWidgets.QDockWidget)}
+    tasks, report = docks.get(TASK_NAME), docks.get(REPORT_NAME)
+    if tasks is None:
+        FreeCAD.Console.PrintWarning("[SWUI] Layout: Aufgaben-Panel nicht gefunden. Docks: %s\n" % _dock_names(mw))
         return
+    right = QtCore.Qt.DockWidgetArea.RightDockWidgetArea
+    _unfloat(tasks)
+    mw.addDockWidget(right, tasks)
+    tasks.show()
+    if report is not None:
+        _unfloat(report)
+        mw.addDockWidget(right, report)
+        report.show()
+        mw.splitDockWidget(tasks, report, QtCore.Qt.Orientation.Vertical)
 
-    left = QtCore.Qt.DockWidgetArea.LeftDockWidgetArea
-    mw.addDockWidget(left, _task_dock)
-    _task_dock.show()
 
-    if _model_dock is not None:
-        mw.addDockWidget(left, _model_dock)
-        _model_dock.show()
-        mw.tabifyDockWidget(_model_dock, _task_dock)
-        _model_dock.raise_()
-    else:
-        FreeCAD.Console.PrintWarning(
-            "[SWUI] Layout: Modellbaum nicht gefunden. Docks: %s\n" % _dock_names(mw)
-        )
+def _unfloat(dock):
+    """Losgeloestes Panel (schwebt mitten im Bild) wieder andockbar machen."""
+    try:
+        if dock.isFloating():
+            dock.setFloating(False)
+    except Exception:
+        pass
+
+
+def _dock_right_again():
+    if not _active:
+        return
+    try:
+        _dock_right(FreeCADGui.getMainWindow())
+    except Exception:
+        pass
 
 
 def _dock_names(mw):
     return ", ".join(
         sorted(d.objectName() or "?" for d in mw.findChildren(QtWidgets.QDockWidget))
     )
-
-
-def _tick():
-    """
-    Laeuft alle POLL_MS: Aufgaben-Panel nach vorne holen, sobald ein
-    Aufgaben-Dialog offen ist - und zurueck zum Baum, wenn er zu ist.
-    """
-    global _dialog_open
-
-    try:
-        open_now = bool(FreeCADGui.Control.activeDialog())
-    except Exception:
-        return
-
-    if open_now == _dialog_open:
-        return
-    _dialog_open = open_now
-
-    if open_now and _task_dock is not None:
-        _task_dock.raise_()
-    elif not open_now and _model_dock is not None:
-        _model_dock.raise_()
 
 
 # --- Schutz beim Beenden ---------------------------------------------

@@ -272,6 +272,10 @@ try:
     from swui import view_background as _vb
 
     _vb.recover()
+    # Ebenso die Panel-Ueberlagerung (Baum links, Aufgaben rechts).
+    from swui import overlay_panels as _op
+
+    _op.recover()
     # Ebenso FreeCADs Baugruppen-Einstellung "in Werkbank wechseln".
     from swui import assembly_drop as _ad
 

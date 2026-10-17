@@ -2,6 +2,8 @@
 
 *Eine SOLIDWORKS-ähnliche Oberfläche für FreeCAD. Nicht verbunden mit Dassault Systèmes.*
 
+Im FreeCAD-Addon-Manager erscheint das Paket als **LikeSolid**; die Werkbank selbst heißt **LikeSolidWorks UI**. Die Suche findet es unter beiden Namen.
+
 SOLIDWORKS-ähnliche Benutzeroberfläche und Werkzeuge für FreeCAD.
 Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 

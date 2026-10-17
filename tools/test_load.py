@@ -3332,6 +3332,22 @@ def check_manifest():
     if '_WB_KEY = "%s"' % cls not in src:
         print("  FEHLER: _WB_KEY in InitGui.py passt nicht zu <classname> '%s'" % cls)
         ok = False
+    # Werkbank-Name = MenuText in InitGui.py, und die Suche im Addon-Manager
+    # (Name, Beschreibung, <tag>; Gross/klein egal) muss ihn finden.
+    wb_name = (root.findtext("%scontent/%sworkbench/%sname" % (ns, ns, ns)) or "").strip()
+    m = re.search(r'^\s*MenuText\s*=\s*"([^"]*)"', src, re.M)
+    if not m or m.group(1) != wb_name:
+        print("  FEHLER: Werkbank-Name '%s' passt nicht zu MenuText in InitGui.py" % wb_name)
+        ok = False
+    shown = (root.findtext(ns + "name") or "").strip()
+    haystack = [shown, root.findtext(ns + "description") or ""] + [t.text or "" for t in root.findall(ns + "tag")]
+    if not any(wb_name.lower() in h.lower() for h in haystack):
+        print("  FEHLER: Suche nach '%s' findet das Paket '%s' im Addon-Manager nicht" % (wb_name, shown))
+        ok = False
+    repo = [u for u in root.findall(ns + "url") if u.get("type") == "repository"]
+    if not repo or not (repo[0].text or "").startswith("https://") or not repo[0].get("branch"):
+        print("  FEHLER: <url type=\"repository\" branch=\"…\"> fehlt oder unvollständig")
+        ok = False
     for lic in root.findall(ns + "license"):
         f = lic.get("file")
         if not f or not os.path.isfile(os.path.join(ADDON, f)):
@@ -3339,6 +3355,7 @@ def check_manifest():
             ok = False
     if ok:
         print("  Manifest : <classname> %s passt, Lizenzdateien vorhanden" % cls)
+        print("  Manifest : Addon-Manager zeigt '%s', Suche nach '%s' findet es" % (shown, wb_name))
     return ok
 
 

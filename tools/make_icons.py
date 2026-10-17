@@ -937,6 +937,309 @@ def _():
     return [frame, hills, sun, badge("M47 41 V53 M41 47 H53")]
 
 
+# --- Zeichnungen: Ansichtslayout, Beschriftung, Ausgabe (9d1) ----------
+# Bildsprache der Zeichnungs-Symbole: weisses Blatt/Bauteil mit dunkler
+# Kontur, GRAU = vorhandene Ansicht, BLAU = was das Werkzeug erzeugt,
+# ROT = was man anklickt bzw. markiert (Schnittlinie, Detailkreis).
+
+
+def view_rect(x, y, w, h, fill=None, hole=True):
+    """Ansicht auf dem Blatt: Rechteck (Bauteil von vorn) mit Bohrung."""
+    fill = fill or OLD
+    out = '<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" fill="%s" stroke="%s" stroke-width="1.8"/>' % (
+        x, y, w, h, fill, OUTLINE)
+    if hole:
+        r = min(w, h) * 0.22
+        out += '<circle cx="%.1f" cy="%.1f" r="%.1f" fill="%s" stroke="%s" stroke-width="1.4"/>' % (
+            x + w / 2, y + h / 2, r, GEO, OUTLINE)
+    return out
+
+
+def align(d):
+    """Ausrichtungslinie zwischen Ansichten (blau gestrichelt, fein)."""
+    return '<path d="%s" stroke="%s" stroke-width="1.8" stroke-dasharray="3 2.5" fill="none"/>' % (d, NEW)
+
+
+def sheet_doc(band_text, band_color):
+    """Blatt mit Eselsohr und farbigem Band mit Dateityp (Ausgabe)."""
+    page = ('<path d="M12 4 H42 L54 16 V60 H12 Z" fill="%s" stroke="%s" stroke-width="2" stroke-linejoin="round"/>'
+            '<path d="M42 4 V16 H54" fill="none" stroke="%s" stroke-width="2" stroke-linejoin="round"/>'
+            % (GEO, OUTLINE, OUTLINE))
+    lines = '<path d="M18 22 H40 M18 28 H46" stroke="%s" stroke-width="2"/>' % OLD
+    band = '<rect x="4" y="34" width="46" height="18" rx="2" fill="%s" stroke="%s" stroke-width="2"/>' % (
+        band_color, OUTLINE)
+    return [page, lines, band, label(27, 48, band_text, GEO, 13)]
+
+
+@icon("d_model_view", "Modellansicht")
+def _():
+    # Bauteil (grau, raeumlich) -> Pfeil -> neue Ansicht auf dem Blatt (blau)
+    cube = ('<path d="M6 14 L16 8 L28 12 L18 18 Z" fill="%s" stroke="%s" stroke-width="1.6" stroke-linejoin="round"/>'
+            '<path d="M6 14 L18 18 V32 L6 28 Z" fill="%s" stroke="%s" stroke-width="1.6" stroke-linejoin="round"/>'
+            '<path d="M18 18 L28 12 V26 L18 32 Z" fill="%s" stroke="%s" stroke-width="1.6" stroke-linejoin="round"/>'
+            % (BODY_FACES[0], OUTLINE, BODY_FACES[1], OUTLINE, BODY_FACES[2], OUTLINE))
+    return [cube, arrow(24, 36, 32, 44, color=NEW, w=3, head=6), view_rect(34, 34, 24, 22, NEW)]
+
+
+@icon("d_projected", "Projizierte Ansicht")
+def _():
+    # vorhandene Ansicht (grau) - Ausrichtungslinien - neue Ansicht daneben (blau)
+    return [view_rect(4, 18, 22, 22), align("M26 22 H38 M26 36 H38"),
+            view_rect(40, 18, 14, 22, NEW, hole=False),
+            '<path d="M40 29 H54" stroke="%s" stroke-width="1.4" stroke-dasharray="4 2"/>' % OUTLINE,
+            arrow(16, 52, 44, 52, color=NEW, w=3, head=6)]
+
+
+@icon("d_std3", "Standard-Dreiansicht")
+def _():
+    # Projektionsmethode 1: Vorderansicht, Draufsicht darunter, Seitenansicht rechts
+    return [view_rect(6, 6, 26, 22, NEW), view_rect(38, 6, 18, 22, NEW, hole=False),
+            view_rect(6, 36, 26, 18, NEW, hole=False), align("M32 12 H38 M32 22 H38 M12 28 V36 M26 28 V36")]
+
+
+@icon("d_section", "Schnittansicht")
+def _():
+    # Schnittlinie A-A (rot) durch die Ansicht, Schnitt daneben schraffiert (blau)
+    cut = ('<path d="M15 4 V46" stroke="%s" stroke-width="2.2" stroke-dasharray="7 3 2 3"/>'
+           '<path d="M15 4 V9 M15 41 V46" stroke="%s" stroke-width="4"/>' % (RED, RED))
+    arrows = arrow(15, 6, 7, 6, color=RED, w=2.4, head=5) + arrow(15, 44, 7, 44, color=RED, w=2.4, head=5)
+    # Schraffur ohne clipPath (Qt-SVG kennt clipPath erst ab 6.7): 45-Grad-Linien
+    # rechnerisch auf das Rechteck 34..56 x 14..40 begrenzt
+    x0, y0, x1, y1 = 34.0, 14.0, 56.0, 40.0
+    hatch = ""
+    for c in range(-2, 44, 6):  # Linie y = y1 - (x - x0) + c ... von links unten nach rechts oben
+        pts = []
+        for x in (x0, x1):
+            y = y1 - (x - x0) + c - 22
+            if y0 <= y <= y1:
+                pts.append((x, y))
+        for y in (y0, y1):
+            x = x0 + (y1 - y) + c - 22
+            if x0 <= x <= x1:
+                pts.append((x, y))
+        pts = sorted(set(pts))
+        if len(pts) >= 2:
+            hatch += '<path d="M%.1f %.1f L%.1f %.1f" stroke="%s" stroke-width="1.6"/>' % (pts[0] + pts[-1] + (OUTLINE,))
+    sect = ('<rect x="34" y="14" width="22" height="26" fill="%s" stroke="%s" stroke-width="1.8"/>%s'
+            '<rect x="34" y="14" width="22" height="26" fill="none" stroke="%s" stroke-width="1.8"/>'
+            % (NEW, OUTLINE, hatch, OUTLINE))
+    return [view_rect(8, 14, 16, 26, hole=False), cut, arrows, sect, label(45, 56, "A-A", OUTLINE, 11)]
+
+
+@icon("d_detail", "Detailansicht")
+def _():
+    # kleiner Kreis (rot) in der Ansicht -> vergroessertes Detail (blau)
+    part = '<path d="M3 48 H14 V40 H22 V58 H3 Z" fill="%s" stroke="%s" stroke-width="1.8" stroke-linejoin="round"/>' % (
+        OLD, OUTLINE)
+    mark = '<circle cx="14" cy="42" r="6.5" fill="none" stroke="%s" stroke-width="2.4" stroke-dasharray="4 2"/>' % RED
+    # vergroesserter Ausschnitt ohne clipPath: Kreisflaeche weiss, Bauteilstufe als
+    # Flaeche aus Geraden und Kreisbogen (Kreis M(42|22), r=17)
+    big_c = ('<circle cx="42" cy="22" r="17" fill="%s"/>'
+             '<path d="M27 30 H42 V14 H57 A17 17 0 0 1 27 30 Z" fill="%s" stroke="%s" stroke-width="2" '
+             'stroke-linejoin="round"/>'
+             '<circle cx="42" cy="22" r="17" fill="none" stroke="%s" stroke-width="2.2"/>'
+             % (GEO, NEW, OUTLINE, OUTLINE))
+    link = '<path d="M19 37 L28 31" stroke="%s" stroke-width="1.8"/>' % OUTLINE
+    return [part, mark, link, big_c, label(48, 54, "Z", OUTLINE, 13)]
+
+
+@icon("d_scale", "Maßstab")
+def _():
+    # kleine Ansicht (grau) waechst zur grossen (blau), dazu "1:2"
+    return [view_rect(26, 20, 32, 26, NEW), view_rect(6, 6, 14, 11, hole=False),
+            arrow(17, 17, 28, 26, color=NEW, w=3, head=6), label(42, 60, "1:2", OUTLINE, 13)]
+
+
+@icon("d_dimension", "Intelligente Bemaßung")
+def _():
+    # Bauteil (grau), Masslinie mit Pfeilen und Hilfslinien (blau), Masszahl
+    part = '<rect x="10" y="30" width="44" height="22" fill="%s" stroke="%s" stroke-width="1.8"/>' % (OLD, OUTLINE)
+    ext = '<path d="M10 28 V12 M54 28 V12" stroke="%s" stroke-width="1.8"/>' % NEW
+    dim = ('<path d="M14 18 H50" stroke="%s" stroke-width="2.2"/>'
+           '<path d="M10 18 L17 15 V21 Z M54 18 L47 15 V21 Z" fill="%s"/>' % (NEW, NEW))
+    return [part, ext, dim, label(32, 14, "25", OUTLINE, 11)]
+
+
+@icon("d_balloon", "Positionsnummer")
+def _():
+    # Bauteil (grau), Hinweislinie mit Punkt, Kreis mit Nummer (blau)
+    part = '<rect x="6" y="34" width="30" height="22" fill="%s" stroke="%s" stroke-width="1.8"/>' % (OLD, OUTLINE)
+    lead = ('<path d="M22 44 L37 27" stroke="%s" stroke-width="2"/>'
+            '<circle cx="22" cy="44" r="2.6" fill="%s"/>' % (OUTLINE, OUTLINE))
+    ball = '<circle cx="44" cy="20" r="13" fill="%s" stroke="%s" stroke-width="2"/>' % (NEW, OUTLINE)
+    return [part, lead, ball, label(44, 25, "1", GEO, 15)]
+
+
+@icon("d_note", "Notiz")
+def _():
+    # Textfeld mit Zeilen (blau umrandet), Hinweislinie zur Ansicht (grau)
+    part = '<rect x="4" y="40" width="22" height="18" fill="%s" stroke="%s" stroke-width="1.8"/>' % (OLD, OUTLINE)
+    box_ = ('<rect x="24" y="6" width="36" height="26" rx="2" fill="%s" stroke="%s" stroke-width="2.2"/>'
+            '<path d="M30 14 H54 M30 20 H54 M30 26 H44" stroke="%s" stroke-width="2"/>' % (GEO, NEW, OUTLINE))
+    lead = ('<path d="M24 26 L15 47" stroke="%s" stroke-width="2"/>'
+            '<path d="M15 47 L13 39 L20 42 Z" fill="%s"/>' % (OUTLINE, OUTLINE))
+    return [part, lead, box_]
+
+
+@icon("d_pdf", "Als PDF speichern")
+def _():
+    return sheet_doc("PDF", RED)
+
+
+@icon("d_dxf", "Als DXF exportieren")
+def _():
+    return sheet_doc("DXF", NEW)
+
+
+# --- Zeichnungen: kleine Eintraege (Ausklappliste, Textstapel) - 9d2 ---------
+# Werden klein gezeigt (16-24 px): kraeftige Striche, keine Schrift.
+
+
+def dim_line(x0, y0, x1, y1, color=NEW, w=2.6, head=7.0):
+    """Masslinie mit Pfeilspitzen an beiden Enden."""
+    ang = math.atan2(y1 - y0, x1 - x0)
+    out = ""
+    for (px, py, a) in ((x0, y0, ang), (x1, y1, ang + math.pi)):
+        l = (px + head * math.cos(a - 0.38), py + head * math.sin(a - 0.38))
+        r = (px + head * math.cos(a + 0.38), py + head * math.sin(a + 0.38))
+        out += '<path d="M%.1f %.1f L%.1f %.1f L%.1f %.1f Z" fill="%s"/>' % (px, py, l[0], l[1], r[0], r[1], color)
+    sx, sy = x0 + head * 0.8 * math.cos(ang), y0 + head * 0.8 * math.sin(ang)
+    ex, ey = x1 - head * 0.8 * math.cos(ang), y1 - head * 0.8 * math.sin(ang)
+    return out + '<path d="M%.1f %.1f L%.1f %.1f" stroke="%s" stroke-width="%.1f"/>' % (sx, sy, ex, ey, color, w)
+
+
+def ext(d):
+    """Masshilfslinien (blau, fein)."""
+    return '<path d="%s" stroke="%s" stroke-width="1.8" fill="none"/>' % (d, NEW)
+
+
+def part(d):
+    """Bauteilkontur in der Ansicht (grau gefuellt)."""
+    return '<path d="%s" fill="%s" stroke="%s" stroke-width="2" stroke-linejoin="round"/>' % (d, OLD, OUTLINE)
+
+
+def centre(d, color=NEW, w=2.2):
+    """Mittellinie (Strich-Punkt)."""
+    return '<path d="%s" stroke="%s" stroke-width="%.1f" stroke-dasharray="9 3 2 3" fill="none"/>' % (d, color, w)
+
+
+@icon("d_dim_length", "Länge")
+def _():
+    # schraege Kante, Mass parallel dazu
+    return [part("M14 50 L44 20 L56 32 L26 62 Z"), ext("M14 50 L4 40 M44 20 L34 10"),
+            dim_line(7, 43, 37, 13)]
+
+
+@icon("d_dim_horizontal", "Horizontal")
+def _():
+    return [part("M8 34 H56 V58 H8 Z"), ext("M8 32 V12 M56 32 V12"), dim_line(8, 20, 56, 20)]
+
+
+@icon("d_dim_vertical", "Vertikal")
+def _():
+    return [part("M30 8 H56 V56 H30 Z"), ext("M28 8 H8 M28 56 H8"), dim_line(16, 8, 16, 56)]
+
+
+@icon("d_dim_radius", "Radius")
+def _():
+    # Viertelkreis-Ecke, Pfeil vom Mittelpunkt auf den Bogen
+    return [part("M6 58 V30 A24 24 0 0 1 30 6 H58 V58 Z"),
+            '<circle cx="30" cy="30" r="2.6" fill="%s"/>' % NEW,
+            arrow(30, 30, 13, 13, color=NEW, w=2.6, head=7)]
+
+
+@icon("d_dim_diameter", "Durchmesser")
+def _():
+    return ['<circle cx="32" cy="32" r="24" fill="%s" stroke="%s" stroke-width="2"/>' % (OLD, OUTLINE),
+            dim_line(15, 49, 49, 15),
+            '<circle cx="32" cy="32" r="2.4" fill="%s"/>' % OUTLINE]
+
+
+@icon("d_dim_angle", "Winkel")
+def _():
+    path, _pts = arc_d(10, 54, 34, 0, 40)
+    return ['<path d="M10 54 H58 M10 54 L50 20" stroke="%s" stroke-width="5" stroke-linecap="round"/>' % OUTLINE,
+            '<path d="M10 54 H58 M10 54 L50 20" stroke="%s" stroke-width="2.6" stroke-linecap="round"/>' % GEO,
+            '<path d="%s" stroke="%s" stroke-width="2.6" fill="none"/>' % (path, NEW),
+            '<path d="M44 54 L38 49 L38 59 Z" fill="%s"/>' % NEW,
+            '<path d="M36.5 32.1 L37.5 39.8 L43.4 34.5 Z" fill="%s"/>' % NEW]
+
+
+@icon("d_section_aligned", "Ausgerichteter Schnitt")
+def _():
+    # abgewinkelte Schnittlinie (rot) durch ein rundes Teil
+    return ['<circle cx="30" cy="36" r="22" fill="%s" stroke="%s" stroke-width="2"/>' % (OLD, OUTLINE),
+            '<path d="M30 8 V36 L54 56" stroke="%s" stroke-width="2.6" stroke-dasharray="8 3 2 3" fill="none"/>' % RED,
+            '<path d="M30 8 V14 M49 52 L54 56" stroke="%s" stroke-width="5"/>' % RED,
+            arrow(30, 9, 44, 9, color=RED, w=2.4, head=6), arrow(52, 55, 58, 47, color=RED, w=2.4, head=6),
+            '<circle cx="30" cy="36" r="3" fill="%s"/>' % OUTLINE]
+
+
+@icon("d_broken_view", "Unterbrochene Ansicht")
+def _():
+    # langes Teil, Mitte herausgenommen, Bruchlinien (Zickzack, blau)
+    zig = "M26 14 L30 22 L24 30 L30 38 L24 46 L28 52"
+    zig2 = "M36 14 L40 22 L34 30 L40 38 L34 46 L38 52"
+    return [part("M4 20 H27 L24 30 L30 38 L26 46 H4 Z"), part("M60 20 H37 L34 30 L40 38 L36 46 H60 Z"),
+            '<path d="%s M%s" stroke="%s" stroke-width="2.6" fill="none" stroke-linejoin="round"/>' % (zig, zig2[1:], NEW)]
+
+
+@icon("d_clip_group", "Ausschnitt-Rahmen")
+def _():
+    # Rahmen (blau, gestrichelt) schneidet einen Teil der Ansicht aus
+    return [part("M4 40 H30 V22 H48 V58 H4 Z"),
+            '<rect x="20" y="8" width="38" height="36" fill="%s" fill-opacity="0.35" stroke="%s" stroke-width="2.6" '
+            'stroke-dasharray="6 3"/>' % (NEW, NEW)]
+
+
+@icon("d_center_line", "Mittellinie")
+def _():
+    # Teil mit Bohrung im Schnitt: Mittellinie (blau, Strich-Punkt) ueber die Symmetrieachse
+    return [part("M10 12 H54 V26 H10 Z"), part("M10 38 H54 V52 H10 Z"), centre("M2 32 H62", NEW, 2.8)]
+
+
+@icon("d_circle_marks", "Mittelpunktmarke")
+def _():
+    return ['<circle cx="32" cy="32" r="20" fill="%s" stroke="%s" stroke-width="2"/>' % (GEO, OUTLINE),
+            centre("M4 32 H60 M32 4 V60", NEW, 2.6)]
+
+
+@icon("d_hatch", "Schraffur")
+def _():
+    # 45-Grad-Linien x + y = k, rechnerisch auf das Quadrat 10..54 begrenzt (kein clipPath)
+    seg = []
+    for k in range(29, 108, 10):
+        xa, xb = max(10, k - 54), min(54, k - 10)
+        if xb > xa:
+            seg.append('<path d="M%.1f %.1f L%.1f %.1f" stroke="%s" stroke-width="2.6"/>' % (xa, k - xa, xb, k - xb, NEW))
+    return ['<rect x="10" y="10" width="44" height="44" fill="%s" stroke="none"/>' % GEO] + seg + [
+        '<rect x="10" y="10" width="44" height="44" fill="none" stroke="%s" stroke-width="2.4"/>' % OUTLINE]
+
+
+@icon("d_surface", "Oberflächenangabe")
+def _():
+    # Oberflaechensymbol (Haken mit Querstrich) auf einer Kante
+    return ['<path d="M4 54 H60" stroke="%s" stroke-width="4"/>' % OUTLINE,
+            '<path d="M14 36 L24 54 L46 12 H60 M18 43 H31" stroke="%s" stroke-width="3.4" fill="none" '
+            'stroke-linejoin="round" stroke-linecap="round"/>' % NEW]
+
+
+@icon("d_weld", "Schweißsymbol")
+def _():
+    # Hinweislinie mit Bezugslinie und Kehlnaht-Dreieck
+    return [part("M4 58 V40 H22 V58 Z"), part("M22 58 V52 H44 V58 Z"),
+            '<path d="M22 52 L34 26 H60" stroke="%s" stroke-width="2.6" fill="none"/>' % NEW,
+            '<path d="M22 52 L26 43 L29 46 Z" fill="%s"/>' % NEW,
+            '<path d="M42 26 V14 L54 26 Z" fill="%s" stroke="%s" stroke-width="2" stroke-linejoin="round"/>' % (NEW, OUTLINE)]
+
+
+@icon("d_leader", "Hinweislinie")
+def _():
+    return [part("M4 40 H30 V60 H4 Z"),
+            '<path d="M17 50 L40 16 H60" stroke="%s" stroke-width="2.8" fill="none" stroke-linejoin="round"/>' % NEW,
+            '<path d="M17 50 L18.5 39.5 L25 44 Z" fill="%s"/>' % NEW]
+
+
 @icon("m_coincident", "Deckungsgleich")
 def _():
     return [plate(-18, -18, 0, 36, 36, 6), plate(-10, -10, 6, 22, 22, 10, NEW_FACES),

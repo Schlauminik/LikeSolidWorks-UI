@@ -91,6 +91,11 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
 
             proj_views.install()
 
+            # Beim Hineinzoomen ins Blatt duennere Linien/kleinere Punkte (nur Bildschirm).
+            from swui import zoom_lines
+
+            zoom_lines.install()
+
             # Drag & Drop in Baugruppen: dauerhaft angemeldet (auch wenn
             # die Werkbank spaeter wechselt).
             from swui import assembly_drop

@@ -2608,6 +2608,61 @@ def run(split_namespace):
         return False
     print("  Maßstab  : Normmaßstäbe/Blatt/automatisch/eigener; Gruppe gemeinsam, Abstände + Schriftfeld folgen")
 
+    # --- Duennere Linien beim Hineinzoomen (nur Bildschirm) ---
+    zl = sys.modules.get("swui.zoom_lines")
+    if zl is None:
+        print("  FEHLER: zoom_lines nicht geladen (InitGui.Initialize)")
+        return False
+    if (zl.step_for(4), zl.step_for(6), zl.step_for(13), zl.step_for(48), zl.step_for(1e9)) != (0, 0, 2, 3, zl.MAX_STEP):
+        print("  FEHLER: Zoomstufen der Strichstärke", zl.step_for(13), zl.step_for(48))
+        return False
+
+    class ZVO:
+        def __init__(self, **kw):
+            self.__dict__.update(kw)
+            self.PropertiesList = list(kw)
+
+    class ZObj:
+        def __init__(self, name, type_id, vo, views=()):
+            self.Name, self.TypeId, self.ViewObject, self.Views = name, type_id, vo, list(views)
+            self.Document = zdoc
+
+    zdoc = types.SimpleNamespace(Name="ZDoc")
+    front = ZObj("Front", "TechDraw::DrawProjGroupItem", ZVO(LineWidth=0.5, HiddenWidth=0.25, IsoWidth=0.25, ExtraWidth=0.25))
+    grp = ZObj("Grp", "TechDraw::DrawProjGroup", ZVO(LineWidth=0.5, HiddenWidth=0.25, IsoWidth=0.25, ExtraWidth=0.25), [front])
+    dim = ZObj("Dim", "TechDraw::DrawViewDimension", ZVO(LineWidth=0.35, Arrowsize=3.5))
+    page_z = types.SimpleNamespace(Views=[grp, dim])
+    objs_z = zl.page_objects(page_z)
+    if [o.Name for o in objs_z] != ["Grp", "Dim", "Front"]:
+        print("  FEHLER: Ansichten des Blatts (auch in Gruppen)", [o.Name for o in objs_z])
+        return False
+    zl._orig.clear()
+    zl._step = 0
+    zl.apply_step(objs_z, 2)
+    zl._step = 2
+    if (front.ViewObject.LineWidth, front.ViewObject.HiddenWidth, dim.ViewObject.LineWidth, dim.ViewObject.Arrowsize) != (0.125, 0.0625, 0.0875, 3.5):
+        print("  FEHLER: Strichstärken beim Zoomen", front.ViewObject.LineWidth, dim.ViewObject.LineWidth)
+        return False
+    front.ViewObject.LineWidth = 0.175  # von Hand geaendert (0,7 mm bei Stufe 2)
+    zl.apply_step(objs_z, 1)
+    zl._step = 1
+    if abs(front.ViewObject.LineWidth - 0.35) > 1e-9:
+        print("  FEHLER: Handänderung beim Zoomen verloren", front.ViewObject.LineWidth)
+        return False
+    fcz2 = sys.modules["FreeCAD"]
+    old_gd = getattr(fcz2, "getDocument", None)
+    by_name = {o.Name: o for o in objs_z}
+    fcz2.getDocument = lambda n: types.SimpleNamespace(getObject=lambda on: by_name[on])
+    try:
+        zl._SaveObserver().slotStartSaveDocument(zdoc, "/tmp/x.FCStd")
+    finally:
+        if old_gd is not None:
+            fcz2.getDocument = old_gd
+    if (front.ViewObject.LineWidth, front.ViewObject.HiddenWidth, grp.ViewObject.LineWidth, dim.ViewObject.LineWidth) != (0.7, 0.25, 0.5, 0.35) or zl._orig or zl._step:
+        print("  FEHLER: Norm-Strichstärken vor dem Speichern nicht zurück", front.ViewObject.LineWidth, dim.ViewObject.LineWidth)
+        return False
+    print("  Zoom     : Linien/Punkte beim Hineinzoomen dünner (Stufen), Original vor Speichern/Dialog/Ausgabe")
+
     gui.ActiveDocument = None
     print("  Konstrukt: nur neue Linien gestrichelt, Kreise/alte Linien bleiben; Ende bei Werkzeugwechsel/Skizzenende")
 

@@ -44,6 +44,9 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | 9c+++ | Ansichten mit einem Linksklick ziehen (auch auf Kanten), Achsbindung bleibt; Projizierte Ansicht per Mausklick relativ zur gewählten Ansicht (`swui/page_drag.py`, `swui/proj_views.py`) | **fertig** |
 | 9c4 | Maßstab der gewählten Ansicht per Menü: Normmaßstäbe, Blattmaßstab, automatisch, eigener; Abstände und Schriftfeld folgen (`swui/view_scale.py`) | **fertig** |
 | 9c5 | Schriftfeld mit Feld „Maßeinheit“ (Vorgabe mm): eigene deutsche Vorlagen A4 hoch/A3 quer nach DIN EN ISO 7200 (`resources/templates/`, erzeugt von `tools/make_templates.py`) | **fertig** |
+| 9d1 | Eigene Symbole für den Reiter Zeichnungen: Modell-, projizierte, Schnitt-, Detailansicht, Standard-Dreiansicht, Maßstab, Bemaßung, Positionsnummer, Notiz, PDF, DXF (`tools/make_icons.py`) | **fertig** |
+| 9d2 | Eigene Symbole für die kleinen Zeichnungs-Einträge: Bemaßungsarten, ausgerichteter Schnitt, unterbrochene Ansicht, Ausschnitt, Mittellinie, Mittelpunktmarke, Schraffur, Oberfläche, Schweißen, Hinweislinie | **fertig** |
+| 9d3 | Beim Hineinzoomen ins Blatt werden Linien und Eckpunkte stufenweise dünner – nur am Bildschirm; Speichern, PDF, Druck und Export behalten die Norm-Strichstärken (`swui/zoom_lines.py`) | **fertig** |
 
 Später: 3D-Skizzen.
 

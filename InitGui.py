@@ -96,6 +96,11 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
 
             zoom_lines.install()
 
+            # Harmlose Qt-Meldungen beim starken Zoomen ("render glyph failed") ausblenden.
+            from swui import qt_messages
+
+            qt_messages.install()
+
             # Schweisssymbol: Pfeil folgt beim Verschieben des Symbols.
             from swui import weld_symbol
 

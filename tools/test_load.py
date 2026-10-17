@@ -3034,6 +3034,24 @@ def run(split_namespace):
         return False
     print("  Baum     : Blatt/Blattformat/Zeichenansicht/Bemaßung/Positionsnummer/Schnitt-/Detailansicht wie SW")
 
+    # --- Qt-Meldungen beim starken Zoomen (render glyph failed) ausblenden ---
+    qm = sys.modules.get("swui.qt_messages")
+    if qm is None or not qm._installed:
+        print("  FEHLER: Qt-Meldungsfilter nicht installiert (InitGui.Initialize)")
+        return False
+    got_q = []
+    old_prev = qm._previous
+    qm._previous = lambda m_, c_, t_: got_q.append(t_)
+    try:
+        qm.handler(1, types.SimpleNamespace(category="default"), "render glyph failed err=62 face=0x1, glyph=72")
+        qm.handler(1, types.SimpleNamespace(category="default"), "QWidget: andere Warnung")
+    finally:
+        qm._previous = old_prev
+    if got_q != ["QWidget: andere Warnung"] or qm.format_message("qt.svg", "x") != "(qt.svg) x" or qm.format_message("default", "x") != "x":
+        print("  FEHLER: Qt-Meldungsfilter filtert falsch", got_q)
+        return False
+    print("  Meldungen: 'render glyph failed' beim starken Zoomen ausgeblendet, alles andere geht weiter")
+
     gui.ActiveDocument = None
     print("  Konstrukt: nur neue Linien gestrichelt, Kreise/alte Linien bleiben; Ende bei Werkzeugwechsel/Skizzenende")
 

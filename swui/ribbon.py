@@ -28,6 +28,7 @@ Vererbung haelt den Code testbar und robust gegen Qt5/Qt6-Unterschiede.
 """
 
 import functools
+import traceback
 
 import FreeCAD
 import FreeCADGui
@@ -65,6 +66,16 @@ SKETCH_TYPES = ("Sketcher::SketchObject",)
 # (bleibt ueber Neustarts erhalten).
 PARAM_PATH = "User parameter:BaseApp/Preferences/Mod/SWUI/Ribbon"
 _icon_index = None  # Symbolname -> Ressourcenpfad, einmal aufgebaut
+
+
+def _tr(text):
+    """Text in der eingestellten Sprache (swui/i18n.py) - Deutsch bleibt Deutsch."""
+    try:
+        from swui import i18n
+
+        return i18n.tr(text)
+    except Exception:
+        return text
 
 
 # --- Oeffentliche Schnittstelle --------------------------------------
@@ -170,13 +181,20 @@ def _build():
     _tabs = tabs
     for tab_title, groups in ribbon_layout.TABS:
         page = _build_page(tabs, groups, available)
-        tabs.addTab(page, tab_title)
-        _tab_titles.append(tab_title)
+        tabs.addTab(page, _tr(tab_title))
+        _tab_titles.append(tab_title)  # intern immer der deutsche Name (Logik)
 
     dock.setWidget(tabs)
     main_window.addDockWidget(QtCore.Qt.DockWidgetArea.TopDockWidgetArea, dock)
     try:
         dock.visibilityChanged.connect(_on_visibility)
+    except Exception:
+        pass
+
+    try:
+        from swui import i18n
+
+        i18n.add_listener(_on_language)
     except Exception:
         pass
 
@@ -233,6 +251,8 @@ def _build_entry(parent, entry, available, small=False, beside=False):
     """
     size = SMALL_ICON_SIZE if small else ICON_SIZE
     show_text = beside or not small
+    if isinstance(entry, dict) and "language" in entry:
+        return _make_language_button(parent)
     if isinstance(entry, dict) and "stack" in entry:
         return _make_stack(parent, entry, available)
     if isinstance(entry, dict) and "flyout" in entry:
@@ -330,14 +350,15 @@ def _make_button(parent, command, label, opts, icon_size=ICON_SIZE, show_text=Tr
     button = QtWidgets.QToolButton(parent)
     button.setObjectName("SWUI_Btn_" + key.replace("#", "_"))
     _style_button(button, icon_size, show_text, beside)
-    button.setText(_menu_text(label) if beside else label)
+    text = _tr(label)
+    button.setText(_menu_text(text) if beside else text)
 
     info = _command_info(command)
     button.setIcon(_command_icon(command, info, opts))
-    tooltip = info.get("toolTip") or info.get("menuText") or command
+    tooltip = _tr(_strip_html(info.get("toolTip") or info.get("menuText") or command))
     if index is not None or not show_text:
-        tooltip = _menu_text(label)
-    button.setToolTip(_strip_html(tooltip))
+        tooltip = _menu_text(text)
+    button.setToolTip(tooltip)
 
     button.clicked.connect(functools.partial(_run, command, index))
     if register:
@@ -365,7 +386,7 @@ def _make_flyout(parent, variants, icon_size=ICON_SIZE, show_text=True, register
     for i, (command, label, opts) in enumerate(variants):
         info = _command_info(command)
         icon = _command_icon(command, info, opts)
-        tip = _strip_html(info.get("toolTip") or info.get("menuText") or command)
+        tip = _tr(_strip_html(info.get("toolTip") or info.get("menuText") or command))
         fly["variants"].append(
             {
                 "command": command,
@@ -376,7 +397,7 @@ def _make_flyout(parent, variants, icon_size=ICON_SIZE, show_text=True, register
                 "key": button_id(command, opts),
             }
         )
-        action = menu.addAction(icon, _menu_text(label))
+        action = menu.addAction(icon, _menu_text(_tr(label)))
         action.triggered.connect(functools.partial(_choose_variant, fly, i))
     fly["id"] = param_prefix + fly["variants"][0]["key"]
     button.setMenu(menu)
@@ -405,7 +426,7 @@ def _make_toggle(parent, variants):
                 "label": label,
                 "index": opts.get("index"),
                 "icon": _command_icon(command, info, opts),
-                "tooltip": _strip_html(info.get("toolTip") or info.get("menuText") or command),
+                "tooltip": _tr(_strip_html(info.get("toolTip") or info.get("menuText") or command)),
                 "key": button_id(command, opts),
             }
         )
@@ -422,7 +443,7 @@ def _set_toggle(tog, i):
     v = tog["variants"][i]
     b = tog["button"]
     b.setObjectName("SWUI_Tog_" + v["key"].replace("#", "_"))
-    b.setText(v["label"])
+    b.setText(_tr(v["label"]))
     b.setIcon(v["icon"])
     b.setToolTip(v["tooltip"])
 
@@ -452,10 +473,11 @@ def _set_variant(fly, i):
     fly["current"] = i
     button = fly["button"]
     button.setObjectName("SWUI_Fly_" + v["key"].replace("#", "_"))
-    button.setText(_menu_text(v["label"]) if fly.get("beside") else v["label"])
+    text = _tr(v["label"])
+    button.setText(_menu_text(text) if fly.get("beside") else text)
     button.setIcon(v["icon"])
-    name = v["tooltip"] if fly.get("show_text", True) else _menu_text(v["label"])
-    button.setToolTip(name + "\n(Pfeil rechts: weitere Varianten)")
+    name = v["tooltip"] if fly.get("show_text", True) else _menu_text(text)
+    button.setToolTip(name + _tr("\n(Pfeil rechts: weitere Varianten)"))
 
 
 def _choose_variant(fly, i, *_args):
@@ -490,6 +512,117 @@ def _remember_variant(fly):
         FreeCAD.ParamGet(PARAM_PATH).SetString(fly["id"], key)
     except Exception:
         pass
+
+
+# --- Sprache (Knopf "Language" im Reiter Evaluieren) -----------------
+
+
+LANGUAGE_ICON = "sketch/e_language"
+_language_button = None
+_language_entries = []  # [(Code, Text, angehakt)] - wie im Menue (fuer Tests)
+
+
+def _make_language_button(parent):
+    """
+    Knopf "Language" mit Ausklappmenue (Dominik, 18.10.): Automatisch (wie
+    FreeCAD) und alle Sprachen aus swui/lang/. Der Knopf heisst in jeder
+    Sprache gleich, damit man ihn auch in einer fremden Sprache findet.
+    """
+    global _language_button
+    from swui import i18n
+
+    button = QtWidgets.QToolButton(parent)
+    button.setObjectName("SWUI_Btn_Language")
+    _style_button(button, ICON_SIZE, True)
+    button.setText(i18n.BUTTON_TEXT)
+    button.setToolTip(i18n.BUTTON_TIP)
+    button.setIcon(_command_icon(None, {}, {"svg": LANGUAGE_ICON}))
+    button.setPopupMode(QtWidgets.QToolButton.ToolButtonPopupMode.InstantPopup)
+    menu = QtWidgets.QMenu(button)
+    # Qt6: QActionGroup in QtGui, Qt5: in QtWidgets
+    group_cls = getattr(QtGui, "QActionGroup", None) or getattr(QtWidgets, "QActionGroup")
+    group = group_cls(menu)
+    group.setExclusive(True)
+    chosen = i18n.setting()
+    names = dict(i18n.choices())
+    del _language_entries[:]
+    auto_text = "%s (%s)" % (_tr("Automatisch"), names.get(i18n.resolve(i18n.AUTO), i18n.resolve(i18n.AUTO)))
+    for code, text in [(i18n.AUTO, auto_text)] + i18n.choices():
+        action = menu.addAction(text)
+        action.setCheckable(True)
+        action.setChecked(code == chosen)
+        action.setData(code)
+        group.addAction(action)
+        action.triggered.connect(functools.partial(_pick_language, code))
+        _language_entries.append((code, text, code == chosen))
+    button.setMenu(menu)
+    _language_button = button
+    return button
+
+
+def language_menu():
+    """[(Code, Text, angehakt)] des Language-Menues (fuer Tests)."""
+    return list(_language_entries)
+
+
+def _pick_language(code, *_args):
+    try:
+        from swui import i18n
+
+        i18n.set_setting(code)
+    except Exception:
+        FreeCAD.Console.PrintError("[SWUI] Sprache: %s\n" % traceback.format_exc())
+
+
+def _on_language(_before, _after):
+    """Sprache gewechselt: Ribbon neu aufbauen - erst nach dem Menue-Klick
+    (der Knopf, der das ausloest, wird dabei ersetzt)."""
+    QtCore.QTimer.singleShot(0, rebuild)
+
+
+def rebuild():
+    """Ribbon in der aktuellen Sprache neu aufbauen; Reiter und Sichtbarkeit bleiben."""
+    global _dock, _tabs
+    if _dock is None:
+        return
+    current = _tabs.currentIndex() if _tabs is not None else 0
+    old = _dock
+    try:
+        if _timer is not None:
+            _timer.stop()
+    except Exception:
+        pass
+    _buttons.clear()
+    del _flyouts[:]
+    del _toggles[:]
+    del _skipped[:]
+    del _tab_titles[:]
+    # Einzeln abgesichert: Scheitert ein Schritt, wird das alte Dock trotzdem entsorgt
+    for step in (lambda: old.hide(),
+                 lambda: FreeCADGui.getMainWindow().removeDockWidget(old),
+                 lambda: old.setParent(None),
+                 lambda: old.deleteLater()):
+        try:
+            step()
+        except Exception:
+            pass
+    _dock = _build()
+    try:
+        _tabs.setCurrentIndex(max(0, min(current, _tabs.count() - 1)))
+    except Exception:
+        pass
+    try:
+        from swui.commands import free_rotate
+
+        free_rotate._last_tip = None  # Grund-Tooltip am neuen Knopf wieder setzen
+    except Exception:
+        pass
+    if _wanted:
+        _dock.show()
+        _timer.start()
+        _refresh_enabled()
+    else:
+        _dock.hide()
 
 
 def _make_separator(parent):

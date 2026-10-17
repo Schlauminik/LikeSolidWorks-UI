@@ -62,6 +62,7 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | V1 | Veröffentlichung vorbereitet: Name **LikeSolidWorks UI**, Lizenzdateien (LGPL-2.1+/CC-BY-SA-4.0), Rechtshinweise, Manifest-Prüfung im Test | **fertig** |
 | V2 | Nur in der Werkbank: Drag & Drop in Baugruppen wird beim Verlassen abgemeldet; Qt-Meldungsfilter wirkt nur, solange LikeSolidWorks UI aktiv ist, und ist per Parameter abschaltbar | **fertig** |
 | Fix | Nach dem Reinziehen ließen sich die Teile manchmal nicht bewegen: Die Baugruppe war nur als aktiv markiert, nicht im Bearbeitungsmodus. Drag & Drop aktiviert sie jetzt vor und nach dem Einfügen (`swui/assembly_drop.py`) | **fertig** |
+| L1 | Sprache: Knopf **Language** mit Ausklappmenü im Reiter Evaluieren (Automatisch wie FreeCAD / Deutsch / English), Ribbon schaltet sofort um; neue Sprache = neue Datei in `swui/lang/` (`swui/i18n.py`) | **fertig** |
 
 Später: 3D-Skizzen.
 
@@ -95,6 +96,8 @@ swui/
   compat.py          Qt-Import über FreeCADs PySide-Shim
   paths.py           Pfade zu Icons und .ui-Dateien
   version.py         Versionsnummer
+  i18n.py            Sprache der Oberfläche (tr(), Language-Knopf)
+  lang/              je Sprache eine Datei (de.py, en.py, ...)
   commands/          Ein Modul je Themenbereich
 resources/
   icons/             SVG-Icons
@@ -143,6 +146,14 @@ angemeldet.
 **Drag & Drop in Baugruppen** (.FCStd-Dateien aus dem Datei-Explorer
 auf eine aktive Baugruppe ziehen) wirkt nur in LikeSolidWorks UI.
 Außerhalb öffnet FreeCAD gezogene Dateien wie gewohnt.
+
+**Sprache.** Reiter *Evaluieren* → Knopf **Language**: *Automatisch*
+(wie FreeCAD — FreeCAD auf Deutsch ergibt Deutsch, sonst Englisch),
+*Deutsch* oder *English*. Die Umschaltung wirkt sofort. Gespeichert
+wird sie im Parameter `BaseApp/Preferences/Mod/SWUI/Language`.
+Weitere Sprachen: `swui/lang/en.py` kopieren (z. B. als `fr.py`),
+`CODE`, `NAME` und die Texte anpassen — die Sprache erscheint danach
+automatisch im Menü. Fehlende Texte meldet `tools/test_load.py`.
 
 ## Lizenz
 

@@ -1360,6 +1360,32 @@ def _():
             badge(None, "M43 40 L54 47 L43 54 Z")]
 
 
+# --- Evaluieren: Sprache (Dominik, 18.10.) --------------------------
+
+
+@icon("e_language", "Language")
+def _():
+    # Kopf im Profil (Blick nach rechts), offener Mund, Schallwellen.
+    # Weiss = Kopf, Rot = offener Mund (hier "spricht" er), Blau = Toene.
+    head = ("M10 58 L10 46 C2 38 2 20 12 13 C20 7 32 7 38 15 L40 23 L46 29 "
+            "L41 31 L45 32 L34 36.5 L45 41 L40 46 L32 47 L32 58 Z")
+    parts = ['<path d="%s" fill="%s" stroke="%s" stroke-width="2.6" stroke-linejoin="round"/>'
+             % (head, GEO, OUTLINE),
+             '<path d="M45 32 L34 36.5 L45 41 Z" fill="%s" stroke="%s" stroke-width="1.4" '
+             'stroke-linejoin="round"/>' % (RED, OUTLINE),
+             '<circle cx="28" cy="21" r="2.4" fill="%s"/>' % OUTLINE]
+    cx, cy = 45.0, 36.5
+    for r in (7.0, 12.0, 17.0):
+        x0, y0 = polar(cx, cy, r, 40)
+        x1, y1 = polar(cx, cy, r, -40)
+        d = "M%.1f %.1f A%.1f %.1f 0 0 1 %.1f %.1f" % (x0, y0, r, r, x1, y1)
+        parts.append('<path d="%s" stroke="%s" stroke-width="5.4" fill="none" stroke-linecap="round"/>'
+                     % (d, OUTLINE))
+        parts.append('<path d="%s" stroke="%s" stroke-width="3.2" fill="none" stroke-linecap="round"/>'
+                     % (d, NEW))
+    return parts
+
+
 # --- Ausgabe ---------------------------------------------------------
 
 

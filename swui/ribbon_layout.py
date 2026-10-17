@@ -34,6 +34,9 @@ Statt eines Tupels kann ein Gruppeneintrag auch sein:
     {"toggle": [ (A, ...), (B, ...) ]}    ein Platz: A normal, B beim
                                           Bearbeiten einer Skizze
 
+    {"language": True}                    Knopf "Language" mit Sprachmenue
+                                          (swui/i18n.py, swui/lang/)
+
 und ein Ausklappmenue (auch innerhalb eines Stapels):
 
     {"flyout": [ (Befehl, Beschriftung[, opts]), ... ]}
@@ -44,7 +47,9 @@ und startet immer die zuletzt gewaehlte Variante - wie in SOLIDWORKS.
 Befehle, die es in der installierten FreeCAD-Version nicht gibt,
 werden beim Aufbau uebersprungen und im Ausgabefenster gemeldet.
 Die Beschriftungen orientieren sich an der deutschen SOLIDWORKS-
-Oberflaeche.
+Oberflaeche. Sie sind zugleich die Schluessel fuer die Uebersetzung:
+wer hier eine Beschriftung aendert, aendert sie auch in swui/lang/en.py
+(der Test meldet fehlende Uebersetzungen).
 """
 
 FEATURES = (
@@ -226,6 +231,11 @@ EVALUIEREN = (
         ],
         [
             ("Part_CheckGeometry", "Geometrie\nprüfen"),
+        ],
+        [
+            # Sprache der Oberflaeche mit Ausklappmenue (Dominik, 18.10.) -
+            # kein FreeCAD-Befehl, baut ribbon._make_language_button (swui/i18n.py)
+            {"language": True},
         ],
     ],
 )

@@ -370,6 +370,7 @@ def _make_stubs():
     gui._mw = mw
     gui.Control = types.SimpleNamespace(activeDialog=lambda: mw.dialog_open)
     gui._active_wb = "LikeSolidWorksUIWorkbench"
+    gui.getLocale = lambda: "German"  # FreeCAD auf Deutsch (wie bei Dominik)
     gui.activeWorkbench = lambda: types.SimpleNamespace(name=lambda: gui._active_wb)
 
     # FreeCADs Show-Modul: TempoVis wechselt beim Skizzieren die Workbench.
@@ -3121,6 +3122,118 @@ def run(split_namespace):
         return False
     print("  Meldungen: 'render glyph failed' nur in der Werkbank ausgeblendet, sonst alles durchgelassen; abschaltbar")
 
+    # --- Sprache: Knopf "Language", swui/i18n.py, swui/lang/ ----------
+    __import__("swui.i18n")
+    i18 = sys.modules["swui.i18n"]
+    rb_l = sys.modules["swui.ribbon"]
+    lay_l = sys.modules["swui.ribbon_layout"]
+    gui_l = sys.modules["FreeCADGui"]
+    qtc_l = sys.modules["PySide.QtCore"]
+    if [c for c, _n in i18.choices()] != ["de", "en"] or i18.setting() != "auto":
+        print("  FEHLER: Sprachen/Vorgabe", i18.choices(), i18.setting())
+        return False
+    # "Automatisch" = wie FreeCAD: deutsch -> Deutsch, sonst Englisch
+    res_auto = []
+    for loc in ("German", "English", "French", ""):
+        gui_l.getLocale = (lambda l_=loc: l_)
+        res_auto.append(i18.resolve("auto"))
+    gui_l.getLocale = lambda: "German"
+    if res_auto[:3] != ["de", "en", "en"]:
+        print("  FEHLER: Automatisch folgt FreeCADs Sprache nicht", res_auto)
+        return False
+    # Alle Ribbon-Texte muessen in jeder Sprache vorhanden sein
+    keys_l = ["\n(Pfeil rechts: weitere Varianten)", "Automatisch"]
+    def walk_l(entry):
+        if isinstance(entry, dict):
+            for k_ in ("stack", "flyout", "toggle"):
+                for sub_ in entry.get(k_, ()):
+                    walk_l(sub_)
+        elif isinstance(entry, tuple):
+            keys_l.append(entry[1])
+            cmd_ = commands.get(entry[0])
+            if cmd_ is not None:
+                tip_ = cmd_.GetResources().get("ToolTip")
+                if tip_:
+                    keys_l.append(tip_)
+    for title_, groups_ in lay_l.TABS:
+        keys_l.append(title_)
+        for g_ in groups_:
+            for e_ in g_:
+                walk_l(e_)
+    for code_, _name in i18.choices():
+        miss_ = i18.missing(sorted(set(keys_l)), code_)
+        if miss_:
+            print("  FEHLER: Sprache %s - %d Ribbon-Text(e) ohne Übersetzung: %s" % (code_, len(miss_), miss_[:5]))
+            return False
+    if i18.tr("Fase", "en") != "Chamfer" or i18.tr("Fase", "de") != "Fase" or i18.tr("Gibt es nicht", "en") != "Gibt es nicht":
+        print("  FEHLER: tr() übersetzt falsch")
+        return False
+    # Sprache fehlt ein Text -> Englisch, dann Deutsch (dritte Sprache simuliert)
+    langs_l = i18.languages()
+    langs_l["fr"] = types.SimpleNamespace(CODE="fr", NAME="Français", TEXTS={"Fase": "Chanfrein"})
+    try:
+        fr_ok = (i18.tr("Fase", "fr") == "Chanfrein" and i18.tr("Verrundung", "fr") == "Fillet"
+                 and i18.tr("Gibt es nicht", "fr") == "Gibt es nicht"
+                 and [c for c, _n in i18.choices()] == ["de", "en", "fr"])
+    finally:
+        del langs_l["fr"]
+    if not fr_ok:
+        print("  FEHLER: Rückfall Englisch/Deutsch oder Menü-Reihenfolge bei weiterer Sprache")
+        return False
+    # Knopf im Reiter Evaluieren
+    if {"language": True} not in [e_ for g_ in dict(lay_l.TABS)["Evaluieren"] for e_ in g_]:
+        print("  FEHLER: Knopf Language nicht im Reiter Evaluieren")
+        return False
+    if [(c, x) for c, x, _k in rb_l.language_menu()] != [("auto", "Automatisch (Deutsch)"), ("de", "Deutsch"), ("en", "English")] \
+            or [k for _c, _x, k in rb_l.language_menu()] != [True, False, False]:
+        print("  FEHLER: Language-Menü (deutsch)", rb_l.language_menu())
+        return False
+    # Umschalten auf Englisch: wirkt sofort (Ribbon neu aufgebaut)
+    old_single_l = qtc_l.QTimer.singleShot
+    qtc_l.QTimer.singleShot = lambda _ms, fn: fn()
+    old_dock_l = rb_l._dock
+    qtw_l = sys.modules["PySide.QtWidgets"]
+    btn_mock = qtw_l.QToolButton.return_value  # Attrappe: alle Knoepfe sind dasselbe Objekt
+    tab_mock = qtw_l.QTabWidget.return_value
+    try:
+        btn_mock.reset_mock()
+        tab_mock.reset_mock()
+        old_dock_l.deleteLater.reset_mock()
+        i18.set_setting("en")
+        texts_en = [c_[0][0] for c_ in btn_mock.setText.call_args_list]
+        tips_en = [c_[0][0] for c_ in btn_mock.setToolTip.call_args_list]
+        tabs_en = [c_[0][1] for c_ in tab_mock.addTab.call_args_list]
+        titles_en = list(rb_l._tab_titles)
+        menu_en = rb_l.language_menu()
+        removed = old_dock_l.deleteLater.called
+        try:
+            i18.set_setting("xx")
+            bad_ok = False
+        except ValueError:
+            bad_ok = True
+        btn_mock.reset_mock()
+        i18.set_setting("auto")
+        texts_de = [c_[0][0] for c_ in btn_mock.setText.call_args_list]
+    finally:
+        qtc_l.QTimer.singleShot = old_single_l
+        sys.modules["FreeCAD"].ParamGet(i18.PARAMS).RemString(i18.KEY)
+    if ("Extruded\nBoss/Base" not in texts_en or "Linear\naustragen" in texts_en
+            or "Linear\naustragen" not in texts_de or "Extruded\nBoss/Base" in texts_de):
+        print("  FEHLER: Ribbon-Beschriftung nach Umschalten", texts_en[:4], texts_de[:4])
+        return False
+    lang_btn = "Language" if "Language" in texts_en and "Language" in texts_de else texts_en[:3]
+    fly_tip = next((x_ for x_ in tips_en if "variants" in x_), "")
+    if tabs_en[:6] != ["Features", "Sketch", "Evaluate", "View", "Assembly", "Drawing"] or titles_en[1] != "Skizze":
+        print("  FEHLER: Reiter auf Englisch / interne Namen", tabs_en, titles_en)
+        return False
+    if [k for _c, _x, k in menu_en] != [False, False, True] or menu_en[0][1] != "Automatic (Deutsch)" or lang_btn != "Language":
+        print("  FEHLER: Language-Menü (englisch)", menu_en, lang_btn)
+        return False
+    if not fly_tip.endswith("(Arrow on the right: more variants)") or not removed or not bad_ok:
+        print("  FEHLER: Tooltip/Neuaufbau/unbekannte Sprache", fly_tip, removed, bad_ok)
+        return False
+    print("  Sprache  : Knopf Language (Automatisch/Deutsch/English), Ribbon sofort umgeschaltet, alle Texte übersetzt, Rückfall Englisch")
+
     # --- Ausgabe PDF (alle Blaetter) / DXF (9g) ---
     de = sys.modules.get("swui.drawing_export")
     pm = sys.modules.get("swui.pdf_merge")
@@ -3442,6 +3555,18 @@ def check_manifest():
     if not any(wb_name.lower() in h.lower() for h in haystack):
         print("  FEHLER: Suche nach '%s' findet das Paket '%s' im Addon-Manager nicht" % (wb_name, shown))
         ok = False
+    # Version: package.xml und swui/version.py gleich, Datum im Format JJJJ-MM-TT
+    vtxt = open(os.path.join(ADDON, "swui", "version.py"), encoding="utf-8").read()
+    mv = re.search(r'^__version__\s*=\s*"([^"]+)"', vtxt, re.M)
+    pkg_ver = (root.findtext(ns + "version") or "").strip()
+    pkg_date = (root.findtext(ns + "date") or "").strip()
+    if not mv or mv.group(1) != pkg_ver:
+        print("  FEHLER: Version in package.xml (%s) und swui/version.py (%s) verschieden"
+              % (pkg_ver, mv.group(1) if mv else "?"))
+        ok = False
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", pkg_date):
+        print("  FEHLER: <date> '%s' nicht im Format JJJJ-MM-TT" % pkg_date)
+        ok = False
     repo = [u for u in root.findall(ns + "url") if u.get("type") == "repository"]
     if not repo or not (repo[0].text or "").startswith("https://") or not repo[0].get("branch"):
         print("  FEHLER: <url type=\"repository\" branch=\"…\"> fehlt oder unvollständig")
@@ -3470,6 +3595,7 @@ def check_manifest():
     if ok:
         print("  Manifest : <classname> %s passt, Lizenzdateien vorhanden" % cls)
         print("  Lizenz   : SPDX-Kopfzeile in allen Quelldateien")
+        print("  Version  : %s vom %s (package.xml = version.py)" % (pkg_ver, pkg_date))
         print("  Manifest : Addon-Manager zeigt '%s', Suche nach '%s' findet es" % (shown, wb_name))
     return ok
 

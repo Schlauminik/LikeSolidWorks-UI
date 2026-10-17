@@ -28,9 +28,15 @@ import FreeCADGui
 from swui.compat import QtWidgets
 
 FORMATS = {
-    # Anzeige -> Vorlagendatei in <FreeCAD>/Mod/TechDraw/Templates/ISO/
+    # Anzeige -> Vorlagendatei in <FreeCAD>/Mod/TechDraw/Templates/ISO/ (Rueckfall)
     "A4 hoch": "A4_Portrait_ISO5457_advanced.svg",
     "A3 quer": "A3_Landscape_ISO5457_advanced.svg",
+}
+# Bevorzugt: eigene deutsche Vorlagen mit Feld "Maßeinheit" (resources/templates,
+# erzeugt von tools/make_templates.py)
+OWN_FORMATS = {
+    "A4 hoch": "A4_hoch_ISO7200_DE.svg",
+    "A3 quer": "A3_quer_ISO7200_DE.svg",
 }
 FORMAT_ORDER = ("A4 hoch", "A3 quer")
 A3_FROM_MM = 150.0  # groesste Teilabmessung, ab der A3 vorgeschlagen wird
@@ -96,8 +102,17 @@ def suggested_path(src_doc):
     return os.path.join(folder, name + "_Zeichnung.FCStd")
 
 
+def own_templates_dir():
+    from swui import paths
+
+    return os.path.join(paths.RESOURCES_DIR, "templates")
+
+
 def template_path(fmt):
-    """Pfad der ISO-Vorlage; Rueckfall auf FreeCADs Standardvorlage."""
+    """Pfad der Vorlage: eigene deutsche > FreeCADs ISO-Vorlage > Standardvorlage."""
+    own = os.path.join(own_templates_dir(), OWN_FORMATS.get(fmt, OWN_FORMATS["A4 hoch"]))
+    if os.path.isfile(own):
+        return own
     name = FORMATS.get(fmt, FORMATS["A4 hoch"])
     base = os.path.join(FreeCAD.getResourceDir(), "Mod", "TechDraw", "Templates")
     for candidate in (os.path.join(base, "ISO", name), os.path.join(base, name)):

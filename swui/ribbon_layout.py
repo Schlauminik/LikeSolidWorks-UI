@@ -353,6 +353,8 @@ ZEICHNUNGEN = (
             ("TechDraw_ProjectionGroup", "Standard-\nDreiansicht", {}),
             ("TechDraw_SectionView", "Schnitt-\nansicht", {}),
             ("TechDraw_DetailView", "Detail-\nansicht", {}),
+            # Normmassstaebe fuer die gewaehlte Ansicht (view_scale.py)
+            ("SWUI_ViewScale", "Maßstab", {}),
             {"stack": [
                 ("TechDraw_ComplexSection", "Ausgerichteter Schnitt", {}),
                 ("TechDraw_BrokenView", "Unterbrochene Ansicht", {}),

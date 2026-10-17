@@ -41,6 +41,7 @@ FIELD_LABELS = (
     ("drawing_number", "Zeichnungsnummer"),
     ("part_material", "Werkstoff"),
     ("scale", "Maßstab"),
+    ("unit", "Maßeinheit"),
     ("general_tolerances", "Allgemeintoleranzen"),
     ("creator", "Erstellt von"),
     ("approval_person", "Geprüft / freigegeben von"),
@@ -59,10 +60,12 @@ FIELD_LABELS = (
 _LABELS = dict(FIELD_LABELS)
 _ORDER = [k for k, _ in FIELD_LABELS]
 
-FAVORITES = ("A4_Portrait_ISO5457_advanced.svg", "A3_Landscape_ISO5457_advanced.svg")
-_SIZES = {"Portrait": "hoch", "Landscape": "quer"}
+UNIT_DEFAULT = "mm"
+FAVORITES = ("A4_hoch_ISO7200_DE.svg", "A3_quer_ISO7200_DE.svg", "A4_Portrait_ISO5457_advanced.svg", "A3_Landscape_ISO5457_advanced.svg")
+_SIZES = {"Portrait": "hoch", "Landscape": "quer", "hoch": "hoch", "quer": "quer"}
 _VARIANTS = {
-    "ISO5457_advanced": "Schriftfeld ISO 7200",
+    "ISO7200_DE": "Schriftfeld ISO 7200 (deutsch, mit Maßeinheit)",
+    "ISO5457_advanced": "Schriftfeld ISO 7200 (englisch)",
     "ISO5457_minimal": "Schriftfeld klein",
     "ISO5457_notitleblock": "ohne Schriftfeld",
     "blank": "leer",
@@ -102,10 +105,23 @@ def templates_dir():
     return os.path.join(FreeCAD.getResourceDir(), "Mod", "TechDraw", "Templates")
 
 
+def own_templates_dir():
+    """Eigene deutsche Vorlagen des Add-ons (tools/make_templates.py)."""
+    from swui import paths
+
+    return os.path.join(paths.RESOURCES_DIR, "templates")
+
+
 def template_catalog(folder=None):
-    """[(Anzeige, Pfad)]: Favoriten (A4 hoch, A3 quer) zuerst, dann die uebrigen ISO-Vorlagen."""
-    folder = folder or os.path.join(templates_dir(), "ISO")
-    files = sorted(glob.glob(os.path.join(folder, "*.svg")))
+    """
+    [(Anzeige, Pfad)]: Favoriten zuerst (eigene deutsche A4 hoch/A3 quer,
+    dann FreeCADs englische), danach die uebrigen ISO-Vorlagen.
+    Ohne 'folder': eigene Vorlagen + FreeCADs ISO-Ordner.
+    """
+    folders = [folder] if folder else [own_templates_dir(), os.path.join(templates_dir(), "ISO")]
+    files = []
+    for d in folders:
+        files += sorted(glob.glob(os.path.join(d, "*.svg")))
     fav = [f for name in FAVORITES for f in files if os.path.basename(f) == name]
     rest = [f for f in files if f not in fav]
     return [(display_name(f), f) for f in fav + rest]
@@ -191,6 +207,7 @@ def auto_values(page, today=None):
         out["creator"] = author
     out["date_of_issue"] = (today or datetime.date.today()).strftime("%d.%m.%Y")
     out["language_code"] = "DE"
+    out["unit"] = UNIT_DEFAULT
     return out
 
 

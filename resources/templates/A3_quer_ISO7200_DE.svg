@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+
+<!-- Erzeugt von SolidWorks UI (tools/make_templates.py) aus FreeCADs ISO-Vorlage (CC0): deutsche Beschriftung, Feld Maßeinheit. Nicht von Hand ändern. -->
+<svg
+   width="420mm"
+   height="297mm"
+   viewBox="0 0 420 297"
+   version="1.1"
+   id="svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:freecad="https://www.freecad.org/wiki/index.php?title=Svg_Namespace" xmlns:c2pa="http://c2pa.org/manifest">
+  <title id="title">Drawing sheet ISO 5457 - A3T - Advanced</title>
+  <metadata id="metadata"><c2pa:manifest>AAAWgmp1bWIAAAAeanVtZGMycGEAEQAQgAAAqgA4m3EDYzJwYQAAABZcanVtYgAAAEdqdW1kYzJtYQARABCAAACqADibcQN1cm46YzJwYTo3ODgxZTE5My1iNzlkLTQ0NzctYTVhZS1hZDQyNjA1YTQ2NDQAAAADl2p1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALxqdW1iAAAARGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaW5ncmVkaWVudC52MwAAAAAYYzJzaFSPNCfaYvVPR4FMFwXsU/gAAABwY2JvcqNpZGM6Zm9ybWF0bWltYWdlL3N2Zyt4bWxqaW5zdGFuY2VJRHgseG1wOmlpZDozMmYyMTQ4NC05NTFkLTQ3ZGUtYmVkYi04ZTI0NDkxNjNlZmJscmVsYXRpb25zaGlwaHBhcmVudE9mAAAB4mp1bWIAAABBanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5hY3Rpb25zLnYyAAAAABhjMnNoO5BLpxDvyjWhqCGNHc45VwAAAZljYm9yomdhY3Rpb25zgqJmYWN0aW9ua2MycGEub3BlbmVkanBhcmFtZXRlcnOha2luZ3JlZGllbnRzgaJjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFggWEYWuS19cPzE+9BlrGEPc2qK9yH+VU/y7AnerIkc50akZmFjdGlvbngdY29tLmFudGhyb3BpYy5jbGF1ZGUucHJvdmlkZWRqcGFyYW1ldGVyc6F4H2NvbS5hbnRocm9waWMub3JpZ2luLWNvbmZpZGVuY2VndW5rbm93bmtkZXNjcmlwdGlvbnhmQ2xhdWRlIHByb3ZpZGVkIHRoaXMgZmlsZSBhdCB0aGUgcmVxdWVzdCBvZiBhIHVzZXIgYW5kIG1heSBoYXZlIGNyZWF0ZWQgb3IgbW9kaWZpZWQgdGhlIGZpbGUgY29udGVudHMubXNvZnR3YXJlQWdlbnShZG5hbWVmQ2xhdWRlcmFsbEFjdGlvbnNJbmNsdWRlZPUAAADIanVtYgAAAEBqdW1kY2JvcgARABCAAACqADibcRNjMnBhLmhhc2guZGF0YQAAAAAYYzJzaKLGO1N3aQ0yokHxEcdt2kcAAACAY2JvcqVjYWxnZnNoYTI1NmNwYWRMAAAAAAAAAAAAAAAAZGhhc2hYIAwQoJLtKA2IPRnaqDZMPavRK8A8FDRuBVMy5FeiVOFSZG5hbWVuanVtYmYgbWFuaWZlc3RqZXhjbHVzaW9uc4GiZXN0YXJ0GQL9Zmxlbmd0aBkeBAAAAj5qdW1iAAAAJ2p1bWRjMmNsABEAEIAAAKoAOJtxA2MycGEuY2xhaW0udjIAAAACD2Nib3KlY2FsZ2ZzaGEyNTZpc2lnbmF0dXJleE1zZWxmI2p1bWJmPS9jMnBhL3VybjpjMnBhOjc4ODFlMTkzLWI3OWQtNDQ3Ny1hNWFlLWFkNDI2MDVhNDY0NC9jMnBhLnNpZ25hdHVyZWppbnN0YW5jZUlEeCx4bXA6aWlkOjZjNjZjNGE2LTJlOGMtNDAzMC05OTNmLWMxOTgyMWM5NjkzYXJjcmVhdGVkX2Fzc2VydGlvbnODomN1cmx4LXNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaW5ncmVkaWVudC52M2RoYXNoWCBYRha5LX1w/MT70GWsYQ9zaor3If5VT/LsCd6siRznRqJjdXJseCpzZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmFjdGlvbnMudjJkaGFzaFgg0V8Tlp9lh1mDHJ7/f9pxjIKdglenGwMSausBYX7lVD+iY3VybHgpc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5oYXNoLmRhdGFkaGFzaFgggjNI7k7FchqPlw0Gr1eOl8yxssVw2B4JH/9UiiWiCnh0Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVvQW50aHJvcGljIEZpbGVzZ3ZlcnNpb25lMS4wLjBrc3BlY1ZlcnNpb25lMi40LjAAABA4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABAIY2JvctKEWQISogEmGCFZAgowggIGMIIBjaADAgECAhRA5aAK7sI50L64g/oGQgU9Z1UTADAKBggqhkjOPQQDAzBJMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEuMCwGA1UEAxMlQW50aHJvcGljIENvbnRlbnQgQ3JlZGVudGlhbHMgUm9vdCBDQTAeFw0yNjA4MDcxODQzNTZaFw0yODA4MDYxOTQzNTZaMEQxFzAVBgNVBAoTDkFudGhyb3BpYywgUEJDMSkwJwYDVQQDEyBBbnRocm9waWMgQ2xhdWRlIENvbnRlbnQgU2lnbmluZzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJh6CmvLUBgFFNU0vUKlOVtE6djd17L5SuwX0LemFisBM3dkd/3cyjxFA3Qo5S46fX0/ihY0VZ7mfb9KF703t5OjWDBWMA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUEDjAMBgorBgEEAYPoXgIBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUzlHiBIFOZFsj+OPEz5o+nMHXXMIwCgYIKoZIzj0EAwMDZwAwZAIwMXMdFJ4BetLLVY7ORuE9noqbbAZOZn/aArXyTwFAZfKrPzxF2vPoJNf1+UCdg1XGAjBwX1zd9WGqYkqmL5SFqw1QySjr1zJfpJM9+1rdDwSPLMOPOjKuiXjoU/pUUeG9RwmhY3BhZFkNngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPZYQLhjunla9TuPP++6Ddby3sa5PWOcHgYn6I53Di/+IxTtJAahiiwkky+Fsuo2oD5H/gr83MhgHQQIJVPD+BpMQ9Q=</c2pa:manifest>
+    <rdf:RDF>
+      <cc:Work rdf:about="">
+        <cc:license rdf:resource="http://creativecommons.org/publicdomain/zero/1.0/" />
+        <dc:title>Drawing sheet ISO 5457 - A3T - Advanced</dc:title>
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>Benjamin May</dc:title>
+          </cc:Agent>
+        </dc:creator>
+      </cc:Work>
+      <cc:License rdf:about="http://creativecommons.org/publicdomain/zero/1.0/">
+        <cc:permits rdf:resource="http://creativecommons.org/ns#Reproduction" />
+        <cc:permits rdf:resource="http://creativecommons.org/ns#Distribution" />
+        <cc:permits rdf:resource="http://creativecommons.org/ns#DerivativeWorks" />
+      </cc:License>
+    </rdf:RDF>
+  </metadata>
+  <rect id="drawing_space_frame" x="20" y="10" width="390" height="277" style="fill:none;stroke:#000000;stroke-width:0.7;stroke-linecap:round;stroke-linejoin:round" />
+  <g id="centring_marks" style="fill:none;stroke:#000000;stroke-width:0.7;stroke-linecap:round">
+    <path id="top_centering" d="m 210,5 v 10" />
+    <path id="right_centering" d="m 415,148.5 h -10" />
+    <path id="bottom_centering" d="m 210,292 v -10" />
+    <path id="left_centering" d="m 15,148.5 h 10" />
+  </g>
+  <g id="grid_reference_system">
+    <g id="grid_reference_borders" style="fill:none;stroke:#000000;stroke-width:0.35;stroke-linecap:round;stroke-linejoin:round">
+      <rect id="grid_reference_border"  x="15" y="5" width="400" height="287" />
+      <path id="upper_border_1" d="m 60,5 v 5"/>
+      <path id="upper_border_2" d="m 110,5 v 5"/>
+      <path id="upper_border_3" d="m 160,5 v 5"/>
+      <path id="upper_border_5" d="m 260,5 v 5"/>
+      <path id="upper_border_6" d="m 310,5 v 5"/>
+      <path id="upper_border_7" d="m 360,5 v 5"/>
+      <path id="right_border_1" d="m 415,48.5 h -5"/>
+      <path id="right_border_2" d="m 415,98.5 h -5"/>
+      <path id="right_border_4" d="m 415,198.5 h -5"/>
+      <path id="right_border_5" d="m 415,248.5 h -5"/>
+      <path id="lower_border_1" d="m 60,292 v -5"/>
+      <path id="lower_border_2" d="m 110,292 v -5"/>
+      <path id="lower_border_3" d="m 160,292 v -5"/>
+      <path id="lower_border_5" d="m 260,292 v -5"/>
+      <path id="lower_border_6" d="m 310,292 v -5"/>
+      <path id="lower_border_7" d="m 360,292 v -5"/>
+      <path id="left_border_1" d="m 15,48.5 h 5"/>
+      <path id="left_border_2" d="m 15,98.5 h 5"/>
+      <path id="left_border_4" d="m 15,198.5 h 5"/>
+      <path id="left_border_5" d="m 15,248.5 h 5"/>
+    </g>
+    <g id="grid_reference_markers" style="font-size:3.5px;font-family:osifont;text-align:center;text-anchor:middle;fill:#000000;stroke:none">
+      <text id="upper_marker_1" x="35" y="8.8">1</text>
+      <text id="upper_marker_2" x="85" y="8.8">2</text>
+      <text id="upper_marker_3" x="135" y="8.8">3</text>
+      <text id="upper_marker_4" x="185" y="8.8">4</text>
+      <text id="upper_marker_5" x="235" y="8.8">5</text>
+      <text id="upper_marker_6" x="285" y="8.8">6</text>
+      <text id="upper_marker_7" x="335" y="8.8">7</text>
+      <text id="upper_marker_8" x="385" y="8.8">8</text>
+      <text id="right_marker_1" x="412.5" y="24.8">A</text>
+      <text id="right_marker_2" x="412.5" y="74.8">B</text>
+      <text id="right_marker_3" x="412.5" y="124.8">C</text>
+      <text id="right_marker_4" x="412.5" y="174.8">D</text>
+      <text id="right_marker_5" x="412.5" y="224.8">E</text>
+      <text id="right_marker_6" x="412.5" y="274.8">F</text>
+      <text id="lower_marker_1" x="35" y="290.8">1</text>
+      <text id="lower_marker_2" x="85" y="290.8">2</text>
+      <text id="lower_marker_3" x="135" y="290.8">3</text>
+      <text id="lower_marker_4" x="185" y="290.8">4</text>
+      <text id="lower_marker_5" x="235" y="290.8">5</text>
+      <text id="lower_marker_6" x="285" y="290.8">6</text>
+      <text id="lower_marker_7" x="335" y="290.8">7</text>
+      <text id="lower_marker_8" x="385" y="290.8">A3</text>
+      <text id="left_marker_1" x="17.5" y="24.8">A</text>
+      <text id="left_marker_2" x="17.5" y="74.8">B</text>
+      <text id="left_marker_3" x="17.5" y="124.8">C</text>
+      <text id="left_marker_4" x="17.5" y="174.8">D</text>
+      <text id="left_marker_5" x="17.5" y="224.8">E</text>
+      <text id="left_marker_6" x="17.5" y="274.8">F</text>
+    </g>
+  </g>
+  <g id="trimming_marks" style="fill:#000000;stroke:none">>
+    <path id="top_left_trimming" d="m 0,0 h 10 v 5 h -5 v 5 h -5 z" />
+    <path id="top_right_trimming" d="m 420,0 h -10 v 5 h 5 v 5 h 5 z" />
+    <path id="bottom_right_trimming" d="m 420,297 h -10 v -5 h 5 v -5 h 5 z" />
+    <path id="bottom_left_trimming" d="m 0,297 h 10 v -5 h -5 v -5 h -5 z" />
+  </g>
+<!-- Title block -->
+  <g id="title_block_borders" style="fill:none;stroke:#000000;stroke-width:0.35;stroke-linecap:round;stroke-linejoin:round">
+    <rect id="title_block_frame" x="230" y="239" width="180" height="48" style="stroke-width:0.7"/>
+    <rect id="legal_owner_border" x="370" y="239" width="40" height="24"/>
+    <rect id="identification_number_border" x="310" y="263" width="60" height="12"/>
+    <rect id="revision_index_border" x="370" y="275" width="20" height="12"/>
+    <rect id="date_of_issue_border" x="330" y="275" width="40" height="12"/>
+    <rect id="sheet_number_border" x="390" y="275" width="20" height="12"/>
+    <rect id="language_code_border" x="310" y="275" width="20" height="12"/>
+    <rect id="title_border" x="230" y="239" width="80" height="24"/>
+    <rect id="responsible_department_border" x="370" y="263" width="40" height="12"/>
+    <rect id="approval_person_border" x="310" y="251" width="60" height="12"/>
+    <rect id="creator_border" x="310" y="239" width="60" height="12"/>
+    <rect id="document_type_border" x="230" y="263" width="80" height="12"/>
+    <rect id="document_status_border" x="230" y="275" width="80" height="12"/>
+  </g>
+  <g id="title_block_labels" style="font-size:3.5px;font-family:osifont;text-anchor:start;fill:#000000;stroke:none">
+    <text id="legal_owner_label" x="370.5" y="242.6">Eigentümer:</text>
+    <text id="identification_number_label" x="310.5" y="266.6">Zeichnungsnummer:</text>
+    <text id="revision_index_label" x="370.5" y="278.6">Änderung:</text>
+    <text id="date_of_issue_label" x="330.5" y="278.6">Ausgabedatum:</text>
+    <text id="sheet_number_label" x="390.5" y="278.6">Blatt:</text>
+    <text id="language_code_label" x="310.5" y="278.6">Sprache:</text>
+    <text id="title_label" x="230.5" y="242.6">Benennung, Zusatzbenennung:</text>
+    <text id="responsible_department_label" x="370.5" y="266.6">Abteilung:</text>
+    <text id="approval_person_label" x="310.5" y="254.6">Geprüft:</text>
+    <text id="creator_label" x="310.5" y="242.6">Erstellt:</text>
+    <text id="document_type label" x="230.5" y="266.6">Dokumentart:</text>
+    <text id="document_status_label" x="230.5" y="278.6">Status:</text>
+    <text id="sheet_scale_label" x="335.5" y="230.6">Maßstab:</text>
+    <text id="general_tolerances_label" x="300.5" y="230.6">Allgemeintoleranz:</text>
+    <text id="unit_label" x="355.5" y="230.6">Maßeinheit:</text>
+    <text id="part_material_label" x="230.5" y="230.6">Werkstoff:</text>
+  </g>
+  <g id="title_block_data_fields" style="font-size:5px;font-family:osifont;text-anchor:start;fill:#000000;stroke:none">
+    <text id="legal_owner_1_data_field" x="390" y="248.1" freecad:editable="legal_owner_1" freecad:autofill="organization" style="font-size:3.5px;text-align:center;text-anchor:middle"><tspan/></text>
+    <text id="legal_owner_2_data_field" x="390" y="252.1" freecad:editable="legal_owner_2" style="font-size:3.5px;text-align:center;text-anchor:middle"><tspan/></text>
+    <text id="legal_owner_3_data_field" x="390" y="256.1" freecad:editable="legal_owner_3" style="font-size:3.5px;text-align:center;text-anchor:middle"><tspan/></text>
+    <text id="legal_owner_4_data_field" x="390" y="260.1" freecad:editable="legal_owner_4" style="font-size:3.5px;text-align:center;text-anchor:middle"><tspan/></text>
+    <text id="identification_number_data_field" x="311" y="272.2" freecad:editable="drawing_number"><tspan></tspan></text>
+    <text id="revision_index_data_field" x="380" y="284.2" freecad:editable="revision_index" style="text-align:center;text-anchor:middle"><tspan></tspan></text>
+    <text id="date_of_issue_data_field" x="331" y="284.2" freecad:editable="date_of_issue" freecad:autofill="date"><tspan></tspan></text>
+    <text id="sheet_number_data_field" x="400" y="284.2" freecad:editable="sheet_number" freecad:autofill="sheet" style="text-align:center;text-anchor:middle"><tspan>X / Y</tspan></text>
+    <text id="language_data_field" x="320" y="284.2" freecad:editable="language_code" style="text-align:center;text-anchor:middle"><tspan>DE</tspan></text>
+    <text id="title_data_field" x="231" y="248.2" freecad:editable="title" freecad:autofill="title"><tspan></tspan></text>
+    <text id="supplementary_title_1_data_field" x="231" y="254.2" freecad:editable="supplementary_title_1"><tspan></tspan></text>
+    <text id="supplementary_title_2_data_field" x="231" y="260.2" freecad:editable="supplementary_title_2"><tspan></tspan></text>
+    <text id="responsible_department_data_field" x="371" y="272.2" freecad:editable="responsible_department"><tspan></tspan></text>
+    <text id="approval_person_data_field" x="311" y="260.2" freecad:editable="approval_person"><tspan></tspan></text>
+    <text id="creator_data_field" x="311" y="248.2" freecad:editable="creator" freecad:autofill="author"><tspan></tspan></text>
+    <text id="document_type_data_field" x="231" y="272.2" freecad:editable="document_type"><tspan>Fertigungszeichnung</tspan></text>
+    <text id="document_status_data_field" x="231" y="284.2" freecad:editable="document_status"><tspan>In Bearbeitung</tspan></text>
+    <text id="sheet_scale_data_field" x="345" y="236.2" freecad:editable="scale" freecad:autofill="scale" style="text-align:center;text-anchor:middle"><tspan>1 : 1</tspan></text>
+    <text id="general_tolerances_data_field" x="301" y="236.2" freecad:editable="general_tolerances"><tspan>ISO 2768-m</tspan></text>
+    <text id="unit_data_field" x="365.5" y="236.2" freecad:editable="unit" style="text-align:center;text-anchor:middle"><tspan>mm</tspan></text>
+    <text id="part_material_data_field" x="231" y="236.2" freecad:editable="part_material"><tspan></tspan></text>
+  </g>
+  <g id="extras_outlines" style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round">
+    <path id="first_angle_trapezoid" d="m 389,222 -10,2.5 v 5 l 10,2.5 z"/>
+    <circle id="first_angle_inner circle" cx="396" cy="227" r="2.5"/>
+    <circle id="first_angle_outer circle" cx="396" cy="227" r="5"/>
+  </g>
+  <g id="extras_centre_lines" style="fill:none;stroke:#000000;stroke-width:0.25;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:6, 0.75, 0.125, 0.75">
+    <path id="first_angle_horizontal" d="m 378,227 h 24" style="stroke-dashoffset:0.25"/>
+    <path id="first_angle_vertical" d="m 396,233 v -12" style="stroke-dashoffset:4.625"/>
+  </g>
+</svg>

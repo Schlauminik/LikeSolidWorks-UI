@@ -2024,7 +2024,14 @@ def run(split_namespace):
     fcz = sys.modules["FreeCAD"]
     old_res = getattr(fcz, "getResourceDir", None)
     fcz.getResourceDir = lambda: os.path.join(ADDON, "nicht_da")  # Vorlage fehlt -> Rueckfall
+    old_own = nd.own_templates_dir
+    own = nd.template_path("A3 quer")  # eigene deutsche Vorlage zuerst
+    nd.own_templates_dir = lambda: os.path.join(ADDON, "nicht_da")
     fallback = nd.template_path("A3 quer")
+    nd.own_templates_dir = old_own
+    if os.path.basename(own) != "A3_quer_ISO7200_DE.svg" or not os.path.isfile(own):
+        print("  FEHLER: eigene deutsche Vorlage wird nicht bevorzugt", own)
+        return False
 
     class TDObj:
         def __init__(self, type_id, name):
@@ -2123,7 +2130,8 @@ def run(split_namespace):
     if sp is None or "SWUI_SheetProperties" not in commands:
         print("  FEHLER: Befehl SWUI_SheetProperties nicht angemeldet")
         return False
-    if (sp.display_name("/x/A3_Landscape_ISO5457_advanced.svg") != "A3 quer – Schriftfeld ISO 7200"
+    if (sp.display_name("/x/A3_Landscape_ISO5457_advanced.svg") != "A3 quer – Schriftfeld ISO 7200 (englisch)"
+            or sp.display_name("/x/A4_hoch_ISO7200_DE.svg") != "A4 hoch – Schriftfeld ISO 7200 (deutsch, mit Maßeinheit)"
             or sp.display_name("/x/A4_Portrait_blank.svg") != "A4 hoch – leer"
             or sp.display_name("/x/Firma.svg") != "Firma"):
         print("  FEHLER: Anzeigenamen der Vorlagen", sp.display_name("/x/A3_Landscape_ISO5457_advanced.svg"))
@@ -2135,6 +2143,39 @@ def run(split_namespace):
     cat = [os.path.basename(p_) for _n, p_ in sp.template_catalog(tmpdir)]
     if cat[:2] != ["A4_Portrait_ISO5457_advanced.svg", "A3_Landscape_ISO5457_advanced.svg"] or len(cat) != 3:
         print("  FEHLER: Vorlagenliste (A4 hoch, A3 quer zuerst)", cat)
+        return False
+    # Eigene Vorlagen: deutsch, Feld "unit" (Maßeinheit) mit Vorgabe mm, gueltiges XML
+    import xml.dom.minidom as _md
+    for n_ in ("A4_hoch_ISO7200_DE.svg", "A3_quer_ISO7200_DE.svg"):
+        f_ = os.path.join(sp.own_templates_dir(), n_)
+        if not os.path.isfile(f_):
+            print("  FEHLER: eigene Vorlage fehlt", f_)
+            return False
+        txt_ = open(f_, encoding="utf-8").read()
+        _md.parseString(txt_.encode("utf-8"))
+        if ('freecad:editable="unit"' not in txt_ or "<tspan>mm</tspan>" not in txt_
+                or "Maßeinheit:" not in txt_ or "Werkstoff:" not in txt_ or "Part Material" in txt_):
+            print("  FEHLER: Vorlage ohne Maßeinheit bzw. nicht deutsch", n_)
+            return False
+    fc_ = sys.modules["FreeCAD"]
+    had_ = hasattr(fc_, "getResourceDir")
+    old_ = getattr(fc_, "getResourceDir", None)
+    fc_.getResourceDir = lambda: tmpdir  # FreeCADs Vorlagen: hier nicht vorhanden
+    try:
+        full = [os.path.basename(p_) for _n, p_ in sp.template_catalog()]
+    finally:
+        if had_:
+            fc_.getResourceDir = old_
+        else:
+            del fc_.getResourceDir
+    if full[:2] != ["A4_hoch_ISO7200_DE.svg", "A3_quer_ISO7200_DE.svg"]:
+        print("  FEHLER: deutsche Vorlagen nicht zuerst in der Liste", full[:3])
+        return False
+    if sp.field_label("unit") != "Maßeinheit" or sp.ordered_fields(["unit", "scale", "part_material"]) != ["part_material", "scale", "unit"]:
+        print("  FEHLER: Feld Maßeinheit im Panel")
+        return False
+    if sp.fill_empty({"unit": ""}, {"unit": "mm"}) != {"unit": "mm"}:
+        print("  FEHLER: Maßeinheit nicht vorbelegt")
         return False
     if sp.ordered_fields(["scale", "zzz", "title", "creator"]) != ["title", "scale", "creator", "zzz"]:
         print("  FEHLER: Reihenfolge der Schriftfeld-Felder")
@@ -2166,7 +2207,7 @@ def run(split_namespace):
     zdoc2.Objects = [pg, view]
     auto = sp.auto_values(pg, today=__import__("datetime").date(2026, 10, 17))
     if (auto.get("title"), auto.get("part_material"), auto.get("scale"), auto.get("drawing_number"), auto.get("date_of_issue")) != (
-            "Welle", "S235JR", "1:2", "Welle_Zeichnung", "17.10.2026"):
+            "Welle", "S235JR", "1:2", "Welle_Zeichnung", "17.10.2026") or auto.get("unit") != "mm":
         print("  FEHLER: Schriftfeld-Vorbelegung aus dem Teil", auto)
         return False
     filled = sp.fill_empty({"title": "Eigene Benennung", "scale": ""}, auto)
@@ -2534,6 +2575,38 @@ def run(split_namespace):
         print("  FEHLER: Draufsicht beim Ziehen nicht senkrecht verschoben", t7.X, t7.Y)
         return False
     print("  Ziehen   : ein Linksklick genügt (auch auf Kanten), Achse bleibt, 1 Rückgängig-Schritt je Zug")
+
+    # --- Maßstab der Ansicht --------------------------------------------------
+    vs = sys.modules.get("swui.view_scale")
+    if vs is None or "SWUI_ViewScale" not in commands:
+        print("  FEHLER: Befehl SWUI_ViewScale nicht angemeldet")
+        return False
+    if (vs.parse_scale("1:5"), vs.parse_scale("2:1"), vs.parse_scale("0,5"), vs.parse_scale("1:0"), vs.parse_scale("abc")) != (0.2, 2.0, 0.5, None, None):
+        print("  FEHLER: Maßstab lesen")
+        return False
+    g8 = PGroup()
+    g8.AutoDistribute, g8.ScaleType = False, "Automatic"
+    t8, l8 = g8.addProjection("Top"), g8.addProjection("Left")
+    t8.Y, l8.X = -100.0, 120.0
+    tpl8 = types.SimpleNamespace(EditableTexts={"scale": "1:2", "title": "Tisch"})
+    page8 = types.SimpleNamespace(TypeId="TechDraw::DrawPage", Template=tpl8)
+    g8.InList = [page8]
+    if vs.scale_target(t8) is not g8 or vs.scale_target(types.SimpleNamespace(TypeId="TechDraw::DrawViewDimension", Scale=1)) is not None:
+        print("  FEHLER: Maßstab-Ziel (Gruppe statt Einzelprojektion)")
+        return False
+    new = vs.apply_scale(g8, 0.25, "Custom")
+    if (new, g8.ScaleType, t8.Y, l8.X, tpl8.EditableTexts["scale"]) != (0.25, "Custom", -50.0, 60.0, "1:4"):
+        print("  FEHLER: Maßstab setzen / Abstände / Schriftfeld", new, g8.ScaleType, t8.Y, l8.X, tpl8.EditableTexts)
+        return False
+    tpl8.EditableTexts = {"scale": "M 1:4 (Hauptansicht)"}  # eigener Text bleibt
+    vs.apply_scale(g8, 0.5, "Custom")
+    det = types.SimpleNamespace(TypeId="TechDraw::DrawViewDetail", Scale=2.0, ScaleType="Custom", InList=[page8],
+                                Document=types.SimpleNamespace(recompute=lambda: None), Label="Detail Z")
+    vs.apply_scale(det, None, "Page")
+    if tpl8.EditableTexts["scale"] != "M 1:4 (Hauptansicht)" or det.ScaleType != "Page" or vs.current_label(det) != "Blattmaßstab":
+        print("  FEHLER: eigener Schriftfeldtext / Blattmaßstab", tpl8.EditableTexts, det.ScaleType)
+        return False
+    print("  Maßstab  : Normmaßstäbe/Blatt/automatisch/eigener; Gruppe gemeinsam, Abstände + Schriftfeld folgen")
 
     gui.ActiveDocument = None
     print("  Konstrukt: nur neue Linien gestrichelt, Kreise/alte Linien bleiben; Ende bei Werkzeugwechsel/Skizzenende")

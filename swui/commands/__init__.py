@@ -45,5 +45,9 @@ def register_all():
 
     FreeCADGui.addCommand("SWUI_ProjectedView", proj_views.ProjectedView())
 
+    from swui import view_scale
+
+    FreeCADGui.addCommand("SWUI_ViewScale", view_scale.ViewScale())
+
     _REGISTERED = True
     FreeCAD.Console.PrintLog("[SWUI] Befehle angemeldet.\n")

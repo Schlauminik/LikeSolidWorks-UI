@@ -139,6 +139,22 @@ class DragState:
         self.doc = None
 
 
+def tool_active(gview):
+    """
+    Laeuft gerade ein TechDraw-Werkzeug (Bemassen, Positionsnummer setzen,
+    Schwenken ...)? TechDraw setzt dann einen eigenen Mauszeiger auf das
+    Blatt (QGVPage::activateCursor, TechDrawHandler.cpp) und raeumt ihn am
+    Ende wieder auf den Pfeil zurueck. Waehrend eines Werkzeugs darf nichts
+    die Ansichten neu zeichnen lassen - TechDraw haelt dann Zeiger auf die
+    Kanten, und ein Neuzeichnen fuehrt zum Absturz (Dominik, 17.10.).
+    """
+    try:
+        shape = gview.viewport().cursor().shape()
+        return shape != QtCore.Qt.CursorShape.ArrowCursor
+    except Exception:
+        return False
+
+
 def _is_active_workbench():
     try:
         return FreeCADGui.activeWorkbench().name() == "SolidWorksUIWorkbench"
@@ -169,6 +185,8 @@ def handle_event(state, gview, event):
                     return False
             except Exception:
                 pass
+            if tool_active(gview):
+                return False  # z. B. Bemassen: Klicks gehoeren dem Werkzeug
             state.press = state.last = _scene_pos(gview, event)
             return False  # TechDraw waehlt wie gewohnt aus
         if kind == T.MouseMove and state.press is not None:

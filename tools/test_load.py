@@ -1407,6 +1407,23 @@ def run(split_namespace):
         print("  FEHLER: Zeichnungs-Dialoge nicht im Takt")
         return False
     print("  Dialoge : Standard-Dreiansicht/Schnitt/Detail/ausgerichteter Schnitt mit SW-Begriffen")
+    bal = FRoot({"label": FLabel("Text"), "comboLineVisible": FCombo(["Falsch", "Wahr"]),
+                 "comboBubbleShape": FCombo(["a", "b", "c", "d", "e", "f", "g", "h"])})
+    dimr = FRoot({"cbReference": FLabel("Referenz"), "comboDrawingStyle": FCombo(["1", "2", "3", "4"])})
+    weld = FRoot({"cbAllAround": FLabel("Umlaufend"), "pbArrowSymbol": FLabel("Kehlnaht")})
+    ft.apply(bal, ft.BALLOON)
+    ft.apply(dimr, ft.DIMENSION)
+    ft.apply(weld, ft.WELD)
+    if (bal.kids["label"].t, bal.kids["comboLineVisible"].items[1], bal.kids["comboBubbleShape"].items[0],
+            dimr.kids["cbReference"].t, dimr.kids["comboDrawingStyle"].items[0], weld.kids["cbAllAround"].t,
+            weld.kids["pbArrowSymbol"].t) != ("Positionsnummer", "Anzeigen", "Kreis", "Hilfsmaß (in Klammern)",
+                                               "ISO ausgerichtet", "Ringsum-Naht", "Kehlnaht"):
+        print("  FEHLER: Beschriftungs-Dialoge (Positionsnummer/Bemaßung/Schweißen)")
+        return False
+    if any(sp_ not in ft.SPECS for sp_ in (ft.DIMENSION, ft.BALLOON, ft.NOTE, ft.LEADER, ft.HATCH, ft.CENTER_LINE, ft.WELD, ft.SURFACE)):
+        print("  FEHLER: Beschriftungs-Dialoge nicht im Takt")
+        return False
+    print("  Dialoge : Bemaßung/Positionsnummer/Notiz/Hinweislinie/Schraffur/Mittellinie/Schweißen/Oberfläche mit SW-Begriffen")
 
     # --- Reiter wechselt beim Skizzieren --------------------------------
     gui = sys.modules["FreeCADGui"]
@@ -2625,6 +2642,8 @@ def run(split_namespace):
     gview.mapToScene.side_effect = lambda p_: p_
     gview.transform.return_value.m11.return_value = 1.0
     gview.scene.return_value.mouseGrabberItem.return_value = None  # Kante: TechDraw zieht nicht
+    gview.viewport.return_value.cursor.return_value.shape.return_value = (
+        sys.modules["swui.compat"].QtCore.Qt.CursorShape.ArrowCursor)  # kein TechDraw-Werkzeug aktiv
     gui._sel = [types.SimpleNamespace(Object=t7, SubElementNames=("Edge3",))]
     st = pd.DragState()
     y0 = t7.Y
@@ -2729,6 +2748,69 @@ def run(split_namespace):
         print("  FEHLER: Norm-Strichstärken vor dem Speichern nicht zurück", front.ViewObject.LineWidth, dim.ViewObject.LineWidth)
         return False
     print("  Zoom     : Linien/Punkte beim Hineinzoomen dünner (Stufen), Original vor Speichern/Dialog/Ausgabe")
+    # Absturz beim Bemassen (17.10.): waehrend eines TechDraw-Werkzeugs nichts neu zeichnen / nicht ziehen
+    pd_ = sys.modules["swui.page_drag"]
+    qtc = sys.modules["swui.compat"].QtCore
+    arrow_ = qtc.Qt.CursorShape.ArrowCursor
+    tool_cursor = object()
+
+    def gview_with(shape):
+        return types.SimpleNamespace(viewport=lambda: types.SimpleNamespace(
+            cursor=lambda: types.SimpleNamespace(shape=lambda: shape)),
+            transform=lambda: types.SimpleNamespace(m11=lambda: 50.0),  # stark gezoomt
+            mapToScene=lambda p_: p_, scene=lambda: None)
+
+    g_idle, g_tool = gview_with(arrow_), gview_with(tool_cursor)
+    if pd_.tool_active(g_idle) or not pd_.tool_active(g_tool):
+        print("  FEHLER: aktives TechDraw-Werkzeug wird nicht erkannt")
+        return False
+    if not zl._busy(g_tool, types.SimpleNamespace(Document=types.SimpleNamespace(HasPendingTransaction=False))):
+        print("  FEHLER: Strichstärken würden während des Bemaßens geändert (Absturz)")
+        return False
+    if not zl._busy(g_idle, types.SimpleNamespace(Document=types.SimpleNamespace(HasPendingTransaction=True))):
+        print("  FEHLER: Strichstärken würden während einer offenen Transaktion geändert")
+        return False
+    old_tick_page = zl._active_page
+    zl._active_page = lambda: (page_z, g_tool)
+    old_wb = zl._active_workbench
+    zl._active_workbench = lambda: True
+    old_dlg = zl._dialog_open
+    zl._dialog_open = lambda: False
+    zl._orig.clear()
+    zl._step = 0
+    before_lw = front.ViewObject.LineWidth
+    try:
+        zl.tick()
+        zl.tick()
+    finally:
+        zl._active_page, zl._active_workbench, zl._dialog_open = old_tick_page, old_wb, old_dlg
+    if front.ViewObject.LineWidth != before_lw or zl._orig:
+        print("  FEHLER: Zoom-Takt ändert Linien trotz aktivem Werkzeug")
+        return False
+    press = types.SimpleNamespace(type=lambda: qtc.QEvent.Type.MouseButtonPress,
+                                  button=lambda: qtc.Qt.MouseButton.LeftButton,
+                                  position=lambda: types.SimpleNamespace(
+                                      toPoint=lambda: types.SimpleNamespace(x=lambda: 1.0, y=lambda: 2.0)))
+    st_ = pd_.DragState()
+    old_wb2 = pd_._is_active_workbench
+    pd_._is_active_workbench = lambda: True
+    guim = sys.modules["FreeCADGui"]
+    old_ctl = getattr(guim, "Control", None)
+    guim.Control = types.SimpleNamespace(activeDialog=lambda: False)
+    st_idle = pd_.DragState()
+    try:
+        pd_.handle_event(st_, g_tool, press)
+        pd_.handle_event(st_idle, g_idle, press)  # Gegenprobe: ohne Werkzeug wird der Klick gemerkt
+    finally:
+        pd_._is_active_workbench = old_wb2
+        guim.Control = old_ctl
+    if st_idle.press is None:
+        print("  FEHLER: Prüfaufbau Ziehen (ohne Werkzeug kein Klick erkannt)")
+        return False
+    if st_.press is not None:
+        print("  FEHLER: Ziehen greift während eines TechDraw-Werkzeugs ein")
+        return False
+    print("  Werkzeug : während Bemaßen & Co. kein Neuzeichnen und kein Ziehen (Absturz behoben)")
 
     gui.ActiveDocument = None
     print("  Konstrukt: nur neue Linien gestrichelt, Kreise/alte Linien bleiben; Ende bei Werkzeugwechsel/Skizzenende")

@@ -229,7 +229,154 @@ COMPLEX_SECTION = {
     "after": _scale_fix("cmbScaleType", "sbScale"),
 }
 
-SPECS = (PAD_POCKET, REVOLUTION, JOINT, INSERT, PROJ_GROUP, SECTION_VIEW, DETAIL_VIEW, COMPLEX_SECTION)
+# --- Zeichnungen (9e2a): Beschriftungs-Dialoge ---------------------------
+# Nicht angefasst werden Knoepfe, deren Text TechDraw je nach Zustand selbst
+# umschreibt (Hinweislinie "pbTracker", Schweisssymbol "pbArrowSymbol"/
+# "pbOtherSymbol") - sonst waere der Zustand nicht mehr erkennbar.
+
+LINE_STYLES = ["Durchgezogen", "Gestrichelt", "Gepunktet", "Strichpunkt", "Strich-Zweipunkt"]
+
+DIMENSION = {
+    "root": "TechDrawGui::TaskDimension",
+    "labels": {
+        "gbTolerancing": "Maßwert",
+        "label_11": "Formatvorgabe",
+        "cbArbitrary": "Maßtext überschreiben",
+        "label_9": "Nachkommastellen",
+        "cbReference": "Hilfsmaß (in Klammern)",
+        "gbFormatting": "Toleranz",
+        "cbEqualTolerance": "Symmetrische Toleranz (±)",
+        "cbArbitraryTolerances": "Toleranztext frei eingeben",
+        "label": "Format oberes Abmaß",
+        "label_12": "Format unteres Abmaß",
+        "cbTheoreticallyExact": "Theoretisch genaues Maß (Rahmen)",
+        "label_2": "Oberes Abmaß",
+        "label_8": "Unteres Abmaß",
+        "gbDisplayStyle": "Darstellung",
+        "cbArrowheads": "Pfeile umkehren",
+        "label_5": "Farbe",
+        "label_7": "Schriftgröße",
+        "label_4": "Bemaßungsstil",
+        "gbLines": "Maß- und Hilfslinien",
+        "rbOverride": "Winkel vorgeben",
+        "label_3": "Winkel der Maßlinie",
+        "label_6": "Winkel der Maßhilfslinien",
+        "pbDimUseDefault": "Standard",
+        "pbExtUseDefault": "Standard",
+        "pbDimUseSelection": "Aus Auswahl",
+        "pbExtUseSelection": "Aus Auswahl",
+    },
+    "combos": {
+        # ISO oriented, ISO referencing, ASME inlined, ASME referencing
+        "comboDrawingStyle": ["ISO ausgerichtet", "ISO mit Bezugslinie", "ASME waagerecht", "ASME mit Bezugslinie"],
+    },
+}
+
+BALLOON = {
+    "root": "TechDrawGui::TaskBalloon",
+    "labels": {
+        "label": "Positionsnummer",
+        "label_5": "Textfarbe",
+        "label_7": "Schriftgröße",
+        "label_3": "Form",
+        "label_2": "Größe der Form",
+        "label_4": "Endsymbol",
+        "label_10": "Größe Endsymbol",
+        "label_9": "Hinweislinie",
+        "label_8": "Linienstärke",
+        "label_6": "Knicklänge",
+    },
+    "combos": {
+        # Circular, None, Triangle, Inspection, Hexagon, Square, Rectangle, Line
+        "comboBubbleShape": ["Kreis", "Ohne", "Dreieck", "Prüfmaß", "Sechseck", "Quadrat", "Rechteck", "Unterstrichen"],
+        "comboLineVisible": ["Ausblenden", "Anzeigen"],
+    },
+}
+
+NOTE = {
+    "root": "TechDrawGui::TaskRichAnno",
+    "labels": {
+        "label": "Bezug",
+        "label_2": "Max. Breite",
+        "pbEditor": "Text bearbeiten …",
+        "label_3": "Rahmen",
+        "label_4": "Farbe",
+        "label_5": "Linienstärke",
+        "label_6": "Linienart",
+    },
+    "combos": {"cFrameStyle": ["Ohne Rahmen"] + LINE_STYLES},
+}
+
+LEADER = {
+    "root": "TechDrawGui::TaskLeaderLine",
+    "labels": {
+        "label_4": "Ausgangsansicht",
+        "pbCancelEdit": "Änderungen verwerfen",
+        "label_2": "Startsymbol",
+        "label_3": "Endsymbol",
+        "label": "Farbe",
+        "label_5": "Linienstärke",
+        "label_6": "Linienart",
+    },
+    "combos": {"cboxStyle": ["Keine Linie"] + LINE_STYLES},
+}
+
+HATCH = {
+    "root": "TechDrawGui::TaskHatch",
+    "labels": {
+        "groupBox": "Schraffurmuster",
+        "label": "Musterdatei",
+        "label_3": "Linienfarbe",
+        "label_2": "Musterabstand (Skalierung)",
+        "label_4": "Winkel",
+        "label_5": "Versatz X",
+        "label_6": "Versatz Y",
+    },
+    "combos": {},
+}
+
+CENTER_LINE = {
+    "root": "TechDrawGui::TaskCenterLine",
+    "labels": {
+        "label_4": "Ausgangsansicht",
+        "label_2": "Elemente",
+        "gbOrientation": "Ausrichtung",
+        "rbVertical": "Senkrecht",
+        "rbHorizontal": "Waagerecht",
+        "rbAligned": "Ausgerichtet",
+        "label": "Farbe",
+        "label_5": "Linienstärke",
+        "label_6": "Linienart",
+        "label_7": "Versatz waagerecht",
+        "label_8": "Versatz senkrecht",
+        "label_9": "Drehen",
+        "label_3": "Überstand",
+    },
+    "combos": {},
+}
+
+WELD = {
+    "root": "TaskWeldingSymbol",
+    "labels": {
+        "pbOtherErase": "Löschen",
+        "pbFlipSides": "Seiten tauschen",
+        "cbFieldWeld": "Baustellennaht",
+        "cbAllAround": "Ringsum-Naht",
+        "cbAltWeld": "Unterbrochen, versetzt",
+        "label_5": "Angabe an der Gabel (z. B. Verfahren)",
+        "label": "Symbolordner",
+    },
+    "combos": {},
+}
+
+SURFACE = {
+    "root": "TechDrawGui::TaskSurfaceFinishSymbols",
+    "labels": {"lbAngle": "Drehwinkel"},
+    "combos": {},
+}
+
+SPECS = (PAD_POCKET, REVOLUTION, JOINT, INSERT, PROJ_GROUP, SECTION_VIEW, DETAIL_VIEW, COMPLEX_SECTION,
+         DIMENSION, BALLOON, NOTE, LEADER, HATCH, CENTER_LINE, WELD, SURFACE)
 
 _timer = None
 _installed = False

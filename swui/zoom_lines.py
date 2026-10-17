@@ -193,6 +193,8 @@ def tick():
         page, gview = _active_page()
         if page is None:
             return  # anderes Fenster aktiv: nichts tun (Werte bleiben bis zum Speichern/Dialog)
+        if _busy(gview, page):
+            return  # Werkzeug laeuft: NICHTS neu zeichnen lassen (Absturz beim Bemassen)
         from swui import proj_views
 
         px_per_mm = abs(gview.transform().m11()) * proj_views._rez()
@@ -216,6 +218,42 @@ def tick():
         _step, _pending = want, None
     except Exception:
         FreeCAD.Console.PrintLog("[SWUI] Linien beim Zoomen: %s\n" % traceback.format_exc())
+
+
+def _busy(gview, page):
+    """
+    Darf jetzt nichts geaendert werden? Ein Neuzeichnen der Ansichten
+    waehrend TechDraw arbeitet, loescht Kanten, auf die TechDraw noch
+    zeigt -> Absturz (Dominik, 17.10.: "Beim Setzen neuer Maße stürzt
+    FreeCAD ab"). Deshalb warten, solange
+      - ein TechDraw-Werkzeug aktiv ist (eigener Mauszeiger),
+      - eine Maustaste gedrueckt ist,
+      - ein Aufgaben-Dialog offen ist (Bemassung, Schnitt ...),
+      - das Dokument eine offene Transaktion hat (Objekt wird gerade angelegt).
+    """
+    try:
+        from swui import page_drag
+
+        if page_drag.tool_active(gview):
+            return True
+    except Exception:
+        return True
+    try:
+        if QtWidgets.QApplication.mouseButtons() != QtCore.Qt.MouseButton.NoButton:
+            return True
+    except Exception:
+        pass
+    try:
+        if FreeCADGui.Control.activeDialog():
+            return True
+    except Exception:
+        pass
+    try:
+        if getattr(page.Document, "HasPendingTransaction", False):
+            return True
+    except Exception:
+        pass
+    return False
 
 
 def _quiet(fn):

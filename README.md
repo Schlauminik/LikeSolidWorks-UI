@@ -48,6 +48,8 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | 9d2 | Eigene Symbole für die kleinen Zeichnungs-Einträge: Bemaßungsarten, ausgerichteter Schnitt, unterbrochene Ansicht, Ausschnitt, Mittellinie, Mittelpunktmarke, Schraffur, Oberfläche, Schweißen, Hinweislinie | **fertig** |
 | 9d3 | Beim Hineinzoomen ins Blatt werden Linien und Eckpunkte stufenweise dünner – nur am Bildschirm; Speichern, PDF, Druck und Export behalten die Norm-Strichstärken (`swui/zoom_lines.py`) | **fertig** |
 | 9e1 | SW-Begriffe in den TechDraw-Dialogen des Ansichtslayouts: Standard-Dreiansicht, Schnitt-, Detailansicht, ausgerichteter Schnitt (`swui/feature_terms.py`) | **fertig** |
+| 9e2a | SW-Begriffe in den Beschriftungs-Dialogen: Bemaßung, Positionsnummer, Notiz, Hinweislinie, Schraffur, Mittellinie, Schweiß- und Oberflächensymbol (`swui/feature_terms.py`) | **fertig** |
+| Fix | Absturz beim Bemaßen behoben: Während ein TechDraw-Werkzeug läuft, ändern Zoom-Linien und Ziehen nichts mehr (`zoom_lines.py`, `page_drag.py`) | **fertig** |
 
 Später: 3D-Skizzen.
 

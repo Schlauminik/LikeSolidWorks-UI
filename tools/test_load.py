@@ -981,6 +981,33 @@ def run(split_namespace):
         print("  FEHLER: nicht genau ein Rückgängig-Schritt", asm_doc.opened, asm_doc.committed)
         return False
 
+    # Ungespeicherte Baugruppe: erst speichern, sonst nichts einfuegen
+    asks, ins = [], []
+    real_ask, real_ins = ad.ask_save, ad.insert_files
+    try:
+        ad.insert_files = lambda a, p: (ins.append(p), [])[1]
+        unsaved = types.SimpleNamespace(Document=types.SimpleNamespace(FileName="", Label="Baugruppe1", Name="Baugruppe1"))
+        ad.ask_save = lambda d, p: (asks.append(p), False)[1]
+        ad._safe_insert(unsaved, ["/h/a/Welle.FCStd"])
+        declined = list(ins)
+
+        def do_save(d, p):
+            asks.append(p)
+            d.FileName = "/h/a/Baugruppe1.FCStd"
+            return True
+
+        ad.ask_save = do_save
+        ad._safe_insert(unsaved, ["/h/a/Welle.FCStd"])
+        ad._safe_insert(unsaved, ["/h/a/Welle.FCStd"])  # jetzt gespeichert: keine Frage mehr
+    finally:
+        ad.ask_save, ad.insert_files = real_ask, real_ins
+    if declined or len(asks) != 2 or len(ins) != 2:
+        print("  FEHLER: ungespeicherte Baugruppe nicht erst gespeichert", declined, asks, ins)
+        return False
+    if ad.suggested_path(types.SimpleNamespace(Label="Baugruppe1"), "/h/a/Welle.FCStd") != "/h/a/Baugruppe1.FCStd":
+        print("  FEHLER: Speicher-Vorschlag")
+        return False
+
     # Ereignis-Filter: nur bei Baugruppe abfangen
     T = sys.modules["PySide.QtCore"].QEvent.Type
 
@@ -1041,7 +1068,7 @@ def run(split_namespace):
     if found is not top_asm or none_found is not None:
         print("  FEHLER: Ziel-Baugruppe falsch ermittelt", found, none_found)
         return False
-    print("  Drop     : .FCStd in Baugruppe -> Link/Unterbaugruppe, erste fixiert, weitere daneben, 1 Rückgängig-Schritt")
+    print("  Drop     : .FCStd in Baugruppe -> Link/Unterbaugruppe, erste fixiert, weitere daneben, 1 Rückgängig-Schritt, vorher speichern")
 
     # --- SW-Begriffe in Feature-Dialogen --------------------------------
     ft = sys.modules["swui.feature_terms"]

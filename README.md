@@ -29,6 +29,7 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | 8b | Drag & Drop von .FCStd-Teilen/Unterbaugruppen aus dem Datei-Explorer in die aktive Baugruppe (`swui/assembly_drop.py`) | **fertig** |
 | 8b+ | Neue Baugruppe immer als eigene Datei (`swui/commands/new_assembly.py`); Teile, Baugruppen, Zeichnungen = getrennte Dateien wie in SW | **fertig** |
 | 8c | Eigene Symbole für den Reiter Baugruppe (22 Stück) | **fertig** |
+| 8c+ | Drop in ungespeicherte Baugruppe: erst Speichern-Dialog, dann einfügen; fehlgeschlagene Teile nicht im Baum lassen | **fertig** |
 
 Später: 3D-Skizzen, Baugruppen.
 

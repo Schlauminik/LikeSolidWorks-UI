@@ -13,6 +13,10 @@ Komponenten eingefuegt:
   - erste Komponente: in den Ursprung und automatisch fixiert (wie SW)
   - weitere: rechts neben das Vorhandene, damit nichts ineinander steckt
   - alles zusammen ist EIN Rueckgaengig-Schritt
+  - ist die Baugruppe noch nicht gespeichert, fragt erst ein Speichern-
+    Dialog nach dem Ort: FreeCAD kann aus einer ungespeicherten Datei
+    keine Verknuepfung auf eine andere Datei setzen ("Owner document not
+    saved", src/App/PropertyLinks.cpp) - Dominiks Test vom 17.10.
 
 Ohne aktive Baugruppe oder bei anderen Dateien macht FreeCAD wie gewohnt
 weiter (Datei oeffnen bzw. importieren).
@@ -165,6 +169,41 @@ def pick_objects(doc):
     return []
 
 
+def needs_save(doc):
+    """True, wenn das Dokument noch nie gespeichert wurde (kein Dateiname)."""
+    return not getattr(doc, "FileName", "")
+
+
+def suggested_path(doc, near_path):
+    """Vorschlag zum Speichern: Ordner der gezogenen Datei, Name = Baugruppe."""
+    folder = os.path.dirname(near_path) or os.path.expanduser("~")
+    name = getattr(doc, "Label", "") or getattr(doc, "Name", "Baugruppe")
+    return os.path.join(folder, name + ".FCStd")
+
+
+def ask_save(doc, near_path):
+    """
+    Speichern-Dialog fuer die Baugruppe. True = gespeichert.
+    Eigene Funktion, damit der Test sie ersetzen kann.
+    """
+    try:
+        parent = FreeCADGui.getMainWindow()
+    except Exception:
+        parent = None
+    path, _flt = QtWidgets.QFileDialog.getSaveFileName(
+        parent,
+        "Baugruppe zuerst speichern (Verknüpfungen brauchen einen Speicherort)",
+        suggested_path(doc, near_path),
+        "FreeCAD-Datei (*.FCStd)",
+    )
+    if not path:
+        return False
+    if not path.lower().endswith(".fcstd"):
+        path += ".FCStd"
+    doc.saveAs(path)
+    return not needs_save(doc)
+
+
 def insert_files(assembly, paths):
     """Dateien als Komponenten einfuegen. Gibt die neuen Objekte zurueck."""
     doc = assembly.Document
@@ -178,7 +217,8 @@ def insert_files(assembly, paths):
                     "könnte nach einem Neustart fehlen - Datei besser über "
                     "\"Komponente einfügen\" wählen.\n" % path
                 )
-            src = _open_hidden(path, doc)
+            was_open = _find_open(path)
+            src = was_open or _open_hidden(path, doc)
             if src is None:
                 continue
             objs = pick_objects(src)
@@ -187,8 +227,17 @@ def insert_files(assembly, paths):
                     "[SWUI] In %s wurde kein Teil gefunden.\n" % os.path.basename(path)
                 )
                 continue
+            ok = 0
             for obj in objs:
-                added.append(_add_component(assembly, obj))
+                try:
+                    added.append(_add_component(assembly, obj))
+                    ok += 1
+                except Exception as exc:
+                    FreeCAD.Console.PrintError(
+                        "[SWUI] %s nicht eingefügt: %s\n" % (obj.Label, exc)
+                    )
+            if not ok and was_open is None:
+                _close(src, doc)  # nichts verknuepft: Datei nicht im Baum stehen lassen
     finally:
         doc.commitTransaction()
     try:
@@ -204,7 +253,15 @@ def _add_component(assembly, obj):
     first = not _has_grounded(assembly)
     existing = [o for o in assembly.Group if _is(o, "App::Link") or _is(o, "Assembly::AssemblyLink")]
     link = assembly.newObject(kind, obj.Label)
-    link.LinkedObject = obj
+    try:
+        link.LinkedObject = obj
+    except Exception:
+        # Halbe Verknuepfung nicht im Baum lassen
+        try:
+            assembly.Document.removeObject(link.Name)
+        except Exception:
+            pass
+        raise
     link.Label = obj.Label  # Umlaute gehen bei newObject verloren (FreeCAD #12164)
     try:
         link.recompute()
@@ -215,6 +272,8 @@ def _add_component(assembly, obj):
     if first:
         try:
             import CommandCreateJoint
+
+            _ensure_active(assembly)  # FreeCAD fixiert nur in der aktiven Baugruppe
 
             CommandCreateJoint.createGroundedJoint(link)
         except Exception as exc:
@@ -247,8 +306,18 @@ def _bbox(obj):
         return None
 
 
-def _open_hidden(path, current_doc):
-    """Dokument zur Datei: schon offen -> dieses, sonst unsichtbar oeffnen."""
+def _ensure_active(assembly):
+    try:
+        import UtilsAssembly
+
+        if UtilsAssembly.activeAssembly() is None:
+            FreeCADGui.getDocument(assembly.Document.Name).setEdit(assembly)
+    except Exception:
+        pass
+
+
+def _find_open(path):
+    """Schon offenes Dokument zu dieser Datei oder None."""
     norm = os.path.normcase(os.path.abspath(path))
     for d in FreeCAD.listDocuments().values():
         try:
@@ -256,6 +325,19 @@ def _open_hidden(path, current_doc):
                 return d
         except Exception:
             continue
+    return None
+
+
+def _close(src, current_doc):
+    try:
+        FreeCAD.closeDocument(src.Name)
+        FreeCAD.setActiveDocument(current_doc.Name)
+    except Exception:
+        pass
+
+
+def _open_hidden(path, current_doc):
+    """Datei unsichtbar oeffnen (wie FreeCADs "Komponente einfuegen")."""
     try:
         d = FreeCAD.openDocument(path, True)  # True = versteckt, wie FreeCAD selbst
         FreeCAD.setActiveDocument(current_doc.Name)
@@ -336,6 +418,12 @@ class _DropFilter(QtCore.QObject):
 
 def _safe_insert(asm, paths):
     try:
+        if needs_save(asm.Document):
+            if not ask_save(asm.Document, paths[0]):
+                FreeCAD.Console.PrintWarning(
+                    "[SWUI] Nicht eingefügt: Die Baugruppe muss zuerst gespeichert werden.\n"
+                )
+                return
         added = insert_files(asm, paths)
         if added:
             FreeCAD.Console.PrintMessage(

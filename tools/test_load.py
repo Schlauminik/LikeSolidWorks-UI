@@ -77,6 +77,7 @@ def _all_layout_commands(filename="ribbon_layout.py"):
                 "Part",
                 "SWUI",
                 "Assembly",
+                "TechDraw",
             ):
                 name = first.value
                 if len(node.elts) == 3:
@@ -580,10 +581,11 @@ def run(split_namespace):
     fc = sys.modules["FreeCAD"]
     naming = sys.modules["swui.naming"]
     naming.install()  # zweites Mal: darf nicht doppelt anmelden
-    if len(fc._observers) != 1:
-        print("  FEHLER: Beobachter %d-mal angemeldet" % len(fc._observers))
+    nobs = [o for o in fc._observers if isinstance(o, naming._Observer)]
+    if len(nobs) != 1:
+        print("  FEHLER: Beobachter %d-mal angemeldet" % len(nobs))
         return False
-    obs = fc._observers[0]
+    obs = nobs[0]
 
     class Doc:
         Restoring = False
@@ -945,6 +947,34 @@ def run(split_namespace):
 
     if "SWUI_NewDrawing" in tab_cmds(lay_mod.FEATURES) or "SWUI_NewDrawing" not in tab_cmds(lay_mod.ZEICHNUNGEN):
         print("  FEHLER: Zeichnung erstellen nicht vom Reiter Features in Zeichnungen verschoben")
+        return False
+    zcmds = tab_cmds(lay_mod.ZEICHNUNGEN)
+    for need in ("TechDraw_View", "TechDraw_SectionView", "TechDraw_DetailView", "TechDraw_Dimension",
+                 "TechDraw_Balloon", "Std_PrintPdf", "TechDraw_ExportPageDXF"):
+        if need not in zcmds:
+            print("  FEHLER: Zeichnungs-Werkzeug fehlt im Reiter:", need)
+            return False
+    if "TechDrawGui" not in lay_mod.REQUIRED_GUI_MODULES:
+        print("  FEHLER: TechDraw-Befehle werden nicht geladen")
+        return False
+    # Blatt wird aktiv -> Reiter Zeichnungen (nur beim Übergang)
+    real_da = ribbon._drawing_active
+    try:
+        ribbon._tabs.setCurrentIndex.reset_mock()
+        ribbon._on_drawing = False
+        ribbon._drawing_active = lambda: True
+        ribbon._check_drawing()
+        first = ribbon._tabs.setCurrentIndex.call_args
+        ribbon._tabs.setCurrentIndex.reset_mock()
+        ribbon._check_drawing()  # weiterhin Blatt: Benutzer darf Reiter wechseln
+        again = ribbon._tabs.setCurrentIndex.called
+        ribbon._drawing_active = lambda: False
+        ribbon._check_drawing()
+    finally:
+        ribbon._drawing_active = real_da
+        ribbon._on_drawing = False
+    if first is None or first[0][0] != ribbon._tab_titles.index("Zeichnungen") or again:
+        print("  FEHLER: Reiterwechsel beim Zeichenblatt", first, again)
         return False
     for big in ("Assembly_CreateJointDistance", "Assembly_CreateJointParallel", "Assembly_CreateJointCylindrical",
                 "Assembly_CreateView", "Assembly_CreateBom", "Assembly_InsertLink"):
@@ -2260,6 +2290,92 @@ def run(split_namespace):
         print("  FEHLER: OK setzt das Bild auf die alte Position zurück", sym.X, sym.Y, pnl.x.v)
         return False
     print("  Bild     : SVG als Vektor, PNG/JPG eingebettet, Breite in mm -> Maßstab; Felder folgen der Maus, OK behält Position")
+
+    # --- Benennung Schnitt/Detail nach Norm --------------------------------
+    vl = sys.modules.get("swui.view_labels")
+    if vl is None or vl._observer is None:
+        print("  FEHLER: Benennung von Schnitt-/Detailansichten nicht eingeschaltet")
+        return False
+
+    class LDoc:
+        Restoring = False
+        Transacting = False
+
+        def __init__(self):
+            self.Objects = []
+
+        def addObject(self, t, n):
+            o = LObj(t, n, self)
+            self.Objects.append(o)
+            return o
+
+    class LObj:
+        def __init__(self, t, n, d, **kw):
+            self.TypeId, self.Name, self.Label, self.Document = t, n, n, d
+            self.X = self.Y = 0.0
+            self.Scale, self.InList = 1.0, []
+            self.__dict__.update(kw)
+
+        def addProperty(self, _t, name, *_a):
+            setattr(self, name, None)
+
+    ld = LDoc()
+    lpage = LObj("TechDraw::DrawPage", "Page", ld)
+    lpage.views = []
+    lpage.addView = lambda v: lpage.views.append(v)
+    ld.Objects.append(lpage)
+
+    def view(t, name, **kw):
+        o = LObj(t, name, ld, InList=[lpage], **kw)
+        ld.Objects.append(o)
+        return o
+
+    s1 = view("TechDraw::DrawViewSection", "Section", SectionSymbol="", X=100.0, Y=200.0)
+    d1 = view("TechDraw::DrawViewDetail", "Detail", Reference="1", Radius=10.0, Scale=2.0, X=300.0, Y=150.0)
+    s2 = view("TechDraw::DrawComplexSection", "Section001", SectionSymbol="-")
+    d2 = view("TechDraw::DrawViewDetail", "Detail001", Reference="K", Radius=5.0, Scale=0.5)  # selbst eingetragen
+    gui._mw.dialog_open = True
+    waited = vl.process(s1)
+    gui._mw.dialog_open = False
+    for v_ in (s1, d1, s2, d2):
+        vl.process(v_)
+    if waited or (s1.SectionSymbol, s2.SectionSymbol, d1.Reference, d2.Reference) != ("A", "B", "Z", "K"):
+        print("  FEHLER: Buchstaben nach Norm (A-A..., Z...)", waited, s1.SectionSymbol, s2.SectionSymbol, d1.Reference, d2.Reference)
+        return False
+    if (s1.Label, d1.Label) != ("Schnitt A-A", "Detail Z"):
+        print("  FEHLER: Namen im Baum", s1.Label, d1.Label)
+        return False
+    la = vl.find_label(s1, ld.Objects)
+    lz = vl.find_label(d1, ld.Objects)
+    if la is None or lz is None or la.Text != ["A-A"] or lz.Text != ["Z (2:1)"] or la not in lpage.views or la.Owner is not s1:
+        print("  FEHLER: Benennung als Textfeld fehlt", la and la.Text, lz and lz.Text)
+        return False
+    if (lz.X, lz.Y) != (300.0, 150.0 - (10.0 * 2.0 + vl.GAP)):
+        print("  FEHLER: Benennung nicht unter der Detailansicht", lz.X, lz.Y)
+        return False
+    if vl.next_letter(s1, [s1, s2] + [view("TechDraw::DrawViewSection", "S%d" % k, SectionSymbol=c) for k, c in enumerate("CDEFGH")]) != "J":
+        print("  FEHLER: I/O/Q werden nicht ausgelassen")
+        return False
+    # Benennung von Hand umschreiben -> Buchstabe wandert in die Ansicht
+    lz.Text = ["Y (5:1)"]
+    vl.on_label_text_changed(lz)
+    # Ansicht verschoben -> Benennung wandert mit
+    d1.X, d1.Y = 320.0, 160.0
+    vl.on_view_changed(d1, "X")
+    # Massstab der Ansicht geaendert -> Benennung folgt (Text entspricht noch dem Schema)
+    d1.Scale = 4.0
+    vl.on_view_changed(d1, "Scale")
+    if d1.Reference != "Y" or d1.Label != "Detail Y" or (lz.X, lz.Y) != (320.0, 130.0) or lz.Text != ["Y (4:1)"]:
+        print("  FEHLER: Umbenennen/Mitwandern/Nachführen", d1.Reference, lz.X, lz.Y, lz.Text)
+        return False
+    lz.Text = ["Einzelheit Y, gedreht"]  # freier Text bleibt stehen
+    vl.on_label_text_changed(lz)
+    d1.Scale = 2.0
+    vl.on_view_changed(d1, "Scale")
+    if lz.Text != ["Einzelheit Y, gedreht"] or d1.Reference != "Y":
+        print("  FEHLER: freier Text wurde überschrieben", lz.Text)
+        return False
+    print("  Benenn.  : Schnitt A-A, B-B …, Detail Z, Y … mit Maßstab; Textfeld frei verschiebbar, wandert mit, umbenennbar")
 
     gui.ActiveDocument = None
     print("  Konstrukt: nur neue Linien gestrichelt, Kreise/alte Linien bleiben; Ende bei Werkzeugwechsel/Skizzenende")

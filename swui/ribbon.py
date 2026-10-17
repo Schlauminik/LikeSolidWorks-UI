@@ -52,8 +52,11 @@ _tabs = None  # das QTabWidget des Ribbons
 _tab_titles = []  # Reiternamen in Reihenfolge
 _in_sketch = False  # wird gerade eine Skizze bearbeitet?
 _tab_before_sketch = None  # Reiter vor dem Betreten der Skizze
+_on_drawing = False  # ist gerade ein Zeichenblatt das aktive Fenster?
 
 SKETCH_TAB = "Skizze"
+DRAWING_TAB = "Zeichnungen"
+DRAWING_VIEW_CLASS = "TechDrawGui::MDIViewPage"  # Fenster eines Zeichenblatts (1.1.4)
 SKETCH_TYPES = ("Sketcher::SketchObject",)
 
 # Hier merkt sich FreeCAD die zuletzt gewaehlte Variante je Ausklappknopf
@@ -697,6 +700,7 @@ def _check_context():
     global _in_sketch, _tab_before_sketch
     if _tabs is None or SKETCH_TAB not in _tab_titles:
         return
+    _check_drawing()
 
     now = _editing_sketch()
     if now == _in_sketch:
@@ -709,6 +713,29 @@ def _check_context():
     elif _tab_before_sketch is not None:
         _tabs.setCurrentIndex(_tab_before_sketch)
         _tab_before_sketch = None
+
+
+def _check_drawing():
+    """Zeichenblatt wird aktives Fenster -> Reiter "Zeichnungen" (nur beim Uebergang)."""
+    global _on_drawing
+    if DRAWING_TAB not in _tab_titles:
+        return
+    now = _drawing_active()
+    if now == _on_drawing:
+        return
+    _on_drawing = now
+    if now:
+        _tabs.setCurrentIndex(_tab_titles.index(DRAWING_TAB))
+
+
+def _drawing_active():
+    try:
+        mdi = FreeCADGui.getMainWindow().findChild(QtWidgets.QMdiArea)
+        sub = mdi.activeSubWindow() if mdi is not None else None
+        widget = sub.widget() if sub is not None else None
+        return widget is not None and widget.metaObject().className() == DRAWING_VIEW_CLASS
+    except Exception:
+        return False
 
 
 def _editing_sketch():

@@ -344,6 +344,48 @@ ZEICHNUNGEN = (
             # SVG/PNG/JPG aufs Blatt, Position und Groesse von Hand (Dominik, 17.10.)
             ("SWUI_InsertImage", "Bild\neinfügen", {"svg": "sketch/d_image"}),
         ],
+        [
+            # Ansichtslayout (SW-Begriffe; Befehle geprueft gegen 1.1.4,
+            # src/Mod/TechDraw/Gui/Command*.cpp)
+            ("TechDraw_View", "Modell-\nansicht", {}),
+            ("TechDraw_ProjectionGroup", "Projizierte\nAnsichten", {}),
+            ("TechDraw_SectionView", "Schnitt-\nansicht", {}),
+            ("TechDraw_DetailView", "Detail-\nansicht", {}),
+            {"stack": [
+                ("TechDraw_ComplexSection", "Ausgerichteter Schnitt", {}),
+                ("TechDraw_BrokenView", "Unterbrochene Ansicht", {}),
+                ("TechDraw_ClipGroup", "Ausschnitt-Rahmen", {}),
+            ], "style": "text"},
+        ],
+        [
+            # Beschriftung
+            ("TechDraw_Dimension", "Intelligente\nBemaßung", {}),
+            {"flyout": [
+                ("TechDraw_LengthDimension", "Länge", {}),
+                ("TechDraw_HorizontalDimension", "Horizontal", {}),
+                ("TechDraw_VerticalDimension", "Vertikal", {}),
+                ("TechDraw_RadiusDimension", "Radius", {}),
+                ("TechDraw_DiameterDimension", "Durchmesser", {}),
+                ("TechDraw_AngleDimension", "Winkel", {}),
+            ]},
+            ("TechDraw_Balloon", "Positions-\nnummer", {}),
+            ("TechDraw_RichTextAnnotation", "Notiz", {}),
+            {"stack": [
+                ("TechDraw_FaceCenterLine", "Mittellinie", {}),
+                ("TechDraw_ExtensionCircleCenterLines", "Mittelpunktmarke", {}),
+                ("TechDraw_Hatch", "Schraffur", {}),
+            ], "style": "text"},
+            {"stack": [
+                ("TechDraw_SurfaceFinishSymbols", "Oberflächenangabe", {}),
+                ("TechDraw_WeldSymbol", "Schweißsymbol", {}),
+                ("TechDraw_LeaderLine", "Hinweislinie", {}),
+            ], "style": "text"},
+        ],
+        [
+            # Ausgabe (Dominik: PDF und DXF)
+            ("Std_PrintPdf", "Als PDF\nspeichern", {}),
+            ("TechDraw_ExportPageDXF", "Als DXF\nexportieren", {}),
+        ],
     ],
 )
 
@@ -352,7 +394,7 @@ TABS = [FEATURES, SKIZZE, EVALUIEREN, ANSICHT, BAUGRUPPE, ZEICHNUNGEN]
 # FreeCAD-Module, die die obigen Befehle bereitstellen. Sie werden vor
 # dem Aufbau geladen, sonst existieren die Befehle noch nicht, solange
 # PartDesign bzw. Sketcher nie aktiviert wurde.
-REQUIRED_GUI_MODULES = ("PartGui", "SketcherGui", "PartDesignGui")
+REQUIRED_GUI_MODULES = ("PartGui", "SketcherGui", "PartDesignGui", "TechDrawGui")
 
 # Die Baugruppen-Befehle sind in Python geschrieben und werden von FreeCAD
 # erst beim ersten Oeffnen der Baugruppen-Werkbank angemeldet (dort in

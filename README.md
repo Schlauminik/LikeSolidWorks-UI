@@ -38,6 +38,8 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | 9a | Zeichnung erstellen (eigener Reiter „Zeichnungen“ rechts neben Baugruppe, zusätzlich im Reiter Baugruppe): eigene Datei, A4 hoch/A3 quer mit ISO-7200-Schriftfeld, Standard-Dreiansicht Methode 1 (`swui/commands/new_drawing.py`) | **fertig** |
 | 9b | Blatteigenschaften: Blattformat/Vorlage per Liste wechseln (Ansichten bleiben), Schriftfeld als Eingabefelder mit deutschen Namen, Vorbelegung aus dem Teil (`swui/sheet_properties.py`) | **fertig** |
 | 9b+ | Bild einfügen: SVG (Vektor), PNG/JPG (eingebettet), Position X/Y, Breite in mm, Drehung von Hand; gewähltes Bild nachträglich bearbeiten (`swui/insert_image.py`) | **fertig** |
+| 9c | Reiter Zeichnungen: Ansichtslayout (Modell-, Schnitt-, Detailansicht …), Beschriftung (Intelligente Bemaßung, Positionsnummer, Notiz, Mittellinie …), PDF/DXF; springt bei aktivem Blatt nach vorn | **fertig** (Symbole folgen) |
+| 9c+ | Benennung nach Norm: Schnitte A-A, B-B …, Details Z, Y … mit Maßstab; eigenes Textfeld, frei verschiebbar, wandert mit, umbenennbar (`swui/view_labels.py`) | **fertig** |
 
 Später: 3D-Skizzen.
 

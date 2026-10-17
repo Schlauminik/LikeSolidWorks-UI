@@ -81,6 +81,11 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
 
             naming.install()
 
+            # Schnitt-/Detailansichten nach Norm benennen (A-A / Z), Benennung als Textfeld.
+            from swui import view_labels
+
+            view_labels.install()
+
             # Drag & Drop in Baugruppen: dauerhaft angemeldet (auch wenn
             # die Werkbank spaeter wechselt).
             from swui import assembly_drop

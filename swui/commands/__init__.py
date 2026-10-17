@@ -49,5 +49,13 @@ def register_all():
 
     FreeCADGui.addCommand("SWUI_ViewScale", view_scale.ViewScale())
 
+    from swui import surface_finish
+
+    FreeCADGui.addCommand("SWUI_SurfaceFinish", surface_finish.SurfaceFinish())
+
+    from swui import weld_symbol
+
+    FreeCADGui.addCommand("SWUI_WeldSymbol", weld_symbol.WeldSymbol())
+
     _REGISTERED = True
     FreeCAD.Console.PrintLog("[SWUI] Befehle angemeldet.\n")

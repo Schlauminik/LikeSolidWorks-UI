@@ -380,8 +380,10 @@ ZEICHNUNGEN = (
                 ("TechDraw_Hatch", "Schraffur", {"svg": "sketch/d_hatch"}),
             ], "style": "text"},
             {"stack": [
-                ("TechDraw_SurfaceFinishSymbols", "Oberflächenangabe", {"svg": "sketch/d_surface"}),
-                ("TechDraw_WeldSymbol", "Schweißsymbol", {"svg": "sketch/d_weld"}),
+                # eigene, nachtraeglich bearbeitbare Oberflaechenangabe (surface_finish.py)
+                ("SWUI_SurfaceFinish", "Oberflächenangabe", {"svg": "sketch/d_surface"}),
+                # eigenes Schweisssymbol wie SW, ohne Hinweislinie vorab (weld_symbol.py)
+                ("SWUI_WeldSymbol", "Schweißsymbol", {"svg": "sketch/d_weld"}),
                 ("TechDraw_LeaderLine", "Hinweislinie", {"svg": "sketch/d_leader"}),
             ], "style": "text"},
         ],

@@ -173,6 +173,8 @@ def handle_event(state, gview, event):
     try:
         T = QtCore.QEvent.Type
         kind = event.type()
+        if kind == T.MouseButtonDblClick:
+            return _double_click(gview)
         if kind == T.MouseButtonPress:
             state.press = state.last = None
             state.active = False
@@ -182,6 +184,10 @@ def handle_event(state, gview, event):
                 from swui import proj_views
 
                 if proj_views._picker is not None or FreeCADGui.Control.activeDialog():
+                    return False
+                from swui import weld_symbol
+
+                if weld_symbol.picking():
                     return False
             except Exception:
                 pass
@@ -222,6 +228,32 @@ def handle_event(state, gview, event):
             return False
     except Exception:
         FreeCAD.Console.PrintLog("[SWUI] Ziehen auf dem Blatt: %s\n" % traceback.format_exc())
+    return False
+
+
+def _double_click(gview):
+    """
+    Doppelklick auf ein eigenes Symbol (Oberflaechenangabe ...) -> dessen
+    Fenster oeffnen. Notizen, Positionsnummern und Schweisssymbole von
+    TechDraw oeffnen ihr Fenster selbst - die bleiben unberuehrt.
+    """
+    if not _is_active_workbench() or tool_active(gview):
+        return False
+    try:
+        if FreeCADGui.Control.activeDialog():
+            return False
+        for o in FreeCADGui.Selection.getSelection():
+            kind = getattr(o, "SWUI_Kind", "")
+            if kind == "surface":
+                from swui import surface_finish
+
+                return bool(surface_finish.on_double_click(o))
+            if kind == "weld":
+                from swui import weld_symbol
+
+                return bool(weld_symbol.on_double_click(o))
+    except Exception:
+        FreeCAD.Console.PrintLog("[SWUI] Doppelklick: %s\n" % traceback.format_exc())
     return False
 
 

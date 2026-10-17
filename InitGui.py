@@ -96,6 +96,11 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
 
             zoom_lines.install()
 
+            # Schweisssymbol: Pfeil folgt beim Verschieben des Symbols.
+            from swui import weld_symbol
+
+            weld_symbol.install()
+
             # Drag & Drop in Baugruppen: dauerhaft angemeldet (auch wenn
             # die Werkbank spaeter wechselt).
             from swui import assembly_drop

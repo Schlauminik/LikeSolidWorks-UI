@@ -202,8 +202,8 @@ def changed_fields(panel_values, obj_values, tol=1e-6):
 
 def selected_image(selection):
     for o in selection or []:
-        if getattr(o, "TypeId", "") in IMAGE_TYPES:
-            return o
+        if getattr(o, "TypeId", "") in IMAGE_TYPES and not getattr(o, "SWUI_Kind", ""):
+            return o  # eigene Symbole (Oberflaeche, Schweissen) sind keine Bilder
     return None
 
 

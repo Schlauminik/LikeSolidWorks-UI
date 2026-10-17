@@ -50,6 +50,8 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | 9e1 | SW-Begriffe in den TechDraw-Dialogen des Ansichtslayouts: Standard-Dreiansicht, Schnitt-, Detailansicht, ausgerichteter Schnitt (`swui/feature_terms.py`) | **fertig** |
 | 9e2a | SW-Begriffe in den Beschriftungs-Dialogen: Bemaßung, Positionsnummer, Notiz, Hinweislinie, Schraffur, Mittellinie, Schweiß- und Oberflächensymbol (`swui/feature_terms.py`) | **fertig** |
 | Fix | Absturz beim Bemaßen behoben: Während ein TechDraw-Werkzeug läuft, ändern Zoom-Linien und Ziehen nichts mehr (`zoom_lines.py`, `page_drag.py`) | **fertig** |
+| 9e2c | Eigene Oberflächenangabe nach DIN EN ISO 1302: Sinnbild, rundum, Felder a–e als editierbare Texte, Schnellauswahl Rz 4/16/63, Doppelklick öffnet wieder (`swui/surface_finish.py`) | **fertig** |
+| 9e2d | Eigenes Schweißsymbol nach DIN EN ISO 2553 wie in SOLIDWORKS: Pfeilspitze anklicken, Symbol setzen, Pfeil folgt beim Verschieben; Pfeil-/Gegenseite, Nahtdicke, Länge, Oberfläche, G/C/M/F, ringsum, Baustelle, Gabel, wahlweise Strichlinie; Doppelklick (`swui/weld_symbol.py`) | **fertig** |
 
 Später: 3D-Skizzen.
 

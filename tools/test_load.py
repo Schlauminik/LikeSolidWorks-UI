@@ -2812,6 +2812,156 @@ def run(split_namespace):
         return False
     print("  Werkzeug : während Bemaßen & Co. kein Neuzeichnen und kein Ziehen (Absturz behoben)")
 
+    # --- Oberflaechenangabe (9e2c): editierbare Texte, Rz-Schnellauswahl, Doppelklick ---
+    sf = sys.modules.get("swui.surface_finish")
+    if sf is None:
+        print("  FEHLER: surface_finish nicht geladen (Befehl SWUI_SurfaceFinish)")
+        return False
+    import re as _re
+    import xml.dom.minidom as _md2
+    svg_s = sf.build_svg("required", True, {"a": "Rz 16", "b": "Ra 0,8", "c": "geschliffen", "d": "⊥", "e": "0,5"})
+    dom_s = _md2.parseString(svg_s.encode("utf-8"))
+    ns_ok = dom_s.documentElement.getAttribute("xmlns:freecad") == "https://www.freecad.org/wiki/index.php?title=Svg_Namespace"
+    keys_s = _re.findall(r"freecad:editable='(\w)'", svg_s)
+    vals_s = [t_.firstChild.firstChild.nodeValue if t_.firstChild.firstChild else "" for t_ in dom_s.getElementsByTagName("text")]
+    if not ns_ok or keys_s != list(sf.FIELDS) or vals_s != ["Rz 16", "Ra 0,8", "geschliffen", "⊥", "0,5"]:
+        print("  FEHLER: Oberflächensymbol – editierbare Felder/Reihenfolge/Namensraum", keys_s, vals_s, ns_ok)
+        return False
+    if "M0,44 L24,44" not in svg_s or "r='6'" not in svg_s or "r='9'" in svg_s:
+        print("  FEHLER: Oberflächensymbol – Grundsymbol/rundum")
+        return False
+    if "M0,44 L24,44" in sf.build_svg("any") or "r='9'" not in sf.build_svg("prohibited"):
+        print("  FEHLER: Oberflächensymbol – Sinnbilder beliebig/unzulässig")
+        return False
+    if not all(p_ in sf.PRESETS for p_ in ("Rz 4", "Rz 16", "Rz 63")):
+        print("  FEHLER: Schnellauswahl Rz 4/16/63 fehlt")
+        return False
+    sym_o = types.SimpleNamespace(SWUI_Kind="surface", SWUI_SurfaceType="prohibited", SWUI_SurfaceAllAround=False,
+                                  EditableTexts=["Rz 63", "", "gedreht", "C"], Rotation=90.0)
+    st_s = sf.read_state(sym_o)
+    if st_s["texts"] != {"a": "Rz 63", "b": "", "c": "gedreht", "d": "C", "e": ""} or st_s["type"] != "prohibited" or st_s["rotation"] != 90.0:
+        print("  FEHLER: Oberflächensymbol – Werte nicht zurückgelesen", st_s)
+        return False
+    ii_ = sys.modules["swui.insert_image"]
+    if ii_.selected_image([types.SimpleNamespace(TypeId="TechDraw::DrawViewSymbol", SWUI_Kind="surface")]) is not None:
+        print("  FEHLER: Oberflächensymbol wird als Bild behandelt")
+        return False
+    opened = []
+    old_open = sf.open_panel
+    sf.open_panel = lambda o, created: opened.append((o, created)) or True
+    old_sel = getattr(gui.Selection, "getSelection", None)
+    gui.Selection.getSelection = lambda: [sym_o]
+    old_ctl2 = getattr(gui, "Control", None)
+    gui.Control = types.SimpleNamespace(activeDialog=lambda: False)
+    old_wb3 = pd_._is_active_workbench
+    pd_._is_active_workbench = lambda: True
+    dbl = types.SimpleNamespace(type=lambda: qtc.QEvent.Type.MouseButtonDblClick)
+    try:
+        r_dbl = pd_.handle_event(pd_.DragState(), g_idle, dbl)
+        r_dbl_tool = pd_.handle_event(pd_.DragState(), g_tool, dbl)
+    finally:
+        sf.open_panel = old_open
+        if old_sel is None:
+            del gui.Selection.getSelection
+        else:
+            gui.Selection.getSelection = old_sel
+        gui.Control = old_ctl2
+        pd_._is_active_workbench = old_wb3
+    if not r_dbl or opened != [(sym_o, False)] or r_dbl_tool:
+        print("  FEHLER: Doppelklick öffnet die Oberflächenangabe nicht", r_dbl, opened, r_dbl_tool)
+        return False
+    print("  Oberfl.  : Symbol nach ISO 1302, Texte editierbar, Rz 4/16/63, Doppelklick öffnet wieder")
+
+    # --- Schweisssymbol wie SW (9e2d) ---
+    ws = sys.modules.get("swui.weld_symbol")
+    if ws is None:
+        print("  FEHLER: weld_symbol nicht geladen (Befehl SWUI_WeldSymbol)")
+        return False
+    data_w = {"arrow": {"seam": "fillet", "size": "a5", "len": "2×20 (10)"}, "other": {"seam": ""},
+              "all_around": True, "field": True, "tail": "111"}
+    svg_w = ws.build_svg(data_w, (-14.0, 12.0))
+    dom_w = _md2.parseString(svg_w.encode("utf-8"))
+    root_w = dom_w.documentElement
+    vb = [float(v) for v in root_w.getAttribute("viewBox").split()]
+    keys_w = _re.findall(r"freecad:editable='(\w+)'", svg_w)
+    if (keys_w != list(ws.TEXT_FIELDS) or not root_w.getAttribute("width").endswith("mm")
+            or abs(vb[0] + vb[2] / 2) > 1e-6 or abs(vb[1] + vb[3] / 2) > 1e-6):
+        print("  FEHLER: Schweißsymbol – Textfelder/mm/um den Knick zentriert", keys_w, vb)
+        return False
+    if "r='1.5'" not in svg_w or "M0,0 L0,-7" not in svg_w or "111" not in svg_w:
+        print("  FEHLER: Schweißsymbol – Ringsum/Baustelle/Gabel")
+        return False
+    if "stroke-dasharray" in svg_w or "stroke-dasharray" not in ws.build_svg(dict(data_w, dashed=True)):
+        print("  FEHLER: Schweißsymbol – gestrichelte Linie nur auf Wunsch")
+        return False
+    # Pfeilseite unter der Linie (vereinfacht), ueber der Linie mit gestrichelter Linie (DIN EN 22553)
+    plain = ws.build_svg({"arrow": {"seam": "fillet"}}, (-10, 8))
+    dashed = ws.build_svg({"arrow": {"seam": "fillet"}, "dashed": True}, (-10, 8))
+    fil_plain = _re.search(r"d='M([\d.]+),0\.00 L[\d.]+,(-?[\d.]+)", plain)
+    fil_dash = _re.search(r"d='M([\d.]+),0\.00 L[\d.]+,(-?[\d.]+)", dashed)
+    if not fil_plain or not fil_dash or float(fil_plain.group(2)) <= 0 or float(fil_dash.group(2)) >= 0:
+        print("  FEHLER: Schweißsymbol – Pfeilseite unten (vereinfacht) / oben (mit Strichlinie)")
+        return False
+    if ws.tip_vector((100.0, 50.0), (90.0, 40.0)) != (-10.0, 10.0):
+        print("  FEHLER: Schweißsymbol – Pfeilrichtung (Blatt y nach oben, SVG nach unten)")
+        return False
+
+    class WObj:
+        def __init__(self):
+            self.X, self.Y, self.SWUI_TipX, self.SWUI_TipY = 0.0, 0.0, 0.0, 0.0
+            self.SWUI_Kind, self.SWUI_WeldData, self.EditableTexts, self.Symbol = "weld", "", [], ""
+            self.Document = types.SimpleNamespace(Name="D", recompute=lambda: None)
+            self.Name = "Schweissen"
+
+    wo = WObj()
+    nxt = ws.apply_pick(wo, 0, (80.0, 60.0))
+    if nxt != 1 or (wo.SWUI_TipX, wo.SWUI_TipY) != (80.0, 60.0) or (wo.X, wo.Y) != (80.0 + ws.DEFAULT_OFFSET[0], 60.0 + ws.DEFAULT_OFFSET[1]):
+        print("  FEHLER: Schweißsymbol – 1. Klick setzt Pfeilspitze", wo.X, wo.Y)
+        return False
+    if ws.apply_pick(wo, 1, (100.0, 75.0)) is not None or (wo.X, wo.Y) != (100.0, 75.0) or "freecad:editable" not in wo.Symbol:
+        print("  FEHLER: Schweißsymbol – 2. Klick setzt Symbol")
+        return False
+    wo.EditableTexts = ["a7", "", "", "", "141"]  # im Eigenschaften-Fenster umgeschrieben
+    dw = ws.read_data(wo)
+    if dw["arrow"]["size"] != "a7" or dw["tail"] != "141":
+        print("  FEHLER: Schweißsymbol – geänderte Texte nicht übernommen", dw)
+        return False
+    # Verschieben: Beobachter baut neu (Pfeil folgt), Spitze bleibt
+    old_single = qtc.QTimer.singleShot
+    qtc.QTimer.singleShot = lambda _ms, fn: fn()
+    old_sym = wo.Symbol
+    wo.X = 130.0
+    try:
+        ws._Observer().slotChangedObject(wo, "X")
+    finally:
+        qtc.QTimer.singleShot = old_single
+    if wo.Symbol == old_sym or (wo.SWUI_TipX, wo.SWUI_TipY) != (80.0, 60.0) or ws._rebuilding:
+        print("  FEHLER: Schweißsymbol – Pfeil folgt beim Verschieben nicht")
+        return False
+    # Doppelklick oeffnet, Klick-Modus sperrt das Ziehen
+    opened_w = []
+    old_open_w = ws.open_panel
+    ws.open_panel = lambda o, created: opened_w.append((o, created)) or True
+    gui.Selection.getSelection = lambda: [wo]
+    gui_ctl = getattr(gui, "Control", None)
+    gui.Control = types.SimpleNamespace(activeDialog=lambda: False)
+    pd_._is_active_workbench = lambda: True
+    try:
+        r_w = pd_.handle_event(pd_.DragState(), g_idle, dbl)
+        ws._picker = object()
+        st_pick = pd_.DragState()
+        pd_.handle_event(st_pick, g_idle, press)
+    finally:
+        ws._picker = None
+        ws.open_panel = old_open_w
+        del gui.Selection.getSelection
+        gui.Control = gui_ctl
+        pd_._is_active_workbench = old_wb3
+    if not r_w or opened_w != [(wo, False)] or st_pick.press is not None:
+        print("  FEHLER: Schweißsymbol – Doppelklick / Klick-Modus", r_w, opened_w, st_pick.press)
+        return False
+    print("  Schweißen: Symbol nach ISO 2553 wie SW – Pfeil anklicken, Symbol setzen, Pfeil folgt, Doppelklick")
+
     gui.ActiveDocument = None
     print("  Konstrukt: nur neue Linien gestrichelt, Kreise/alte Linien bleiben; Ende bei Werkzeugwechsel/Skizzenende")
 

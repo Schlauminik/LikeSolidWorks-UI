@@ -24,11 +24,12 @@ def register_all():
     if _REGISTERED:
         return
 
-    from swui.commands import centerline, diagnostics, midpoint_line
+    from swui.commands import centerline, diagnostics, midpoint_line, new_assembly
 
     FreeCADGui.addCommand("SWUI_Diagnostics", diagnostics.Diagnostics())
     FreeCADGui.addCommand("SWUI_Centerline", centerline.Centerline())
     FreeCADGui.addCommand("SWUI_MidpointLine", midpoint_line.MidpointLine())
+    FreeCADGui.addCommand("SWUI_NewAssembly", new_assembly.NewAssembly())
 
     _REGISTERED = True
     FreeCAD.Console.PrintLog("[SWUI] Befehle angemeldet.\n")

@@ -834,7 +834,210 @@ def run(split_namespace):
     if tried != list(ribbon_layout_mod.ASSEMBLY_COMMAND_MODULES):
         print("  FEHLER: Baugruppen-Befehlsmodule werden nicht geladen", tried)
         return False
+    # Neue Baugruppe = neues Dokument, erst darin Assembly_CreateAssembly
+    na = sys.modules["swui.commands.new_assembly"]
+    if "SWUI_NewAssembly" not in ribbon._buttons or "Assembly_CreateAssembly" in ribbon._buttons:
+        print("  FEHLER: Ribbon nutzt nicht den eigenen Befehl Neue Baugruppe")
+        return False
+    fcm0 = sys.modules["FreeCAD"]
+    made, active = [], []
+    teil = types.SimpleNamespace(Name="Teil", Label="Teil")
+    alt = types.SimpleNamespace(Name="Baugruppe1", Label="Baugruppe1")
+    fcm0.listDocuments = lambda: {"Teil": teil, "Baugruppe1": alt}
+
+    def new_doc(name):
+        d = types.SimpleNamespace(Name=name, Label="")
+        made.append(d)
+        return d
+
+    fcm0.newDocument = new_doc
+    fcm0.setActiveDocument = lambda n: active.append(n)
+    later = []
+    na._later = lambda fn: later.append(fn)
+    n0 = len(ran)
+    commands["SWUI_NewAssembly"].Activated()
+    if [d.Name for d in made] != ["Baugruppe2"] or made[0].Label != "Baugruppe2" or ran[n0:]:
+        print("  FEHLER: neues Dokument nicht (zuerst) angelegt", [d.Name for d in made], ran[n0:])
+        return False
+    later.pop()()
+    if ran[n0:] != [("Assembly_CreateAssembly",)] or active[-1] != "Baugruppe2":
+        print("  FEHLER: Baugruppe nicht im neuen Dokument erstellt", ran[n0:], active)
+        return False
     print("  Baugruppe: Reiter rechts von Ansicht, Deckungsgleich/Parallel/Konzentrisch groß, Module werden geladen")
+
+    # --- Drag & Drop in die Baugruppe ------------------------------------
+    ad = sys.modules["swui.assembly_drop"]
+    if not ad.is_installed():
+        print("  FEHLER: Workbench-Activated hat Drag & Drop nicht eingeschaltet")
+        return False
+    fcm = sys.modules["FreeCAD"]
+
+    class U:
+        def __init__(self, p):
+            self.p = p
+
+        def toLocalFile(self):
+            return self.p
+
+    if ad.fcstd_paths([U("/h/a/Welle.FCStd"), U("/h/a/Bild.png"), "/h/a/lager.fcstd"]) != ["/h/a/Welle.FCStd", "/h/a/lager.fcstd"]:
+        print("  FEHLER: Dateifilter für .FCStd")
+        return False
+
+    class Box:
+        def __init__(self, xmin, xmax):
+            self.XMin, self.XMax = xmin, xmax
+
+        def isValid(self):
+            return True
+
+    class Obj:
+        def __init__(self, type_id, label, inlist=(), box=(0.0, 20.0)):
+            self.TypeId, self.Label, self.InList = type_id, label, list(inlist)
+            self.box = box
+            self.Placement = types.SimpleNamespace(Base=fcm.Vector(0, 0, 0))
+
+        def isDerivedFrom(self, t):
+            return self.TypeId == t
+
+        def recompute(self):
+            pass
+
+    part = Obj("App::Part", "Welle")
+    body = Obj("PartDesign::Body", "Body", inlist=[part])
+    sketch = Obj("Sketcher::SketchObject", "Skizze", inlist=[body])
+    welle_doc = types.SimpleNamespace(Objects=[part, body, sketch], FileName="/h/a/Welle.FCStd", Name="Welle")
+    sub = Obj("Assembly::AssemblyObject", "Lagerbock")
+    sub_doc = types.SimpleNamespace(Objects=[sub, Obj("App::Part", "Teil", inlist=[sub])], FileName="/h/a/Lagerbock.FCStd", Name="Lagerbock")
+    lonely_body = Obj("PartDesign::Body", "Body")
+    if ad.pick_objects(welle_doc) != [part] or ad.pick_objects(sub_doc) != [sub] or ad.pick_objects(
+            types.SimpleNamespace(Objects=[lonely_body])) != [lonely_body]:
+        print("  FEHLER: Auswahl des einzufügenden Objekts (Unterbaugruppe > Teil > Körper)")
+        return False
+
+    class AsmDoc:
+        Name = "Baugruppe"
+
+        def __init__(self):
+            self.opened = self.committed = 0
+
+        def openTransaction(self, _n):
+            self.opened += 1
+
+        def commitTransaction(self):
+            self.committed += 1
+
+        def recompute(self):
+            pass
+
+    asm_doc = AsmDoc()
+    grounded = []
+
+    class Asm:
+        TypeId = "Assembly::AssemblyObject"
+        Document = asm_doc
+
+        def __init__(self):
+            self.Group, self.OutListRecursive = [], []
+
+        def newObject(self, type_id, label):
+            o = Obj(type_id, label, box=(0.0, 15.0))
+            self.Group.append(o)
+            return o
+
+    asm = Asm()
+    opened = []
+    fcm.listDocuments = lambda: {"Welle": welle_doc}
+    fcm.openDocument = lambda path, hidden=False: (opened.append((path, hidden)), sub_doc)[1]
+    fcm.setActiveDocument = lambda name: None
+
+    def fake_ground(obj):
+        grounded.append(obj)
+        asm.OutListRecursive.append(types.SimpleNamespace(ObjectToGround=obj))
+
+    sys.modules["CommandCreateJoint"] = types.SimpleNamespace(createGroundedJoint=fake_ground)
+    sys.modules["Part"].getShape = lambda o: types.SimpleNamespace(
+        BoundBox=Box(o.Placement.Base.x + o.box[0], o.Placement.Base.x + o.box[1]))
+    try:
+        added = ad.insert_files(asm, ["/h/a/Welle.FCStd", "/h/a/Lagerbock.FCStd"])
+    finally:
+        del sys.modules["CommandCreateJoint"]
+    if [a.TypeId for a in added] != ["App::Link", "Assembly::AssemblyLink"] or added[0].LinkedObject is not part:
+        print("  FEHLER: falsche Verknüpfungsart / falsches Ziel", [a.TypeId for a in added])
+        return False
+    if opened != [("/h/a/Lagerbock.FCStd", True)]:
+        print("  FEHLER: Datei nicht (versteckt) geöffnet oder schon offene doppelt geöffnet", opened)
+        return False
+    if grounded != [added[0]]:
+        print("  FEHLER: erste Komponente nicht (allein) fixiert", grounded)
+        return False
+    if added[0].Placement.Base.x != 0 or added[1].Placement.Base.x != 15 + ad.GAP_MM:
+        print("  FEHLER: Platzierung (erste im Ursprung, zweite daneben)", added[1].Placement.Base.x)
+        return False
+    if (asm_doc.opened, asm_doc.committed) != (1, 1):
+        print("  FEHLER: nicht genau ein Rückgängig-Schritt", asm_doc.opened, asm_doc.committed)
+        return False
+
+    # Ereignis-Filter: nur bei Baugruppe abfangen
+    T = sys.modules["PySide.QtCore"].QEvent.Type
+
+    class Ev:
+        def __init__(self, kind, urls):
+            self.kind, self.urls_, self.accepted = kind, urls, False
+
+        def type(self):
+            return self.kind
+
+        def mimeData(self):
+            return types.SimpleNamespace(hasUrls=lambda: True, urls=lambda: self.urls_)
+
+        def acceptProposedAction(self):
+            self.accepted = True
+
+    real_target = ad.target_assembly
+    try:
+        ad.target_assembly = lambda: None
+        e0 = Ev(T.Drop, [U("/h/a/Welle.FCStd")])
+        r0 = ad.handle_drag_event(e0)
+        ad.target_assembly = lambda: asm
+        e1 = Ev(T.DragEnter, [U("/h/a/Welle.FCStd")])
+        r1 = ad.handle_drag_event(e1)
+        e2 = Ev(T.DragEnter, [U("/h/a/Bild.png")])
+        r2 = ad.handle_drag_event(e2)
+    finally:
+        ad.target_assembly = real_target
+    if r0 or e0.accepted or not (r1 and e1.accepted) or r2:
+        print("  FEHLER: Drop-Filter greift falsch", r0, r1, r2)
+        return False
+    # Werkbank-Wechsel beim Doppelklick auf die Baugruppe ist in SW UI aus
+    ap = fcm.ParamGet(ad.ASSEMBLY_PARAMS)
+    op = fcm.ParamGet(ad.OWN_PARAMS)
+    if ap.GetBool(ad.SWITCH_KEY, True) is not False or op.GetString(ad.BACKUP_KEY, "") != "1":
+        print("  FEHLER: FreeCADs Wechsel in die Baugruppen-Werkbank nicht (mit Sicherung) abgeschaltet")
+        return False
+    ad.keep_workbench()  # zweimal betreten darf die Sicherung nicht überschreiben
+    if op.GetString(ad.BACKUP_KEY, "") != "1":
+        print("  FEHLER: Sicherung beim zweiten Betreten überschrieben")
+        return False
+    ad.restore_workbench_setting()
+    if ap.GetBool(ad.SWITCH_KEY, False) is not True or op.GetString(ad.BACKUP_KEY, ""):
+        print("  FEHLER: Originalwert nicht wiederhergestellt")
+        return False
+    ad.keep_workbench()  # Zustand wie vorher (Workbench ist noch aktiv)
+    # Baugruppe auch ohne Aktivierung finden, verschachtelte zählen nicht
+    top_asm = Obj("Assembly::AssemblyObject", "Baugruppe1")
+    nested = Obj("Assembly::AssemblyObject", "Unter", inlist=[top_asm])
+    old_doc = getattr(fcm, "ActiveDocument", None)
+    fcm.ActiveDocument = types.SimpleNamespace(Objects=[top_asm, nested])
+    try:
+        found = ad.target_assembly()
+        fcm.ActiveDocument = types.SimpleNamespace(Objects=[part])
+        none_found = ad.target_assembly()
+    finally:
+        fcm.ActiveDocument = old_doc
+    if found is not top_asm or none_found is not None:
+        print("  FEHLER: Ziel-Baugruppe falsch ermittelt", found, none_found)
+        return False
+    print("  Drop     : .FCStd in Baugruppe -> Link/Unterbaugruppe, erste fixiert, weitere daneben, 1 Rückgängig-Schritt")
 
     # --- SW-Begriffe in Feature-Dialogen --------------------------------
     ft = sys.modules["swui.feature_terms"]
@@ -1446,6 +1649,14 @@ def run(split_namespace):
         print("  FEHLER: Verlassen nach Wiederherstellung verändert Einstellungen")
         return False
     print("  Absturz  : Einstellungen beim nächsten Start zurückgesetzt")
+    _ad = sys.modules.get("swui.assembly_drop")
+    if _ad is not None:
+        if not _ad.is_installed():
+            print("  FEHLER: Drop-Fänger nach Verlassen der Workbench abgemeldet")
+            return False
+        if sys.modules["FreeCAD"].ParamGet(_ad.OWN_PARAMS).GetString(_ad.BACKUP_KEY, ""):
+            print("  FEHLER: Baugruppen-Einstellung nach Verlassen nicht zurückgesetzt")
+            return False
     print("  Wechsel  : Activated/Deactivated OK")
     return True
 

@@ -26,7 +26,8 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | 7b | Direkt aus offener Skizze austragen: Skizze beenden, auswählen, Feature starten (`swui/from_sketch.py`) | **fertig** |
 | 7c | Feature-Dialoge mit SW-Begriffen: Richtung 1/2, Endbedingung, Blind, Durch alles, Mittelebene … (`swui/feature_terms.py`) | **fertig** |
 | 8a | Reiter Baugruppe (rechts von Ansicht): Einfügen, Deckungsgleich/Parallel/Konzentrisch groß, weitere Verknüpfungen, Explosionsansicht, Stückliste | **fertig** |
-| 8b | Drag & Drop von Teilen/Unterbaugruppen aus dem Datei-Explorer | offen |
+| 8b | Drag & Drop von .FCStd-Teilen/Unterbaugruppen aus dem Datei-Explorer in die aktive Baugruppe (`swui/assembly_drop.py`) | **fertig** |
+| 8b+ | Neue Baugruppe immer als eigene Datei (`swui/commands/new_assembly.py`); Teile, Baugruppen, Zeichnungen = getrennte Dateien wie in SW | **fertig** |
 
 Später: 3D-Skizzen, Baugruppen.
 

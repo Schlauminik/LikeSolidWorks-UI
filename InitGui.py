@@ -81,6 +81,12 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
 
             naming.install()
 
+            # Drag & Drop in Baugruppen: dauerhaft angemeldet (auch wenn
+            # die Werkbank spaeter wechselt).
+            from swui import assembly_drop
+
+            assembly_drop.install()
+
             # Keine eigene Toolbar: Alles Sichtbare lebt im Ribbon.
             # Die Diagnose bleibt im Menue "SolidWorks UI" erreichbar.
             self.appendMenu("SolidWorks UI", ["SWUI_Diagnostics"])
@@ -133,6 +139,15 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
             App.Console.PrintError(
                 "[SWUI] SW-Begriffe in Dialogen nicht gestartet:\n%s\n" % tb.format_exc()
             )
+        try:
+            from swui import assembly_drop
+
+            assembly_drop.install()
+            assembly_drop.keep_workbench()
+        except Exception:
+            App.Console.PrintError(
+                "[SWUI] Drag & Drop in Baugruppen nicht gestartet:\n%s\n" % tb.format_exc()
+            )
 
     def Deactivated(self):
         """Workbench verlassen: Originalzustand herstellen, Ribbon weg."""
@@ -171,6 +186,15 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
         except Exception:
             App.Console.PrintError(
                 "[SWUI] SW-Begriffe in Dialogen nicht beendet:\n%s\n" % tb.format_exc()
+            )
+        try:
+            from swui import assembly_drop
+
+            # Drop-Faenger bleibt angemeldet; nur FreeCADs Einstellung zurueck.
+            assembly_drop.restore_workbench_setting()
+        except Exception:
+            App.Console.PrintError(
+                "[SWUI] Drag & Drop in Baugruppen nicht beendet:\n%s\n" % tb.format_exc()
             )
 
     def GetClassName(self):
@@ -248,6 +272,10 @@ try:
     from swui import view_background as _vb
 
     _vb.recover()
+    # Ebenso FreeCADs Baugruppen-Einstellung "in Werkbank wechseln".
+    from swui import assembly_drop as _ad
+
+    _ad.restore_workbench_setting()
 except Exception:
     FreeCAD.Console.PrintWarning(
         "[SWUI] Aufräumen beim Start fehlgeschlagen:\n%s\n" % traceback.format_exc()

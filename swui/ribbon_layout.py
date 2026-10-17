@@ -274,11 +274,12 @@ BAUGRUPPE = (
     "Baugruppe",
     [
         # Befehle der FreeCAD-Baugruppen-Werkbank (Assembly_*, in 1.1.4
-        # geprueft). Ob die Baugruppe eine eigene Datei bekommt oder im
-        # aktuellen Dokument bleibt, entscheidet man wie in FreeCAD ueblich
-        # selbst (neues Dokument anlegen oder nicht).
+        # geprueft). Teile, Baugruppen und Zeichnungen sind wie in SW
+        # eigene Dateien (Dominiks Entscheidung vom 17.10.).
         [
-            ("Assembly_CreateAssembly", "Neue\nBaugruppe"),
+            # Eigener Befehl: legt die Baugruppe als NEUE DATEI an (wie SW) -
+            # FreeCADs Befehl wuerde sie in ein offenes Teil stecken.
+            ("SWUI_NewAssembly", "Neue\nBaugruppe", {"icon": "Assembly_CreateAssembly"}),
             ("Assembly_InsertLink", "Komponente\neinfügen"),
             {"stack": [
                 ("Assembly_InsertNewPart", "Neues Teil"),

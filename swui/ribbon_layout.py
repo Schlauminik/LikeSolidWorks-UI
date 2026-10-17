@@ -279,12 +279,12 @@ BAUGRUPPE = (
         [
             # Eigener Befehl: legt die Baugruppe als NEUE DATEI an (wie SW) -
             # FreeCADs Befehl wuerde sie in ein offenes Teil stecken.
-            ("SWUI_NewAssembly", "Neue\nBaugruppe", {"icon": "Geoassembly"}),
-            ("Assembly_InsertLink", "Komponente\neinfügen"),
+            ("SWUI_NewAssembly", "Neue\nBaugruppe", {"icon": "Geoassembly", "svg": "sketch/a_new"}),
+            ("Assembly_InsertLink", "Komponente\neinfügen", {"svg": "sketch/a_insert"}),
             {"stack": [
-                ("Assembly_InsertNewPart", "Neues Teil"),
-                ("Assembly_ToggleGrounded", "Fixieren / Lösen"),
-                ("Assembly_ActivateAssembly", "Baugruppe aktivieren"),
+                ("Assembly_InsertNewPart", "Neues Teil", {"svg": "sketch/a_new_part"}),
+                ("Assembly_ToggleGrounded", "Fixieren / Lösen", {"svg": "sketch/a_ground"}),
+                ("Assembly_ActivateAssembly", "Baugruppe aktivieren", {"svg": "sketch/a_activate"}),
             ], "style": "text"},
         ],
         [
@@ -292,30 +292,30 @@ BAUGRUPPE = (
             # SW-Begriff -> FreeCAD-Gelenk:
             #   Deckungsgleich = Abstands-Gelenk (Abstand 0 legt Ebenen aufeinander)
             #   Konzentrisch   = Zylinder-Gelenk (gleiche Achse, drehen/schieben frei)
-            ("Assembly_CreateJointDistance", "Deckungs-\ngleich"),
-            ("Assembly_CreateJointParallel", "Parallel"),
-            ("Assembly_CreateJointCylindrical", "Konzen-\ntrisch"),
+            ("Assembly_CreateJointDistance", "Deckungs-\ngleich", {"svg": "sketch/m_coincident"}),
+            ("Assembly_CreateJointParallel", "Parallel", {"svg": "sketch/m_parallel"}),
+            ("Assembly_CreateJointCylindrical", "Konzen-\ntrisch", {"svg": "sketch/m_concentric"}),
             {"flyout": [
-                ("Assembly_CreateJointPerpendicular", "Senkrecht"),
-                ("Assembly_CreateJointAngle", "Winkel"),
-                ("Assembly_CreateJointFixed", "Starr"),
-                ("Assembly_CreateJointRevolute", "Drehgelenk"),
-                ("Assembly_CreateJointSlider", "Linear"),
-                ("Assembly_CreateJointBall", "Kugelgelenk"),
+                ("Assembly_CreateJointPerpendicular", "Senkrecht", {"svg": "sketch/m_perpendicular"}),
+                ("Assembly_CreateJointAngle", "Winkel", {"svg": "sketch/m_angle"}),
+                ("Assembly_CreateJointFixed", "Starr", {"svg": "sketch/m_fixed"}),
+                ("Assembly_CreateJointRevolute", "Drehgelenk", {"svg": "sketch/m_revolute"}),
+                ("Assembly_CreateJointSlider", "Linear", {"svg": "sketch/m_slider"}),
+                ("Assembly_CreateJointBall", "Kugelgelenk", {"svg": "sketch/m_ball"}),
             ]},
             {"flyout": [
-                ("Assembly_CreateJointGears", "Zahnrad"),
-                ("Assembly_CreateJointRackPinion", "Zahnstange"),
-                ("Assembly_CreateJointScrew", "Schraube"),
-                ("Assembly_CreateJointBelt", "Riemen"),
+                ("Assembly_CreateJointGears", "Zahnrad", {"svg": "sketch/m_gears"}),
+                ("Assembly_CreateJointRackPinion", "Zahnstange", {"svg": "sketch/m_rack"}),
+                ("Assembly_CreateJointScrew", "Schraube", {"svg": "sketch/m_screw"}),
+                ("Assembly_CreateJointBelt", "Riemen", {"svg": "sketch/m_belt"}),
             ]},
         ],
         [
-            ("Assembly_CreateView", "Explosions-\nansicht"),
-            ("Assembly_CreateBom", "Stückliste"),
+            ("Assembly_CreateView", "Explosions-\nansicht", {"svg": "sketch/a_explode"}),
+            ("Assembly_CreateBom", "Stückliste", {"svg": "sketch/a_bom"}),
             {"stack": [
-                ("Assembly_SolveAssembly", "Baugruppe lösen"),
-                ("Assembly_CreateSimulation", "Bewegungsstudie"),
+                ("Assembly_SolveAssembly", "Baugruppe lösen", {"svg": "sketch/a_solve"}),
+                ("Assembly_CreateSimulation", "Bewegungsstudie", {"svg": "sketch/a_motion"}),
             ], "style": "text"},
         ],
     ],

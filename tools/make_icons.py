@@ -836,6 +836,176 @@ def _():
     return [box(-14, -14, 0, 28, 28, 22)]
 
 
+# --- Symbole: Baugruppe ----------------------------------------------
+# GRAU = vorhandenes Bauteil, BLAU = hinzukommendes/bewegtes Bauteil,
+# WEISS = Linien/Zeichen, ROT = Auswahl. Marker unten rechts wie bei den
+# Beziehungen (badge).
+
+
+def gear(cx, cy, r, teeth, fill, depth=3.2, rot=0.0):
+    pts = []
+    n = teeth * 4
+    for i in range(n):
+        a = math.radians(rot + 360.0 * i / n)
+        rr = r if (i % 4) in (0, 1) else r - depth
+        pts.append((cx + rr * math.cos(a), cy + rr * math.sin(a)))
+    d = "M" + " L".join("%.1f %.1f" % q for q in pts) + " Z"
+    return ('<path d="%s" fill="%s" stroke="%s" stroke-width="1.6" stroke-linejoin="round"/>'
+            '<circle cx="%.1f" cy="%.1f" r="%.1f" fill="%s" stroke="%s" stroke-width="1.4"/>'
+            % (d, fill, OUTLINE, cx, cy, r * 0.28, "#3a3a3a", OUTLINE))
+
+
+def plate(x, y, z, dx, dy, dz, faces=BODY_FACES):
+    return box(x, y, z, dx, dy, dz, faces)
+
+
+@icon("a_new", "Neue Baugruppe")
+def _():
+    return [box(-20, -6, 0, 16, 16, 14), box(4, -10, 0, 16, 16, 22, NEW_FACES),
+            badge("M47 41 V53 M41 47 H53")]
+
+
+@icon("a_insert", "Komponente einfügen")
+def _():
+    return [box(-18, -18, 0, 36, 36, 8), box(-6, -6, 22, 12, 12, 10, NEW_FACES),
+            iso_arrow((0, 0, 20), (0, 0, 10))]
+
+
+@icon("a_new_part", "Neues Teil")
+def _():
+    return [box(-14, -14, 0, 24, 24, 20, NEW_FACES), badge("M47 41 V53 M41 47 H53")]
+
+
+@icon("a_ground", "Fixieren / Lösen")
+def _():
+    hatch = " ".join("M%d 58 L%d 50" % (x, x + 8) for x in range(6, 56, 8))
+    return [box(-12, -12, 0, 24, 24, 18), thin("M4 50 H60", GEO, 2.6), thin(hatch, GEO, 1.8)]
+
+
+@icon("a_activate", "Baugruppe aktivieren")
+def _():
+    return [box(-20, -6, 0, 14, 14, 12), box(2, -10, 0, 14, 14, 20, NEW_FACES),
+            badge("M41 47 L46 52 L54 42")]
+
+
+@icon("m_coincident", "Deckungsgleich")
+def _():
+    return [plate(-18, -18, 0, 36, 36, 6), plate(-10, -10, 6, 22, 22, 10, NEW_FACES),
+            badge(None, "M47 42 a5 5 0 1 0 0.01 0 Z")]
+
+
+@icon("m_parallel", "Parallel")
+def _():
+    return [plate(-18, -18, 0, 36, 36, 5), plate(-14, -14, 20, 28, 28, 5, NEW_FACES),
+            badge("M40 52 L46 40 M48 54 L54 42")]
+
+
+@icon("m_concentric", "Konzentrisch")
+def _():
+    return [box(-18, -18, 0, 36, 36, 10), iso_line((0, 0, -6), (0, 0, 44)),
+            cyl(0, 0, 6, 8, 30, NEW_FACES, n=16),
+            badge("M47 39 A8 8 0 1 1 46.99 39", "M47 44.5 a2.5 2.5 0 1 0 0.01 0 Z")]
+
+
+@icon("m_perpendicular", "Senkrecht")
+def _():
+    return [plate(-18, -18, 0, 36, 36, 5), plate(-18, -2, 5, 36, 5, 26, NEW_FACES),
+            badge("M47 39 V53 M40 53 H54")]
+
+
+@icon("m_angle", "Winkel")
+def _():
+    a, b, c, d = iso(-16, -16, 6), iso(16, -16, 6), iso(16, -16, 30), iso(-16, -16, 16)
+    return [plate(-18, -18, 0, 36, 36, 6), poly([iso(-16, 4, 6), iso(16, 4, 6), iso(16, 4, 30), iso(-16, 4, 18)], NEW_FACES[1]),
+            badge("M41 53 H54 M41 53 L51 42")]
+
+
+@icon("m_fixed", "Starr")
+def _():
+    return [box(-20, -8, 0, 16, 16, 16), box(-4, -8, 0, 16, 16, 16, NEW_FACES),
+            badge("M43 46 V43 A4 4 0 0 1 51 43 V46", "M41 46 H53 V53 H41 Z")]
+
+
+@icon("m_revolute", "Drehgelenk")
+def _():
+    arc = "M14 22 A20 9 0 1 0 50 22"
+    return [box(-18, -18, 0, 36, 36, 8), box(-4, -4, 8, 26, 8, 6, NEW_FACES),
+            iso_line((0, 0, -4), (0, 0, 34)),
+            '<path d="%s" stroke="%s" stroke-width="5" fill="none"/>' % (arc, OUTLINE),
+            '<path d="%s" stroke="%s" stroke-width="2.6" fill="none"/>' % (arc, GEO),
+            arrow(46, 26, 50, 20, color=GEO, w=2.6, head=6)]
+
+
+@icon("m_slider", "Linear")
+def _():
+    return [box(-26, -5, 0, 52, 10, 6), box(-8, -9, 6, 16, 18, 10, NEW_FACES),
+            arrow(32, 30, 54, 18, color=GEO, w=2.6, head=6), arrow(32, 30, 10, 42, color=GEO, w=2.6, head=6)]
+
+
+@icon("m_ball", "Kugelgelenk")
+def _():
+    return [box(-18, -18, 0, 36, 36, 10),
+            '<circle cx="32" cy="24" r="12" fill="%s" stroke="%s" stroke-width="1.8"/>' % (NEW_FACES[1], OUTLINE),
+            '<ellipse cx="28" cy="20" rx="4" ry="3" fill="%s" opacity="0.7"/>' % NEW_FACES[0]]
+
+
+@icon("m_gears", "Zahnrad")
+def _():
+    return [gear(22, 38, 19, 10, BODY_FACES[0], depth=4.5), gear(46, 20, 14, 8, NEW_FACES[1], depth=4.0, rot=12)]
+
+
+@icon("m_rack", "Zahnstange")
+def _():
+    teeth = "M2 60 V52 " + " ".join("H%d V46 H%d V52" % (x, x + 5) for x in range(6, 60, 10)) + " H62 V60 Z"
+    return ['<path d="%s" fill="%s" stroke="%s" stroke-width="1.6" stroke-linejoin="round"/>' % (teeth, BODY_FACES[0], OUTLINE),
+            gear(32, 25, 19, 10, NEW_FACES[1], depth=4.5)]
+
+
+@icon("m_screw", "Schraube")
+def _():
+    out = [box(-16, -16, 0, 32, 32, 10)]
+    out.append(cyl(0, 0, 6, 4, 40, NEW_FACES, n=16))
+    for z in range(14, 40, 6):
+        a, b = iso(-6, 6, z), iso(6, -6, z + 3)
+        out.append(thin("M%.1f %.1f L%.1f %.1f" % (a + b), GEO, 1.8))
+    return out
+
+
+@icon("m_belt", "Riemen")
+def _():
+    return ['<path d="M16 22 L48 14 M16 48 L48 42" stroke="%s" stroke-width="7"/>' % OUTLINE,
+            '<path d="M16 22 L48 14 M16 48 L48 42" stroke="%s" stroke-width="4"/>' % GEO,
+            '<circle cx="16" cy="35" r="13" fill="%s" stroke="%s" stroke-width="1.8"/>' % (BODY_FACES[1], OUTLINE),
+            '<circle cx="48" cy="28" r="14" fill="%s" stroke="%s" stroke-width="1.8"/>' % (NEW_FACES[1], OUTLINE),
+            '<circle cx="16" cy="35" r="3" fill="%s"/><circle cx="48" cy="28" r="3" fill="%s"/>' % (OUTLINE, OUTLINE)]
+
+
+@icon("a_explode", "Explosionsansicht")
+def _():
+    return [iso_line((0, 0, -2), (0, 0, 50)), box(-14, -14, 0, 28, 28, 8),
+            box(-10, -10, 20, 20, 20, 7, NEW_FACES), box(-7, -7, 38, 14, 14, 6, NEW_FACES)]
+
+
+@icon("a_bom", "Stückliste")
+def _():
+    rows = "".join('<path d="M10 %d H54" stroke="%s" stroke-width="2"/>' % (y, GEO) for y in (30, 40, 50))
+    return ['<rect x="8" y="10" width="48" height="46" rx="2" fill="#4a4a4a" stroke="%s" stroke-width="2"/>' % OUTLINE,
+            '<rect x="8" y="10" width="48" height="11" rx="2" fill="%s" stroke="%s" stroke-width="2"/>' % (NEW, OUTLINE),
+            rows, '<path d="M22 21 V56" stroke="%s" stroke-width="2"/>' % GEO]
+
+
+@icon("a_solve", "Baugruppe lösen")
+def _():
+    return [box(-20, -6, 0, 14, 14, 12), box(2, -10, 0, 14, 14, 20, NEW_FACES),
+            badge("M41 46 A6 6 0 1 1 47 53", "M38 44 L44 44 L41 49 Z")]
+
+
+@icon("a_motion", "Bewegungsstudie")
+def _():
+    return [box(-18, -6, 0, 14, 14, 12), box(2, -10, 0, 14, 14, 20, NEW_FACES),
+            badge(None, "M43 40 L54 47 L43 54 Z")]
+
+
 # --- Ausgabe ---------------------------------------------------------
 
 

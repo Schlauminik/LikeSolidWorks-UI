@@ -1340,6 +1340,73 @@ def run(split_namespace):
         print("  FEHLER: Baugruppen-Dialoge nicht im Takt")
         return False
     print("  Dialoge : Linear austragen/Schnitt/Rotieren/Verknüpfung mit SW-Begriffen; fremde Listenlängen bleiben unberührt")
+    # Zeichnungs-Dialoge (9e1): Beschriftungen, Listen, Tooltips, Massstabsfeld bei "Benutzerdefiniert"
+    class FTip:
+        def __init__(self, t):
+            self.tip = t
+
+        def toolTip(self):
+            return self.tip
+
+        def setToolTip(self, t):
+            self.tip = t
+
+    class FScaleCombo(FCombo):
+        def __init__(self, items, idx):
+            super().__init__(items)
+            self.idx = idx
+
+        def currentIndex(self):
+            return self.idx
+
+        def isEnabled(self):
+            return True
+
+    class FSpin:
+        def __init__(self):
+            self.on = False
+
+        def isEnabled(self):
+            return self.on
+
+        def setEnabled(self, v):
+            self.on = bool(v)
+
+    pg = FRoot({"label_7": FLabel("Projektion"), "chkView1": FTip("Top"), "chkView8": FTip("Bottom"),
+                "projection": FCombo(["Erster Winkel", "Dritter Winkel", "Seite"]),
+                "cmbScaleType": FCombo(["Seite", "Automatisch", "Benutzerdefiniert"])})
+    ft.apply(pg, ft.PROJ_GROUP)
+    pk = pg.kids
+    if (pk["label_7"].t, pk["projection"].items[0], pk["cmbScaleType"].items[0], pk["chkView1"].tip,
+            pk["chkView8"].tip) != ("Projektionsmethode", "Methode 1 (DIN/ISO)", "Blattmaßstab", "Draufsicht", "Unteransicht"):
+        print("  FEHLER: Dialog Standard-Dreiansicht", pk["projection"].items, pk["chkView1"].tip)
+        return False
+    spin = FSpin()
+    sec = FRoot({"label_7": FLabel("Basisansicht"), "gbPlane": FGroup("Schnittebene"),
+                 "cmbScaleType": FScaleCombo(["Seite", "Automatisch", "Benutzerdefiniert"], 2), "sbScale": spin})
+    ft.apply(sec, ft.SECTION_VIEW)
+    if (sec.kids["label_7"].t, sec.kids["gbPlane"].t, sec.kids["cmbScaleType"].items[2], spin.on) != (
+            "Ausgangsansicht", "Lage der Schnittebene", "Benutzerdefiniert", True):
+        print("  FEHLER: Dialog Schnittansicht / Maßstabsfeld bei Benutzerdefiniert gesperrt", spin.on)
+        return False
+    spin2 = FSpin()
+    sec2 = FRoot({"cmbScaleType": FScaleCombo(["a", "b", "c"], 0), "sbScale": spin2})
+    ft.apply(sec2, ft.SECTION_VIEW)
+    if spin2.on:
+        print("  FEHLER: Maßstabsfeld bei Blattmaßstab freigegeben")
+        return False
+    det = FRoot({"label_6": FLabel("Radius"), "cbScaleType": FCombo(["x", "y", "z"])})
+    cs = FRoot({"cmbStrategy": FCombo(["Versatz", "Ausgerichtet", "Keine Parallele"]), "label_9": FLabel("Profil")})
+    ft.apply(det, ft.DETAIL_VIEW)
+    ft.apply(cs, ft.COMPLEX_SECTION)
+    if (det.kids["label_6"].t, det.kids["cbScaleType"].items[1], cs.kids["cmbStrategy"].items[0], cs.kids["label_9"].t) != (
+            "Kreisradius", "Automatisch", "Abgesetzter Schnitt", "Schnittverlauf (Skizze)"):
+        print("  FEHLER: Dialoge Detail / ausgerichteter Schnitt")
+        return False
+    if any(sp_ not in ft.SPECS for sp_ in (ft.PROJ_GROUP, ft.SECTION_VIEW, ft.DETAIL_VIEW, ft.COMPLEX_SECTION)):
+        print("  FEHLER: Zeichnungs-Dialoge nicht im Takt")
+        return False
+    print("  Dialoge : Standard-Dreiansicht/Schnitt/Detail/ausgerichteter Schnitt mit SW-Begriffen")
 
     # --- Reiter wechselt beim Skizzieren --------------------------------
     gui = sys.modules["FreeCADGui"]

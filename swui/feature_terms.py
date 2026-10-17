@@ -111,7 +111,125 @@ INSERT = {
     "combos": {},
 }
 
-SPECS = (PAD_POCKET, REVOLUTION, JOINT, INSERT)
+# --- Zeichnungen (9e1): TechDraw-Dialoge des Ansichtslayouts ----------------
+# Formulare aus src/Mod/TechDraw/Gui/Task*.ui (1.1.4). TechDraw vergleicht bei
+# der Massstabsart an zwei Stellen den ANGEZEIGTEN Text mit "Custom"
+# (TaskSectionView.cpp/TaskComplexSection.cpp, enableAll) - das passt schon
+# bei deutscher Oberflaeche nicht. _scale_fix gibt das Massstabsfeld bei
+# "Benutzerdefiniert" (Index 2) deshalb selbst frei.
+
+SCALE_TYPES = ["Blattmaßstab", "Automatisch", "Benutzerdefiniert"]
+
+
+def _scale_fix(combo_name, spin_name):
+    def fix(root):
+        box = root.findChild(QtWidgets.QComboBox, combo_name)
+        spin = root.findChild(QtWidgets.QWidget, spin_name)
+        if box is None or spin is None:
+            return 0
+        if box.currentIndex() == 2 and box.isEnabled() and not spin.isEnabled():
+            spin.setEnabled(True)
+            return 1
+        return 0
+    return fix
+
+
+# Standard-Dreiansicht / Projektionsgruppe
+PROJ_GROUP = {
+    "root": "TechDrawGui::TaskProjGroup",
+    "labels": {
+        "label": "Maßstab",
+        "directionGroupbox": "Ausrichtung der Vorderansicht",
+        "secondaryProjGroupbox": "Projizierte Ansichten",
+        "label_7": "Projektionsmethode",
+        "cbAutoDistribute": "Automatisch anordnen",
+        "label_10": "Abstand X",
+        "label_11": "Abstand Y",
+    },
+    "combos": {
+        "cmbScaleType": SCALE_TYPES,
+        # First angle, Third angle, Page
+        "projection": ["Methode 1 (DIN/ISO)", "Methode 3 (amerikanisch)", "Wie Blatt"],
+    },
+    "tooltips": {
+        # Kaestchen der Projektionen (Namen wie im Baum, naming.py)
+        "chkView0": "Isometrie links oben",
+        "chkView1": "Draufsicht",
+        "chkView2": "Isometrie rechts oben",
+        "chkView3": "Ansicht von links",
+        "chkView4": "Vorderansicht",
+        "chkView5": "Ansicht von rechts",
+        "chkView6": "Rückansicht",
+        "chkView7": "Isometrie links unten",
+        "chkView8": "Unteransicht",
+        "chkView9": "Isometrie rechts unten",
+    },
+}
+
+# Schnittansicht
+SECTION_VIEW = {
+    "root": "TechDrawGui::TaskSectionView",
+    "labels": {
+        "label_7": "Ausgangsansicht",
+        "label_2": "Bezeichnung",
+        "label_3": "Maßstabsart",
+        "label": "Maßstab",
+        "gbOrientation": "Blickrichtung des Schnitts",
+        "gbPlane": "Lage der Schnittebene",
+        "gbUpdate": "Vorschau",
+        "pbUpdateNow": "Jetzt aktualisieren",
+        "cbLiveUpdate": "Vorschau sofort aktualisieren",
+    },
+    "combos": {"cmbScaleType": SCALE_TYPES},
+    "after": _scale_fix("cmbScaleType", "sbScale"),
+}
+
+# Detailansicht
+DETAIL_VIEW = {
+    "root": "TechDrawGui::TaskDetail",
+    "labels": {
+        "label_4": "Ausgangsansicht",
+        "label": "Detailansicht",
+        "pbDragger": "Detailkreis verschieben",
+        "label_9": "Maßstabsart",
+        "label_8": "Maßstab",
+        "label_7": "Bezeichnung",
+        "label_6": "Kreisradius",
+        "label_2": "Mittelpunkt X",
+        "label_3": "Mittelpunkt Y",
+    },
+    "combos": {"cbScaleType": SCALE_TYPES},
+}
+
+# Ausgerichteter / abgesetzter Schnitt
+COMPLEX_SECTION = {
+    "root": "TechDrawGui::TaskComplexSection",
+    "labels": {
+        "groupBox": "Auswahl",
+        "label_8": "Zu schneidende Körper",
+        "pbSectionObjects": "Auswahl übernehmen",
+        "label_9": "Schnittverlauf (Skizze)",
+        "pbProfileObject": "Auswahl übernehmen",
+        "groupBox_2": "Schnittparameter",
+        "label": "Maßstab",
+        "label_3": "Maßstabsart",
+        "label_7": "Schnittart",
+        "label_2": "Bezeichnung",
+        "label_5": "Ausgangsansicht",
+        "gbOrientation": "Blickrichtung des Schnitts",
+        "groupBox_3": "Vorschau",
+        "cbLiveUpdate": "Vorschau sofort aktualisieren",
+        "pbUpdateNow": "Jetzt aktualisieren",
+    },
+    "combos": {
+        "cmbScaleType": SCALE_TYPES,
+        # Offset, Aligned, No parallel
+        "cmbStrategy": ["Abgesetzter Schnitt", "Ausgerichteter Schnitt", "Ohne parallele Abschnitte"],
+    },
+    "after": _scale_fix("cmbScaleType", "sbScale"),
+}
+
+SPECS = (PAD_POCKET, REVOLUTION, JOINT, INSERT, PROJ_GROUP, SECTION_VIEW, DETAIL_VIEW, COMPLEX_SECTION)
 
 _timer = None
 _installed = False
@@ -193,4 +311,18 @@ def apply(root, spec):
                     changed += 1
         except Exception:
             continue
+    for name, tip in spec.get("tooltips", {}).items():
+        w = root.findChild(QtWidgets.QWidget, name)
+        try:
+            if w is not None and w.toolTip() != tip:
+                w.setToolTip(tip)
+                changed += 1
+        except Exception:
+            continue
+    fix = spec.get("after")
+    if fix is not None:
+        try:
+            changed += fix(root) or 0
+        except Exception:
+            pass
     return changed

@@ -47,6 +47,7 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | 9d1 | Eigene Symbole für den Reiter Zeichnungen: Modell-, projizierte, Schnitt-, Detailansicht, Standard-Dreiansicht, Maßstab, Bemaßung, Positionsnummer, Notiz, PDF, DXF (`tools/make_icons.py`) | **fertig** |
 | 9d2 | Eigene Symbole für die kleinen Zeichnungs-Einträge: Bemaßungsarten, ausgerichteter Schnitt, unterbrochene Ansicht, Ausschnitt, Mittellinie, Mittelpunktmarke, Schraffur, Oberfläche, Schweißen, Hinweislinie | **fertig** |
 | 9d3 | Beim Hineinzoomen ins Blatt werden Linien und Eckpunkte stufenweise dünner – nur am Bildschirm; Speichern, PDF, Druck und Export behalten die Norm-Strichstärken (`swui/zoom_lines.py`) | **fertig** |
+| 9e1 | SW-Begriffe in den TechDraw-Dialogen des Ansichtslayouts: Standard-Dreiansicht, Schnitt-, Detailansicht, ausgerichteter Schnitt (`swui/feature_terms.py`) | **fertig** |
 
 Später: 3D-Skizzen.
 

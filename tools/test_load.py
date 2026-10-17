@@ -2467,7 +2467,7 @@ def run(split_namespace):
     if waited or (s1.SectionSymbol, s2.SectionSymbol, d1.Reference, d2.Reference) != ("A", "B", "Z", "K"):
         print("  FEHLER: Buchstaben nach Norm (A-A..., Z...)", waited, s1.SectionSymbol, s2.SectionSymbol, d1.Reference, d2.Reference)
         return False
-    if (s1.Label, d1.Label) != ("Schnitt A-A", "Detail Z"):
+    if (s1.Label, d1.Label) != ("Schnittansicht A-A", "Detailansicht Z (2:1)"):
         print("  FEHLER: Namen im Baum", s1.Label, d1.Label)
         return False
     la = vl.find_label(s1, ld.Objects)
@@ -2490,7 +2490,7 @@ def run(split_namespace):
     # Massstab der Ansicht geaendert -> Benennung folgt (Text entspricht noch dem Schema)
     d1.Scale = 4.0
     vl.on_view_changed(d1, "Scale")
-    if d1.Reference != "Y" or d1.Label != "Detail Y" or (lz.X, lz.Y) != (320.0, 130.0) or lz.Text != ["Y (4:1)"]:
+    if d1.Reference != "Y" or d1.Label != "Detailansicht Y (4:1)" or (lz.X, lz.Y) != (320.0, 130.0) or lz.Text != ["Y (4:1)"]:
         print("  FEHLER: Umbenennen/Mitwandern/Nachführen", d1.Reference, lz.X, lz.Y, lz.Text)
         return False
     lz.Text = ["Einzelheit Y, gedreht"]  # freier Text bleibt stehen
@@ -2961,6 +2961,78 @@ def run(split_namespace):
         print("  FEHLER: Schweißsymbol – Doppelklick / Klick-Modus", r_w, opened_w, st_pick.press)
         return False
     print("  Schweißen: Symbol nach ISO 2553 wie SW – Pfeil anklicken, Symbol setzen, Pfeil folgt, Doppelklick")
+
+    # --- Namen im Zeichnungsbaum (9f) ---
+    nm = sys.modules["swui.naming"]
+
+    class NObj:
+        def __init__(self, type_id, label, **kw):
+            self.TypeId, self.Label = type_id, label
+            self.__dict__.update(kw)
+
+    ndoc = types.SimpleNamespace(Objects=[])
+
+    def nadd(o):
+        o.Document = ndoc
+        ndoc.Objects.append(o)
+        return o
+
+    grp1 = nadd(NObj("TechDraw::DrawProjGroup", "ProjGroup"))
+    lab_g1 = nm.sw_label_for(grp1)
+    grp1.Label = lab_g1
+    grp2 = nadd(NObj("TechDraw::DrawProjGroup", "ProjGroup001"))
+    lab_g2 = nm.sw_label_for(grp2)
+    vp1 = nadd(NObj("TechDraw::DrawViewPart", "View"))
+    dim1 = nadd(NObj("TechDraw::DrawViewDimension", "Maß001"))
+    bal1 = nadd(NObj("TechDraw::DrawViewBalloon", "Balloon"))
+    weld1 = nadd(NObj("TechDraw::DrawViewSymbol", "Schweißsymbol", SWUI_Kind="weld"))
+    surf1 = nadd(NObj("TechDraw::DrawViewSymbol", "Oberflächenangabe", SWUI_Kind="surface"))
+    img1 = nadd(NObj("TechDraw::DrawViewSymbol", "Symbol"))
+    left1 = nadd(NObj("TechDraw::DrawProjGroupItem", "Links", Type="Left"))
+    ann1 = nadd(NObj("TechDraw::DrawViewAnnotation", "Benennung A-A"))
+    got_n = (lab_g1, lab_g2, nm.sw_label_for(vp1), nm.sw_label_for(dim1), nm.sw_label_for(bal1),
+             nm.sw_label_for(weld1), nm.sw_label_for(surf1), nm.sw_label_for(img1), nm.sw_label_for(left1),
+             nm.sw_label_for(ann1))
+    want_n = ("Standard-Dreiansicht", "Standard-Dreiansicht2", "Zeichenansicht1", "Bemaßung1", "Positionsnummer1",
+              "Schweißsymbol1", "Oberflächenangabe1", "Bild1", "Seitenansicht von links", None)
+    if got_n != want_n:
+        print("  FEHLER: SW-Namen im Zeichnungsbaum", got_n)
+        return False
+    # bestehende Zeichnung: nur FreeCAD-Namen ersetzen
+    old_doc = types.SimpleNamespace(Objects=[])
+    for o in (NObj("TechDraw::DrawProjGroupItem", "Links", Type="Left"),
+              NObj("TechDraw::DrawProjGroupItem", "Vorderansicht", Type="Front"),
+              NObj("TechDraw::DrawProjGroupItem", "Meine Ansicht", Type="Top"),
+              NObj("TechDraw::DrawProjGroupItem", "Isometrie001", Type="FrontTopRight"),
+              NObj("TechDraw::DrawSVGTemplate", "Template")):
+        o.Document = old_doc
+        old_doc.Objects.append(o)
+    n_ren = nm.refresh_drawing(old_doc)
+    labels_old = [o.Label for o in old_doc.Objects]
+    if labels_old != ["Seitenansicht von links", "Vorderansicht", "Meine Ansicht", "Isometrie001", "Blattformat1"] or n_ren != 2:
+        print("  FEHLER: Namen in bestehender Zeichnung", labels_old, n_ren)
+        return False
+    if nm.refresh_drawing(old_doc) != 0:
+        print("  FEHLER: Umbenennen in bestehender Zeichnung wiederholt sich")
+        return False
+    # geloeschtes Objekt in der Warteschlange (Vorschau-Bemassung) darf _flush nicht abbrechen
+    class Gone:
+        @property
+        def TypeId(self):
+            raise ReferenceError("Cannot access attribute 'TypeId' of deleted object")
+
+    keep_n = NObj("TechDraw::DrawViewBalloon", "Balloon")
+    keep_n.Document = ndoc
+    nm._pending[:] = [Gone(), keep_n]
+    try:
+        nm._flush()
+    except Exception as exc_:
+        print("  FEHLER: Umbenennen bricht bei gelöschtem Objekt ab", exc_)
+        return False
+    if nm._pending or keep_n.Label != "Positionsnummer1":
+        print("  FEHLER: nach gelöschtem Objekt nicht weiter umbenannt", nm._pending, keep_n.Label)
+        return False
+    print("  Baum     : Blatt/Blattformat/Zeichenansicht/Bemaßung/Positionsnummer/Schnitt-/Detailansicht wie SW")
 
     gui.ActiveDocument = None
     print("  Konstrukt: nur neue Linien gestrichelt, Kreise/alte Linien bleiben; Ende bei Werkzeugwechsel/Skizzenende")

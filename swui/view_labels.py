@@ -73,11 +73,11 @@ def set_letter(view, letter):
     if is_section(view):
         if view.SectionSymbol != letter:
             view.SectionSymbol = letter
-        _set_label(view, "Schnitt %s-%s" % (letter, letter))
+        _set_label(view, "Schnittansicht %s-%s" % (letter, letter))  # wie im SW-Baum
     elif is_detail(view):
         if view.Reference != letter:
             view.Reference = letter
-        _set_label(view, "Detail %s" % letter)
+        _set_label(view, "Detailansicht %s" % label_text(view))  # "Detailansicht Z (2:1)"
 
 
 def _set_label(obj, text):
@@ -236,6 +236,8 @@ def on_view_changed(view, prop):
     ann = find_label(view, doc.Objects)
     if ann is None:
         return
+    if prop == "Scale" and is_detail(view) and re.match("^Detail(?:ansicht)? ", getattr(view, "Label", "") or ""):
+        _set_label(view, "Detailansicht %s" % label_text(view))  # Massstab im Baumnamen nachfuehren
     if prop in ("SectionSymbol", "Reference", "Scale"):
         if looks_auto(text_of(ann)):
             new = label_text(view)

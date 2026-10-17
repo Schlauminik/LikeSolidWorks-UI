@@ -52,6 +52,7 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | Fix | Absturz beim Bemaßen behoben: Während ein TechDraw-Werkzeug läuft, ändern Zoom-Linien und Ziehen nichts mehr (`zoom_lines.py`, `page_drag.py`) | **fertig** |
 | 9e2c | Eigene Oberflächenangabe nach DIN EN ISO 1302: Sinnbild, rundum, Felder a–e als editierbare Texte, Schnellauswahl Rz 4/16/63, Doppelklick öffnet wieder (`swui/surface_finish.py`) | **fertig** |
 | 9e2d | Eigenes Schweißsymbol nach DIN EN ISO 2553 wie in SOLIDWORKS: Pfeilspitze anklicken, Symbol setzen, Pfeil folgt beim Verschieben; Pfeil-/Gegenseite, Nahtdicke, Länge, Oberfläche, G/C/M/F, ringsum, Baustelle, Gabel, wahlweise Strichlinie; Doppelklick (`swui/weld_symbol.py`) | **fertig** |
+| 9f | Namen im Zeichnungsbaum wie SW: Blatt1, Blattformat1, Standard-Dreiansicht, Vorderansicht/Draufsicht/Seitenansicht von links, Zeichenansicht1, Schnittansicht A-A, Detailansicht Z (2:1), Bemaßung1, Positionsnummer1, Notiz1, Schraffur1, Schweißsymbol1, Oberflächenangabe1; bestehende Zeichnungen werden beim Öffnen nachgezogen (`naming.py`, `view_labels.py`) | **fertig** |
 
 Später: 3D-Skizzen.
 

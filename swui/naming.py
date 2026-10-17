@@ -77,8 +77,42 @@ FEATURE_NAMES = {
     "Assembly::AssemblyObject": "Baugruppe",
     "Assembly::BomObject": "Stückliste",
     "TechDraw::DrawViewImage": "Bild",
-    "TechDraw::DrawViewSymbol": "Bild",
+    "TechDraw::DrawViewSymbol": "Bild",  # eigene Symbole: SYMBOL_KINDS
+    # Zeichnungen (9f) - Namen wie im SW-Zeichnungsbaum. Schnitt- und
+    # Detailansichten benennt view_labels.py ("Schnittansicht A-A"),
+    # Textfelder (DrawViewAnnotation, z. B. "Benennung A-A") bleiben, wie sie sind.
+    "TechDraw::DrawPage": "Blatt",
+    "TechDraw::DrawSVGTemplate": "Blattformat",
+    "TechDraw::DrawProjGroup": "Standard-Dreiansicht",
+    "TechDraw::DrawViewPart": "Zeichenansicht",
+    "TechDraw::DrawViewDimension": "Bemaßung",
+    "TechDraw::DrawViewBalloon": "Positionsnummer",
+    "TechDraw::DrawRichAnno": "Notiz",
+    "TechDraw::DrawLeaderLine": "Hinweislinie",
+    "TechDraw::DrawHatch": "Schraffur",
+    "TechDraw::DrawGeomHatch": "Schraffur",
+    "TechDraw::DrawWeldSymbol": "Schweißsymbol",
+    "TechDraw::DrawViewClip": "Ausschnitt-Rahmen",
 }
+
+# Eigene Symbole (DrawViewSymbol mit SWUI_Kind) - surface_finish.py, weld_symbol.py
+SYMBOL_KINDS = {"surface": "Oberflächenangabe", "weld": "Schweißsymbol"}
+
+# Beim ersten Mal ohne Nummer ("Standard-Dreiansicht"), danach mit (…2, …3)
+UNNUMBERED_FIRST = ("TechDraw::DrawProjGroup",)
+
+# Projektionen einer Standard-Dreiansicht: Name nach Ansichtsrichtung (Type)
+PROJ_ITEM_TYPE = "TechDraw::DrawProjGroupItem"
+# Namen, die TechDraw/FreeCAD selbst vergibt (englisch + deutsche Uebersetzungen)
+# - nur solche Namen werden in bestehenden Zeichnungen ersetzt
+_DEFAULT_ITEM_WORDS = (
+    "Front", "Top", "Bottom", "Left", "Right", "Rear", "FrontTopLeft", "FrontTopRight",
+    "FrontBottomLeft", "FrontBottomRight", "ProjItem", "Vorderansicht", "Vorne", "Draufsicht", "Oben",
+    "Untersicht", "Unteransicht", "Unten", "Links", "Rechts", "Rückansicht", "Hinten",
+    "Isometrisch", "Isometrie",
+)
+_DEFAULT_ITEM_RE = re.compile("^(?:%s)\\s*\\d*$" % "|".join(re.escape(w) for w in _DEFAULT_ITEM_WORDS))
+_DEFAULT_TEMPLATE_RE = re.compile("^(?:Template|Vorlage|Blattformat)\\s*\\d*$")
 
 # Ordner in einer Baugruppe: fester Name ohne Nummer.
 GROUP_NAMES = {
@@ -146,10 +180,57 @@ def sw_label_for(obj):
         return GROUP_NAMES[type_id]
     if type_id in COMPONENT_TYPES:
         return component_label(obj)
+    if type_id == PROJ_ITEM_TYPE:
+        return proj_item_label(obj)
     base = FEATURE_NAMES.get(type_id)
+    if type_id == "TechDraw::DrawViewSymbol":
+        base = SYMBOL_KINDS.get(getattr(obj, "SWUI_Kind", ""), base)
     if base is None:
         return None
-    return "%s%d" % (base, _next_number(obj.Document, base, obj))
+    n = _next_number(obj.Document, base, obj)
+    if type_id in UNNUMBERED_FIRST:
+        if n == 1 and not _base_used(obj.Document, base, obj):
+            return base
+        if _base_used(obj.Document, base, obj):
+            n = max(n, 2)  # der erste (ohne Nummer) zaehlt als 1
+    return "%s%d" % (base, n)
+
+
+def proj_item_label(item):
+    """'Vorderansicht', 'Draufsicht', 'Seitenansicht von links' ... nach der Richtung."""
+    try:
+        from swui.proj_views import TYPE_NAMES
+    except Exception:
+        return None
+    return TYPE_NAMES.get(getattr(item, "Type", ""), None)
+
+
+def refresh_drawing(doc):
+    """
+    Bestehende Zeichnung: von FreeCAD vergebene Namen der Projektionen und
+    der Vorlage durch SW-Namen ersetzen (selbst vergebene Namen bleiben).
+    Gibt die Zahl der Umbenennungen zurueck.
+    """
+    n = 0
+    for obj in list(getattr(doc, "Objects", []) or []):
+        t = getattr(obj, "TypeId", "")
+        label = getattr(obj, "Label", "") or ""
+        new = None
+        if t == PROJ_ITEM_TYPE and _DEFAULT_ITEM_RE.match(label):
+            new = proj_item_label(obj)
+        elif t == "TechDraw::DrawSVGTemplate" and _DEFAULT_TEMPLATE_RE.match(label) and not re.match("^Blattformat\\d+$", label):
+            new = "Blattformat%d" % _next_number(doc, "Blattformat", obj)
+        if new and not label.startswith(new):  # "Isometrie001": FreeCAD haengt bei gleichen Namen Ziffern an
+            try:
+                obj.Label = new
+                n += 1
+            except Exception:
+                pass
+    return n
+
+
+def _base_used(doc, base, exclude):
+    return any(o is not exclude and (getattr(o, "Label", "") or "") == base for o in doc.Objects)
 
 
 def component_label(link):
@@ -313,6 +394,13 @@ def _mark_dirty(doc):
 
 def _flush():
     """Vorgemerkte Objekte umbenennen - in Anlege-Reihenfolge."""
+    # Inzwischen geloeschte Objekte (z. B. Vorschau-Bemassung, Befehl abgebrochen) verwerfen -
+    # schon der Zugriff auf deren TypeId wirft "deleted object" (Dominik, 17.10.)
+    _pending[:] = [o for o in _pending if _type_of(o) is not None]
+    if any(_type_of(o).startswith("TechDraw::") for o in _pending) and _drawing_tool_active():
+        # Bemassen & Co. laufen noch: erst danach umbenennen (sicher gegen Abstuerze, s. page_drag.tool_active)
+        QtCore.QTimer.singleShot(500, _flush)
+        return
     items = list(_pending)
     del _pending[:]
     for obj in items:
@@ -332,6 +420,24 @@ def _flush():
                 refresh_joints(doc)
         except Exception as exc:
             FreeCAD.Console.PrintLog("[SWUI] (f) nicht nachgefuehrt: %s\n" % exc)
+
+
+def _type_of(obj):
+    """TypeId oder None, wenn das Objekt nicht mehr existiert."""
+    try:
+        return obj.TypeId
+    except Exception:
+        return None
+
+
+def _drawing_tool_active():
+    try:
+        from swui import page_drag, proj_views
+
+        gview = proj_views._page_graphics_view()
+        return gview is not None and page_drag.tool_active(gview)
+    except Exception:
+        return False
 
 
 def _is_assembly(obj):

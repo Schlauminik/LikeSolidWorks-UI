@@ -741,6 +741,13 @@ def _check_drawing():
             proj_views.freeze_doc(FreeCAD.ActiveDocument)
         except Exception:
             pass
+        # Bestehende Zeichnungen: FreeCAD-Namen im Baum durch SW-Namen ersetzen (9f)
+        try:
+            from swui import naming
+
+            naming.refresh_drawing(FreeCAD.ActiveDocument)
+        except Exception:
+            pass
 
 
 

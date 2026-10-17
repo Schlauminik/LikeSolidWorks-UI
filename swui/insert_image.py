@@ -34,10 +34,11 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtWidgets
+from swui.i18n import N_, tr  # noqa: F401
 
 SVG_EXT = (".svg",)
 BITMAP_EXT = (".png", ".jpg", ".jpeg", ".bmp")
-FILE_FILTER = "Bilder (*.svg *.png *.jpg *.jpeg *.bmp);;SVG (*.svg);;PNG / JPG (*.png *.jpg *.jpeg)"
+FILE_FILTER = N_("Bilder (*.svg *.png *.jpg *.jpeg *.bmp);;SVG (*.svg);;PNG / JPG (*.png *.jpg *.jpeg)")
 IMAGE_TYPES = ("TechDraw::DrawViewImage", "TechDraw::DrawViewSymbol")
 MAX_PAGE_FRACTION = 0.3  # neues Bild hoechstens 30 % der Blattbreite
 _UNIT_PX = {"": 1.0, "px": 1.0, "pt": 96.0 / 72.0, "pc": 16.0, "in": 96.0, "cm": 96.0 / 2.54, "mm": 96.0 / 25.4}
@@ -250,11 +251,11 @@ class InsertImage:
         if page is None:
             return
         path, _flt = QtWidgets.QFileDialog.getOpenFileName(
-            FreeCADGui.getMainWindow(), "Bild einfügen", os.path.dirname(doc.FileName or "") or os.path.expanduser("~"),
-            FILE_FILTER)
+            FreeCADGui.getMainWindow(), tr("Bild einfügen"), os.path.dirname(doc.FileName or "") or os.path.expanduser("~"),
+            tr(FILE_FILTER))
         if not path:
             return
-        doc.openTransaction("Bild einfügen")
+        doc.openTransaction(tr("Bild einfügen"))
         try:
             obj = add_image(page, path)
             doc.recompute()
@@ -269,7 +270,7 @@ def open_panel(obj, created):
     global _panel
     try:
         if not created:
-            obj.Document.openTransaction("Bild anpassen")
+            obj.Document.openTransaction(tr("Bild anpassen"))
         _panel = _TaskPanel(obj)
         FreeCADGui.Control.showDialog(_panel)
     except Exception:
@@ -288,7 +289,7 @@ class _TaskPanel:
 
         self.form = QtWidgets.QWidget()
         self.form.setObjectName("SWUI_InsertImage")
-        self.form.setWindowTitle("Bild einfügen")
+        self.form.setWindowTitle(tr("Bild einfügen"))
         lay = QtWidgets.QFormLayout(self.form)
 
         self.x = self._spin(float(obj.X), -2000, 2000)
@@ -297,12 +298,12 @@ class _TaskPanel:
         self.width = self._spin(nat_w * float(obj.Scale), 0.1, 5000)
         self.height = QtWidgets.QLabel("")
         self.rot = self._spin(float(getattr(obj, "Rotation", 0.0)), -360, 360, " °")
-        lay.addRow("Position X (Mitte)", self.x)
-        lay.addRow("Position Y (Mitte)", self.y)
-        lay.addRow("Breite", self.width)
-        lay.addRow("Höhe", self.height)
-        lay.addRow("Drehung", self.rot)
-        hint = QtWidgets.QLabel("Das Bild lässt sich auch mit der Maus auf dem Blatt verschieben.")
+        lay.addRow(tr("Position X (Mitte)"), self.x)
+        lay.addRow(tr("Position Y (Mitte)"), self.y)
+        lay.addRow(tr("Breite"), self.width)
+        lay.addRow(tr("Höhe"), self.height)
+        lay.addRow(tr("Drehung"), self.rot)
+        hint = QtWidgets.QLabel(tr("Das Bild lässt sich auch mit der Maus auf dem Blatt verschieben."))
         hint.setWordWrap(True)
         lay.addRow(hint)
         if not self.natural:
@@ -346,7 +347,7 @@ class _TaskPanel:
     def _update_height(self):
         if self.natural and self.natural[0] > 0:
             h = self.width.value() * self.natural[1] / self.natural[0]
-            self.height.setText("%.1f mm (folgt dem Seitenverhältnis)" % h)
+            self.height.setText(tr("%.1f mm (folgt dem Seitenverhältnis)") % h)
         else:
             self.height.setText("–")
 

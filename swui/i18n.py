@@ -161,6 +161,16 @@ def remove_listener(fn):
 # --- Uebersetzen -----------------------------------------------------
 
 
+def N_(text):
+    """
+    Markierung ohne Wirkung fuer Texte, die schon beim Laden feststehen
+    (Listen wie die Nahtarten) und erst bei der Anzeige mit tr() uebersetzt
+    werden. Der Test findet alle tr("...") und N_("...") und prueft, dass
+    jede Sprache sie kennt.
+    """
+    return text
+
+
 def tr(text, lang=None):
     """Deutschen Quelltext in die aktive (oder angegebene) Sprache uebersetzen."""
     if not text:

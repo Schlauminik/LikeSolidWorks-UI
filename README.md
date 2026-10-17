@@ -63,6 +63,7 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | V2 | Nur in der Werkbank: Drag & Drop in Baugruppen wird beim Verlassen abgemeldet; Qt-Meldungsfilter wirkt nur, solange LikeSolidWorks UI aktiv ist, und ist per Parameter abschaltbar | **fertig** |
 | Fix | Nach dem Reinziehen ließen sich die Teile manchmal nicht bewegen: Die Baugruppe war nur als aktiv markiert, nicht im Bearbeitungsmodus. Drag & Drop aktiviert sie jetzt vor und nach dem Einfügen (`swui/assembly_drop.py`) | **fertig** |
 | L1 | Sprache: Knopf **Language** mit Ausklappmenü im Reiter Evaluieren (Automatisch wie FreeCAD / Deutsch / English), Ribbon schaltet sofort um; neue Sprache = neue Datei in `swui/lang/` (`swui/i18n.py`) | **fertig** |
+| L2a | Sprache: Fenster der Zeichnungswerkzeuge zweisprachig (Oberflächenangabe, Schweißsymbol, Blatteigenschaften, Bild einfügen, Maßstab, Export, Zeichnung erstellen, projizierte Ansicht), auch Rückgängig-Einträge; Hilfswerkzeug `tools/wrap_tr.py` | **fertig** |
 
 Später: 3D-Skizzen.
 

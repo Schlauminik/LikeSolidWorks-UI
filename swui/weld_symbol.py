@@ -42,6 +42,7 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtCore, QtWidgets
+from swui.i18n import N_, tr  # noqa: F401
 
 KIND_PROP = "SWUI_Kind"
 KIND = "weld"
@@ -56,22 +57,22 @@ DASH_GAP = 1.4  # Abstand der gestrichelten Linie
 DEFAULT_OFFSET = (12.0, 10.0)  # Knick relativ zur Pfeilspitze, wenn nicht geklickt
 
 SEAMS = (
-    ("", "Ohne"),
-    ("fillet", "Kehlnaht"),
-    ("square", "I-Naht"),
-    ("v", "V-Naht"),
-    ("bevel", "HV-Naht"),
-    ("y", "Y-Naht"),
-    ("hy", "HY-Naht"),
-    ("u", "U-Naht"),
-    ("j", "HU-Naht"),
-    ("flange", "Bördelnaht"),
-    ("spot", "Punktnaht"),
-    ("seam", "Liniennaht"),
-    ("surfacing", "Flächennaht"),
-    ("plug", "Lochnaht"),
+    ("", N_("Ohne")),
+    ("fillet", N_("Kehlnaht")),
+    ("square", N_("I-Naht")),
+    ("v", N_("V-Naht")),
+    ("bevel", N_("HV-Naht")),
+    ("y", N_("Y-Naht")),
+    ("hy", N_("HY-Naht")),
+    ("u", N_("U-Naht")),
+    ("j", N_("HU-Naht")),
+    ("flange", N_("Bördelnaht")),
+    ("spot", N_("Punktnaht")),
+    ("seam", N_("Liniennaht")),
+    ("surfacing", N_("Flächennaht")),
+    ("plug", N_("Lochnaht")),
 )
-CONTOURS = (("", "Ohne"), ("flat", "flach"), ("convex", "konvex (gewölbt)"), ("concave", "konkav (hohl)"))
+CONTOURS = (("", N_("Ohne")), ("flat", N_("flach")), ("convex", N_("konvex (gewölbt)")), ("concave", N_("konkav (hohl)")))
 # Kennbuchstaben der Nachbearbeitung: G = Schleifen, C = Meisseln (engl. chipping),
 # M = spanende Bearbeitung (machining). F: Bedeutung vor einer Erweiterung der
 # Auswahl in der aktuellen Normfassung nachpruefen.
@@ -453,7 +454,7 @@ class WeldSymbol:
             return
         tpl = getattr(page, "Template", None)
         start = (float(getattr(tpl, "Width", 210) or 210) / 2.0, float(getattr(tpl, "Height", 297) or 297) / 2.0)
-        doc.openTransaction("Schweißsymbol")
+        doc.openTransaction(tr("Schweißsymbol"))
         try:
             obj = add_symbol(page, start)
             doc.recompute()
@@ -471,7 +472,7 @@ def open_panel(obj, created):
         if FreeCADGui.Control.activeDialog():
             return False
         if not created:
-            obj.Document.openTransaction("Schweißsymbol ändern")
+            obj.Document.openTransaction(tr("Schweißsymbol ändern"))
         _panel = _TaskPanel(obj)
         FreeCADGui.Control.showDialog(_panel)
         return True
@@ -494,7 +495,7 @@ def start_picking(obj):
         if gview is None:
             return False
         _picker = _Picker(obj, gview)
-        _status("Schweißsymbol: Auf die Kante klicken, an der die Pfeilspitze sitzen soll (Esc = fertig).")
+        _status(tr("Schweißsymbol: Auf die Kante klicken, an der die Pfeilspitze sitzen soll (Esc = fertig)."))
         return True
     except Exception:
         FreeCAD.Console.PrintLog("[SWUI] Schweißsymbol klicken: %s\n" % traceback.format_exc())
@@ -571,7 +572,7 @@ def handle_pick_event(picker, event):
             QtCore.QTimer.singleShot(0, stop_picking)
         else:
             picker.step = nxt
-            _status("Schweißsymbol: Klicken, wo das Symbol stehen soll (Esc = so lassen).")
+            _status(tr("Schweißsymbol: Klicken, wo das Symbol stehen soll (Esc = so lassen)."))
         return True
     except Exception:
         FreeCAD.Console.PrintError("[SWUI] Schweißsymbol: %s\n" % traceback.format_exc())
@@ -597,55 +598,55 @@ class _TaskPanel:
         data = read_data(obj)
         self.form = QtWidgets.QWidget()
         self.form.setObjectName("SWUI_WeldSymbol")
-        self.form.setWindowTitle("Schweißsymbol")
+        self.form.setWindowTitle(tr("Schweißsymbol"))
         outer = QtWidgets.QVBoxLayout(self.form)
         self.sides = {}
-        for key, title in (("arrow", "Pfeilseite"), ("other", "Gegenseite")):
-            box = QtWidgets.QGroupBox(title)
+        for key, title in (("arrow", N_("Pfeilseite")), ("other", N_("Gegenseite"))):
+            box = QtWidgets.QGroupBox(tr(title))
             lay = QtWidgets.QFormLayout(box)
             w = {}
             w["seam"] = QtWidgets.QComboBox()
             for k, t in SEAMS:
-                w["seam"].addItem(t, k)
+                w["seam"].addItem(tr(t), k)
             w["size"] = QtWidgets.QComboBox()
             w["size"].setEditable(True)
             w["size"].addItems([""] + list(SIZES))
             w["len"] = QtWidgets.QLineEdit()
-            w["len"].setPlaceholderText("z. B. 2×20 (10)")
+            w["len"].setPlaceholderText(tr("z. B. 2×20 (10)"))
             w["contour"] = QtWidgets.QComboBox()
             for k, t in CONTOURS:
-                w["contour"].addItem(t, k)
+                w["contour"].addItem(tr(t), k)
             w["finish"] = QtWidgets.QComboBox()
             for f in FINISHES:
-                w["finish"].addItem(f or "Ohne", f)
-            lay.addRow("Nahtart", w["seam"])
-            lay.addRow("Nahtdicke", w["size"])
-            lay.addRow("Länge / Anzahl × Länge (Abstand)", w["len"])
-            lay.addRow("Nahtoberfläche", w["contour"])
-            lay.addRow("Endbearbeitung (G/C/M/F)", w["finish"])
+                w["finish"].addItem(f or tr("Ohne"), f)
+            lay.addRow(tr("Nahtart"), w["seam"])
+            lay.addRow(tr("Nahtdicke"), w["size"])
+            lay.addRow(tr("Länge / Anzahl × Länge (Abstand)"), w["len"])
+            lay.addRow(tr("Nahtoberfläche"), w["contour"])
+            lay.addRow(tr("Endbearbeitung (G/C/M/F)"), w["finish"])
             outer.addWidget(box)
             self.sides[key] = w
             self._load_side(w, data[key])
-        opts = QtWidgets.QGroupBox("Weitere Angaben")
+        opts = QtWidgets.QGroupBox(tr("Weitere Angaben"))
         ol = QtWidgets.QFormLayout(opts)
-        self.round = QtWidgets.QCheckBox("Ringsum-Naht (Kreis)")
-        self.field = QtWidgets.QCheckBox("Baustellennaht (Fähnchen)")
-        self.dashed = QtWidgets.QCheckBox("Gestrichelte Identifikationslinie (DIN EN 22553)")
+        self.round = QtWidgets.QCheckBox(tr("Ringsum-Naht (Kreis)"))
+        self.field = QtWidgets.QCheckBox(tr("Baustellennaht (Fähnchen)"))
+        self.dashed = QtWidgets.QCheckBox(tr("Gestrichelte Identifikationslinie (DIN EN 22553)"))
         self.tail = QtWidgets.QLineEdit(data["tail"])
-        self.tail.setPlaceholderText("z. B. 111 oder ISO 5817-C")
+        self.tail.setPlaceholderText(tr("z. B. 111 oder ISO 5817-C"))
         self.round.setChecked(bool(data["all_around"]))
         self.field.setChecked(bool(data["field"]))
         self.dashed.setChecked(bool(data["dashed"]))
         ol.addRow(self.round)
         ol.addRow(self.field)
         ol.addRow(self.dashed)
-        ol.addRow("Angabe an der Gabel", self.tail)
+        ol.addRow(tr("Angabe an der Gabel"), self.tail)
         outer.addWidget(opts)
-        self.repick = QtWidgets.QPushButton("Pfeilspitze neu setzen …")
+        self.repick = QtWidgets.QPushButton(tr("Pfeilspitze neu setzen …"))
         self.repick.clicked.connect(lambda: start_picking(self.obj))
         outer.addWidget(self.repick)
-        hint = QtWidgets.QLabel("Symbol mit der Maus verschieben – der Pfeil bleibt an seiner Spitze. "
-                                "Doppelklick auf das Symbol öffnet dieses Fenster wieder.")
+        hint = QtWidgets.QLabel(tr("Symbol mit der Maus verschieben – der Pfeil bleibt an seiner Spitze. "
+                                "Doppelklick auf das Symbol öffnet dieses Fenster wieder."))
         hint.setWordWrap(True)
         outer.addWidget(hint)
         for w in self.sides.values():

@@ -38,6 +38,7 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtCore, QtWidgets
+from swui.i18n import N_, tr  # noqa: F401
 
 GROUP_TYPE = "TechDraw::DrawProjGroup"
 ITEM_TYPE = "TechDraw::DrawProjGroupItem"
@@ -301,7 +302,7 @@ def create_at(view, page_xy):
     at = page_to_group(group, *page_xy)
     direction = direction_from(at[0] - origin[0], at[1] - origin[1])
     doc = group.Document
-    doc.openTransaction("Projizierte Ansicht")
+    doc.openTransaction(tr("Projizierte Ansicht"))
     try:
         new, created = add_projection(group, ftype, direction, at)
     finally:
@@ -322,7 +323,7 @@ def start_picking(view):
         FreeCAD.Console.PrintWarning("[SWUI] Projizierte Ansicht: Zeichenblatt-Fenster nicht gefunden.\n")
         return
     _picker = _Picker(view, gview)
-    _status("Projizierte Ansicht: neben die Ansicht klicken (rechts, links, oben, unten, schräg) · Esc bricht ab")
+    _status(tr("Projizierte Ansicht: neben die Ansicht klicken (rechts, links, oben, unten, schräg) · Esc bricht ab"))
 
 
 def stop_picking():

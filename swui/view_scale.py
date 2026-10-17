@@ -24,6 +24,7 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtGui, QtWidgets
+from swui.i18n import N_, tr  # noqa: F401
 
 GROUP_TYPE = "TechDraw::DrawProjGroup"
 ITEM_TYPE = "TechDraw::DrawProjGroupItem"
@@ -113,9 +114,9 @@ def _update_title_block(target, old_txt, new_txt):
 def current_label(target):
     mode = getattr(target, "ScaleType", "Custom")
     if mode == "Page":
-        return "Blattmaßstab"
+        return tr("Blattmaßstab")
     if mode == "Automatic":
-        return "Automatisch"
+        return tr("Automatisch")
     return scale_text(getattr(target, "Scale", 1.0))
 
 
@@ -172,7 +173,7 @@ def _ask(target):
     """Menue an der Maus: Normmassstaebe + Sonderfaelle. Gibt (mode, value) oder None."""
     current = current_label(target)
     menu = QtWidgets.QMenu(FreeCADGui.getMainWindow())
-    menu.setTitle("Maßstab")
+    menu.setTitle(tr("Maßstab"))
     actions = {}
     for txt in STANDARD:
         a = menu.addAction(txt)
@@ -180,18 +181,18 @@ def _ask(target):
         a.setChecked(txt == current)
         actions[a] = ("Custom", parse_scale(txt))
     menu.addSeparator()
-    for txt, mode in (("Blattmaßstab", "Page"), ("Automatisch", "Automatic")):
-        a = menu.addAction(txt)
+    for txt, mode in ((N_("Blattmaßstab"), "Page"), (N_("Automatisch"), "Automatic")):
+        a = menu.addAction(tr(txt))
         a.setCheckable(True)
-        a.setChecked(txt == current)
+        a.setChecked(tr(txt) == current)
         actions[a] = (mode, None)
-    custom = menu.addAction("Benutzerdefiniert …")
+    custom = menu.addAction(tr("Benutzerdefiniert …"))
     chosen = menu.exec_(QtGui.QCursor.pos()) if hasattr(menu, "exec_") else menu.exec(QtGui.QCursor.pos())
     if chosen is None:
         return None
     if chosen == custom:
         text, ok = QtWidgets.QInputDialog.getText(
-            FreeCADGui.getMainWindow(), "Maßstab", "Maßstab (z. B. 1:3 oder 3:1):", text=current)
+            FreeCADGui.getMainWindow(), tr("Maßstab"), tr("Maßstab (z. B. 1:3 oder 3:1):"), text=current)
         value = parse_scale(text) if ok else None
         return ("Custom", value) if value else None
     return actions.get(chosen)

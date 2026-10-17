@@ -34,44 +34,45 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtCore, QtWidgets
+from swui.i18n import N_, tr  # noqa: F401
 
 # Feldname in der Vorlage -> deutscher Name (Reihenfolge = Reihenfolge im Panel)
 FIELD_LABELS = (
-    ("title", "Benennung"),
-    ("supplementary_title_1", "Zusatzbenennung 1"),
-    ("supplementary_title_2", "Zusatzbenennung 2"),
-    ("drawing_number", "Zeichnungsnummer"),
-    ("part_material", "Werkstoff"),
-    ("scale", "Maßstab"),
-    ("unit", "Maßeinheit"),
-    ("general_tolerances", "Allgemeintoleranzen"),
-    ("creator", "Erstellt von"),
-    ("approval_person", "Geprüft / freigegeben von"),
-    ("date_of_issue", "Datum"),
-    ("revision_index", "Änderungsindex"),
-    ("sheet_number", "Blatt"),
-    ("document_type", "Dokumentart"),
-    ("document_status", "Status"),
-    ("responsible_department", "Abteilung"),
-    ("language_code", "Sprache"),
-    ("legal_owner_1", "Firma / Inhaber (Zeile 1)"),
-    ("legal_owner_2", "Firma / Inhaber (Zeile 2)"),
-    ("legal_owner_3", "Firma / Inhaber (Zeile 3)"),
-    ("legal_owner_4", "Firma / Inhaber (Zeile 4)"),
+    ("title", N_("Benennung")),
+    ("supplementary_title_1", N_("Zusatzbenennung 1")),
+    ("supplementary_title_2", N_("Zusatzbenennung 2")),
+    ("drawing_number", N_("Zeichnungsnummer")),
+    ("part_material", N_("Werkstoff")),
+    ("scale", N_("Maßstab")),
+    ("unit", N_("Maßeinheit")),
+    ("general_tolerances", N_("Allgemeintoleranzen")),
+    ("creator", N_("Erstellt von")),
+    ("approval_person", N_("Geprüft / freigegeben von")),
+    ("date_of_issue", N_("Datum")),
+    ("revision_index", N_("Änderungsindex")),
+    ("sheet_number", N_("Blatt")),
+    ("document_type", N_("Dokumentart")),
+    ("document_status", N_("Status")),
+    ("responsible_department", N_("Abteilung")),
+    ("language_code", N_("Sprache")),
+    ("legal_owner_1", N_("Firma / Inhaber (Zeile 1)")),
+    ("legal_owner_2", N_("Firma / Inhaber (Zeile 2)")),
+    ("legal_owner_3", N_("Firma / Inhaber (Zeile 3)")),
+    ("legal_owner_4", N_("Firma / Inhaber (Zeile 4)")),
 )
 _LABELS = dict(FIELD_LABELS)
 _ORDER = [k for k, _ in FIELD_LABELS]
 
 UNIT_DEFAULT = "mm"
 FAVORITES = ("A4_hoch_ISO7200_DE.svg", "A3_quer_ISO7200_DE.svg", "A4_Portrait_ISO5457_advanced.svg", "A3_Landscape_ISO5457_advanced.svg")
-_SIZES = {"Portrait": "hoch", "Landscape": "quer", "hoch": "hoch", "quer": "quer"}
+_SIZES = {"Portrait": N_("hoch"), "Landscape": N_("quer"), "hoch": N_("hoch"), "quer": N_("quer")}
 _VARIANTS = {
-    "ISO7200_DE": "Schriftfeld ISO 7200 (deutsch, mit Maßeinheit)",
-    "ISO5457_advanced": "Schriftfeld ISO 7200 (englisch)",
-    "ISO5457_minimal": "Schriftfeld klein",
-    "ISO5457_notitleblock": "ohne Schriftfeld",
-    "blank": "leer",
-    "TD": "TechDraw",
+    "ISO7200_DE": N_("Schriftfeld ISO 7200 (deutsch, mit Maßeinheit)"),
+    "ISO5457_advanced": N_("Schriftfeld ISO 7200 (englisch)"),
+    "ISO5457_minimal": N_("Schriftfeld klein"),
+    "ISO5457_notitleblock": N_("ohne Schriftfeld"),
+    "blank": N_("leer"),
+    "TD": N_("TechDraw"),
 }
 
 _panel = None
@@ -81,7 +82,7 @@ _panel = None
 
 
 def field_label(key):
-    return _LABELS.get(key, key.replace("_", " ").capitalize())
+    return tr(_LABELS.get(key, key.replace("_", " ").capitalize()))
 
 
 def ordered_fields(keys):
@@ -97,8 +98,8 @@ def display_name(path):
     parts = stem.split("_", 2)
     if len(parts) >= 2 and parts[1] in _SIZES:
         rest = parts[2] if len(parts) > 2 else ""
-        variant = _VARIANTS.get(rest, rest.replace("_", " "))
-        name = "%s %s" % (parts[0], _SIZES[parts[1]])
+        variant = tr(_VARIANTS.get(rest, rest.replace("_", " ")))
+        name = "%s %s" % (parts[0], tr(_SIZES[parts[1]]))
         return "%s – %s" % (name, variant) if variant else name
     return stem
 
@@ -325,22 +326,22 @@ class _TaskPanel:
 
         self.form = QtWidgets.QWidget()
         self.form.setObjectName("SWUI_SheetProperties")
-        self.form.setWindowTitle("Blatteigenschaften")
+        self.form.setWindowTitle(tr("Blatteigenschaften"))
         box = QtWidgets.QVBoxLayout(self.form)
 
-        box.addWidget(_heading("Blattformat / Vorlage"))
+        box.addWidget(_heading(tr("Blattformat / Vorlage")))
         self.combo = QtWidgets.QComboBox()
         box.addWidget(self.combo)
-        other = QtWidgets.QPushButton("Andere Vorlage …")
-        other.setToolTip("Eigene Vorlage (SVG), z. B. ein Firmen-Schriftfeld, auswählen")
+        other = QtWidgets.QPushButton(tr("Andere Vorlage …"))
+        other.setToolTip(tr("Eigene Vorlage (SVG), z. B. ein Firmen-Schriftfeld, auswählen"))
         other.clicked.connect(self._pick_file)
         box.addWidget(other)
         self._fill_combo()
         self.combo.currentIndexChanged.connect(self._combo_changed)
 
-        box.addWidget(_heading("Schriftfeld"))
-        take = QtWidgets.QPushButton("Aus Teil übernehmen")
-        take.setToolTip("Benennung, Zeichnungsnummer, Werkstoff, Maßstab, Ersteller und Datum vorbelegen")
+        box.addWidget(_heading(tr("Schriftfeld")))
+        take = QtWidgets.QPushButton(tr("Aus Teil übernehmen"))
+        take.setToolTip(tr("Benennung, Zeichnungsnummer, Werkstoff, Maßstab, Ersteller und Datum vorbelegen"))
         take.clicked.connect(self._take_from_part)
         box.addWidget(take)
         self.fields_host = QtWidgets.QWidget()
@@ -372,8 +373,8 @@ class _TaskPanel:
 
     def _pick_file(self, *_args):
         path, _flt = QtWidgets.QFileDialog.getOpenFileName(
-            self.form, "Vorlage wählen", os.path.dirname(self.template_file or templates_dir()),
-            "Zeichnungsvorlage (*.svg)")
+            self.form, tr("Vorlage wählen"), os.path.dirname(self.template_file or templates_dir()),
+            tr("Zeichnungsvorlage (*.svg)"))
         if path:
             self.template_file = path
             self._fill_combo()

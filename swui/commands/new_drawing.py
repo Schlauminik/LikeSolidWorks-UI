@@ -28,6 +28,7 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtWidgets
+from swui.i18n import N_, tr  # noqa: F401
 
 FORMATS = {
     # Anzeige -> Vorlagendatei in <FreeCAD>/Mod/TechDraw/Templates/ISO/ (Rueckfall)
@@ -40,7 +41,7 @@ OWN_FORMATS = {
     "A4 hoch": "A4_hoch_ISO7200_DE.svg",
     "A3 quer": "A3_quer_ISO7200_DE.svg",
 }
-FORMAT_ORDER = ("A4 hoch", "A3 quer")
+FORMAT_ORDER = (N_("A4 hoch"), N_("A3 quer"))  # intern deutsch, Anzeige mit tr()
 A3_FROM_MM = 150.0  # groesste Teilabmessung, ab der A3 vorgeschlagen wird
 VIEWS = ("Front", "Top", "Left")  # Methode 1: Draufsicht unten, Seitenansicht links -> rechts daneben
 PROJECTION = "First angle"
@@ -101,7 +102,7 @@ def suggest_format(objs):
 def suggested_path(src_doc):
     folder = os.path.dirname(getattr(src_doc, "FileName", "") or "") or os.path.expanduser("~")
     name = getattr(src_doc, "Label", "") or getattr(src_doc, "Name", "Teil")
-    return os.path.join(folder, name + "_Zeichnung.FCStd")
+    return os.path.join(folder, name + "_" + tr("Zeichnung") + ".FCStd")
 
 
 def own_templates_dir():
@@ -188,11 +189,11 @@ def create():
         return None
     objs = source_objects(src)
     if not objs:
-        _info("Im offenen Dokument wurde kein Teil und keine Baugruppe gefunden.")
+        _info(tr("Im offenen Dokument wurde kein Teil und keine Baugruppe gefunden."))
         return None
     if not src.FileName:
-        _info("Bitte das Teil bzw. die Baugruppe zuerst speichern –\n"
-              "die Zeichnung verweist auf diese Datei.")
+        _info(tr("Bitte das Teil bzw. die Baugruppe zuerst speichern –\n"
+                 "die Zeichnung verweist auf diese Datei."))
         try:
             FreeCADGui.runCommand("Std_SaveAs")
         except Exception:
@@ -225,16 +226,18 @@ def create():
 
 
 def ask_format(default):
-    items = list(FORMAT_ORDER)
+    items = [tr(f) for f in FORMAT_ORDER]  # Anzeige in der eingestellten Sprache
     text, ok = QtWidgets.QInputDialog.getItem(
-        _main_window(), "Zeichnung erstellen", "Blattformat (Schriftfeld DIN EN ISO 7200):",
-        items, items.index(default) if default in items else 0, False)
-    return text if ok and text in FORMATS else None
+        _main_window(), tr("Zeichnung erstellen"), tr("Blattformat (Schriftfeld DIN EN ISO 7200):"),
+        items, FORMAT_ORDER.index(default) if default in FORMAT_ORDER else 0, False)
+    if not ok or text not in items:
+        return None
+    return FORMAT_ORDER[items.index(text)]  # intern weiter "A4 hoch" / "A3 quer"
 
 
 def ask_path(default):
     path, _flt = QtWidgets.QFileDialog.getSaveFileName(
-        _main_window(), "Zeichnung speichern unter", default, "FreeCAD-Datei (*.FCStd)")
+        _main_window(), tr("Zeichnung speichern unter"), default, tr("FreeCAD-Datei (*.FCStd)"))
     if not path:
         return None
     if not path.lower().endswith(".fcstd"):
@@ -266,6 +269,6 @@ def _main_window():
 
 def _info(text):
     try:
-        QtWidgets.QMessageBox.information(_main_window(), "Zeichnung erstellen", text)
+        QtWidgets.QMessageBox.information(_main_window(), tr("Zeichnung erstellen"), text)
     except Exception:
         FreeCAD.Console.PrintWarning("[SWUI] %s\n" % text)

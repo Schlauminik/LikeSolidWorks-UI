@@ -3160,10 +3160,39 @@ def run(split_namespace):
         for g_ in groups_:
             for e_ in g_:
                 walk_l(e_)
+    # Alle tr("...") / N_("...") im Code (eigene Fenster, Meldungen) - statisch gesucht
+    import ast as ast_l
+    swui_dir = os.path.join(ADDON, "swui")
+    for base_, dirs_, files_ in os.walk(swui_dir):
+        dirs_[:] = [d_ for d_ in dirs_ if d_ not in ("__pycache__", "lang")]
+        for f_ in files_:
+            if not f_.endswith(".py"):
+                continue
+            with open(os.path.join(base_, f_), encoding="utf-8") as fh_:
+                tree_ = ast_l.parse(fh_.read())
+            for n_ in ast_l.walk(tree_):
+                if (isinstance(n_, ast_l.Call) and getattr(n_.func, "id", None) in ("tr", "N_") and n_.args
+                        and isinstance(n_.args[0], ast_l.Constant) and isinstance(n_.args[0].value, str)):
+                    keys_l.append(n_.args[0].value)
+    # Sprachdateien: kein Schluessel doppelt (Python wuerde still ueberschreiben)
+    lang_dir = os.path.join(swui_dir, "lang")
+    for f_ in sorted(os.listdir(lang_dir)):
+        if f_.endswith(".py") and not f_.startswith("_"):
+            with open(os.path.join(lang_dir, f_), encoding="utf-8") as fh_:
+                tree_ = ast_l.parse(fh_.read())
+            for n_ in ast_l.walk(tree_):
+                if isinstance(n_, ast_l.Dict):
+                    seen_, dup_ = set(), []
+                    for k_ in n_.keys:
+                        if isinstance(k_, ast_l.Constant):
+                            (dup_.append(k_.value) if k_.value in seen_ else seen_.add(k_.value))
+                    if dup_:
+                        print("  FEHLER: %s - Schlüssel doppelt: %s" % (f_, dup_[:3]))
+                        return False
     for code_, _name in i18.choices():
         miss_ = i18.missing(sorted(set(keys_l)), code_)
         if miss_:
-            print("  FEHLER: Sprache %s - %d Ribbon-Text(e) ohne Übersetzung: %s" % (code_, len(miss_), miss_[:5]))
+            print("  FEHLER: Sprache %s - %d Text(e) ohne Übersetzung: %s" % (code_, len(miss_), miss_[:5]))
             return False
     if i18.tr("Fase", "en") != "Chamfer" or i18.tr("Fase", "de") != "Fase" or i18.tr("Gibt es nicht", "en") != "Gibt es nicht":
         print("  FEHLER: tr() übersetzt falsch")
@@ -3232,7 +3261,38 @@ def run(split_namespace):
     if not fly_tip.endswith("(Arrow on the right: more variants)") or not removed or not bad_ok:
         print("  FEHLER: Tooltip/Neuaufbau/unbekannte Sprache", fly_tip, removed, bad_ok)
         return False
-    print("  Sprache  : Knopf Language (Automatisch/Deutsch/English), Ribbon sofort umgeschaltet, alle Texte übersetzt, Rückfall Englisch")
+    # Eigene Fenster zeigen die eingestellte Sprache (Oberflaechenangabe, Schweisssymbol)
+    qtw_f = sys.modules["PySide.QtWidgets"]
+
+    def panel_texts(code):
+        sys.modules["FreeCAD"].ParamGet(i18.PARAMS).SetString(i18.KEY, code)
+        n0 = len(qtw_f.mock_calls)
+        sys.modules["swui.surface_finish"]._TaskPanel(types.SimpleNamespace(
+            EditableTexts=["Rz 16", "", "", "", ""], SWUI_SurfaceType="any", SWUI_SurfaceAllAround=False, Rotation=0.0))
+        __import__("swui.weld_symbol")
+        sys.modules["swui.weld_symbol"]._TaskPanel(types.SimpleNamespace(EditableTexts=[]))
+        out = set()
+        for c_ in qtw_f.mock_calls[n0:]:
+            for a_ in list(c_[1]):
+                if isinstance(a_, str):
+                    out.add(a_)
+        return out
+
+    combo_f = qtw_f.QComboBox.return_value
+    old_find = combo_f.findData.return_value
+    combo_f.findData.return_value = 0  # Attrappe: Index statt MagicMock
+    try:
+        txt_en = panel_texts("en")
+        txt_de = panel_texts("de")
+    finally:
+        combo_f.findData.return_value = old_find
+        sys.modules["FreeCAD"].ParamGet(i18.PARAMS).RemString(i18.KEY)
+    want_en = {"Symbol", "Parameter and value (a)", "Arrow side", "Weld type", "Fillet weld", "None", "Weld all around (circle)"}
+    want_de = {"Sinnbild", "Kenngröße und Wert (a)", "Pfeilseite", "Nahtart", "Kehlnaht", "Ohne", "Ringsum-Naht (Kreis)"}
+    if not want_en <= txt_en or txt_en & want_de or not want_de <= txt_de:
+        print("  FEHLER: Fenster nicht in der eingestellten Sprache", sorted(want_en - txt_en), sorted(txt_en & want_de))
+        return False
+    print("  Sprache  : Knopf Language (Automatisch/Deutsch/English), Ribbon sofort umgeschaltet, %d Texte in allen Sprachen, Fenster übersetzt, Rückfall Englisch" % len(set(keys_l)))
 
     # --- Ausgabe PDF (alle Blaetter) / DXF (9g) ---
     de = sys.modules.get("swui.drawing_export")

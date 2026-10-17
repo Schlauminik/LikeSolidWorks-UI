@@ -34,6 +34,7 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtWidgets
+from swui.i18n import N_, tr  # noqa: F401
 
 KIND_PROP = "SWUI_Kind"
 KIND = "surface"
@@ -41,31 +42,31 @@ TYPE_PROP = "SWUI_SurfaceType"
 ROUND_PROP = "SWUI_SurfaceAllAround"
 
 TYPES = (
-    ("any", "Alle Fertigungsverfahren erlaubt"),
-    ("required", "Materialabtrag gefordert (z. B. drehen, fräsen)"),
-    ("prohibited", "Materialabtrag unzulässig / Anlieferungszustand"),
+    ("any", N_("Alle Fertigungsverfahren erlaubt")),
+    ("required", N_("Materialabtrag gefordert (z. B. drehen, fräsen)")),
+    ("prohibited", N_("Materialabtrag unzulässig / Anlieferungszustand")),
 )
 DEFAULT_TYPE = "any"  # wie FreeCAD (Dominik: Grundsymbol bleibt erstmal so)
 PRESETS = ("Rz 4", "Rz 16", "Rz 63", "Rz 25", "Rz 6,3", "Ra 0,8", "Ra 1,6", "Ra 3,2", "Ra 6,3", "Ra 12,5")
 DEFAULT_VALUE = "Rz 16"
 LAYS = (
-    ("", "keine Angabe"),
-    ("=", "= parallel zur Projektionsebene"),
-    ("⊥", "⊥ senkrecht zur Projektionsebene"),
-    ("X", "X gekreuzt"),
-    ("M", "M viele Richtungen"),
-    ("C", "C kreisförmig"),
-    ("R", "R radial"),
-    ("P", "P nichtrillig / punktförmig"),
+    ("", N_("keine Angabe")),
+    ("=", N_("= parallel zur Projektionsebene")),
+    ("⊥", N_("⊥ senkrecht zur Projektionsebene")),
+    ("X", N_("X gekreuzt")),
+    ("M", N_("M viele Richtungen")),
+    ("C", N_("C kreisförmig")),
+    ("R", N_("R radial")),
+    ("P", N_("P nichtrillig / punktförmig")),
 )
 # Reihenfolge der editierbaren Texte im Symbol (EditableTexts)
 FIELDS = ("a", "b", "c", "d", "e")
 FIELD_LABELS = {
-    "a": "Kenngröße und Wert (a)",
-    "b": "Zweite Anforderung (b)",
-    "c": "Fertigungsverfahren (c)",
-    "d": "Rillenrichtung (d)",
-    "e": "Bearbeitungszugabe in mm (e)",
+    "a": N_("Kenngröße und Wert (a)"),
+    "b": N_("Zweite Anforderung (b)"),
+    "c": N_("Fertigungsverfahren (c)"),
+    "d": N_("Rillenrichtung (d)"),
+    "e": N_("Bearbeitungszugabe in mm (e)"),
 }
 CHAR_W = 9.25  # mittlere Zeichenbreite bei 18 px (wie FreeCAD)
 
@@ -236,7 +237,7 @@ class SurfaceFinish:
         page = sp.find_page(doc, sel)
         if page is None:
             return
-        doc.openTransaction("Oberflächenangabe")
+        doc.openTransaction(tr("Oberflächenangabe"))
         try:
             obj = add_symbol(page, *place_for(page, sel))
             doc.recompute()
@@ -253,7 +254,7 @@ def open_panel(obj, created):
         if FreeCADGui.Control.activeDialog():
             return False
         if not created:
-            obj.Document.openTransaction("Oberflächenangabe ändern")
+            obj.Document.openTransaction(tr("Oberflächenangabe ändern"))
         _panel = _TaskPanel(obj)
         FreeCADGui.Control.showDialog(_panel)
         return True
@@ -280,16 +281,16 @@ class _TaskPanel:
         st = read_state(obj)
         self.form = QtWidgets.QWidget()
         self.form.setObjectName("SWUI_SurfaceFinish")
-        self.form.setWindowTitle("Oberflächenangabe")
+        self.form.setWindowTitle(tr("Oberflächenangabe"))
         lay = QtWidgets.QFormLayout(self.form)
 
         self.kind = QtWidgets.QComboBox()
         for key, text in TYPES:
-            self.kind.addItem(text, key)
+            self.kind.addItem(tr(text), key)
         keys = [k for k, _t in TYPES]
         self.kind.setCurrentIndex(keys.index(st["type"]) if st["type"] in keys else 0)
-        lay.addRow("Sinnbild", self.kind)
-        self.round = QtWidgets.QCheckBox("Rundum die Kontur (alle Flächen gleich)")
+        lay.addRow(tr("Sinnbild"), self.kind)
+        self.round = QtWidgets.QCheckBox(tr("Rundum die Kontur (alle Flächen gleich)"))
         self.round.setChecked(st["all_around"])
         lay.addRow(self.round)
 
@@ -298,32 +299,32 @@ class _TaskPanel:
         a.setEditable(True)
         a.addItems(list(PRESETS))
         a.setEditText(st["texts"]["a"])
-        a.setToolTip("Schnellauswahl oder frei eingeben, z. B. „Rz 16“ oder „Ra 0,8“.")
+        a.setToolTip(tr("Schnellauswahl oder frei eingeben, z. B. „Rz 16“ oder „Ra 0,8“."))
         self.edits["a"] = a
-        lay.addRow(FIELD_LABELS["a"], a)
+        lay.addRow(tr(FIELD_LABELS["a"]), a)
         for k in ("b", "c"):
             e = QtWidgets.QLineEdit(st["texts"][k])
             self.edits[k] = e
-            lay.addRow(FIELD_LABELS[k], e)
+            lay.addRow(tr(FIELD_LABELS[k]), e)
         d = QtWidgets.QComboBox()
         d.setEditable(True)
         for sym, text in LAYS:
-            d.addItem(text, sym)
+            d.addItem(tr(text), sym)
         d.setEditText(st["texts"]["d"])
         self.edits["d"] = d
-        lay.addRow(FIELD_LABELS["d"], d)
+        lay.addRow(tr(FIELD_LABELS["d"]), d)
         e = QtWidgets.QLineEdit(st["texts"]["e"])
         self.edits["e"] = e
-        lay.addRow(FIELD_LABELS["e"], e)
+        lay.addRow(tr(FIELD_LABELS["e"]), e)
 
         self.rot = QtWidgets.QComboBox()
         self.rot.setEditable(True)
         self.rot.addItems(["0", "90", "180", "270"])
         self.rot.setEditText("%g" % st["rotation"])
-        lay.addRow("Drehwinkel (°)", self.rot)
+        lay.addRow(tr("Drehwinkel (°)"), self.rot)
 
-        hint = QtWidgets.QLabel("Doppelklick auf das Symbol öffnet dieses Fenster wieder. "
-                                "Die Texte lassen sich auch unter Daten › EditableTexts ändern.")
+        hint = QtWidgets.QLabel(tr("Doppelklick auf das Symbol öffnet dieses Fenster wieder. "
+                                "Die Texte lassen sich auch unter Daten › EditableTexts ändern."))
         hint.setWordWrap(True)
         lay.addRow(hint)
 
@@ -347,7 +348,7 @@ class _TaskPanel:
             texts[k] = w.currentText() if hasattr(w, "currentText") else w.text()
         d = texts.get("d", "")
         for sym, text in LAYS:  # Erklaerungstext -> Zeichen
-            if d == text:
+            if d in (text, tr(text)):
                 texts["d"] = sym
         try:
             rot = float(self.rot.currentText().replace(",", "."))

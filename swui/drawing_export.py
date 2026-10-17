@@ -29,6 +29,7 @@ import FreeCADGui
 
 from swui import pdf_merge
 from swui.compat import QtWidgets
+from swui.i18n import N_, tr  # noqa: F401
 
 PAGE_TYPE = "TechDraw::DrawPage"
 PAGE_VIEW_CLASS = "TechDrawGui::MDIViewPage"
@@ -138,7 +139,7 @@ class _ExportBase:
 
     def _ask(self, doc, pages, flt):
         path, _f = QtWidgets.QFileDialog.getSaveFileName(
-            FreeCADGui.getMainWindow(), self.TITLE, suggested_path(doc, pages, self.EXT), flt)
+            FreeCADGui.getMainWindow(), tr(self.TITLE), suggested_path(doc, pages, self.EXT), flt)
         return with_ext(path, self.EXT) if path else None
 
 
@@ -146,7 +147,7 @@ class ExportPdf(_ExportBase):
     """FreeCAD-Befehl SWUI_ExportPDF."""
 
     EXT = ".pdf"
-    TITLE = "Als PDF speichern"
+    TITLE = N_("Als PDF speichern")
 
     def GetResources(self):
         return {
@@ -169,9 +170,12 @@ class ExportPdf(_ExportBase):
 
             files, merged = export_pdf(pages, path, TechDrawGui.exportPageAsPdf, pdf_merge.merge)
             if merged:
-                _report("PDF gespeichert (%d %s): %s" % (len(pages), "Blatt" if len(pages) == 1 else "Blätter", path))
+                if len(pages) == 1:
+                    _report(tr("PDF gespeichert (1 Blatt): %s") % path)
+                else:
+                    _report(tr("PDF gespeichert (%d Blätter): %s") % (len(pages), path))
             else:
-                _report("PDF als einzelne Dateien gespeichert: %s" % ", ".join(os.path.basename(f) for f in files))
+                _report(tr("PDF als einzelne Dateien gespeichert: %s") % ", ".join(os.path.basename(f) for f in files))
         except Exception:
             FreeCAD.Console.PrintError("[SWUI] PDF-Ausgabe: %s\n" % traceback.format_exc())
 
@@ -180,7 +184,7 @@ class ExportDxf(_ExportBase):
     """FreeCAD-Befehl SWUI_ExportDXF."""
 
     EXT = ".dxf"
-    TITLE = "Als DXF exportieren"
+    TITLE = N_("Als DXF exportieren")
 
     def GetResources(self):
         return {
@@ -201,7 +205,7 @@ class ExportDxf(_ExportBase):
             import TechDraw
 
             files = export_dxf(pages, path, TechDraw.writeDXFPage)
-            _report("DXF gespeichert: %s" % ", ".join(os.path.basename(f) for f in files))
+            _report(tr("DXF gespeichert: %s") % ", ".join(os.path.basename(f) for f in files))
         except Exception:
             FreeCAD.Console.PrintError("[SWUI] DXF-Ausgabe: %s\n" % traceback.format_exc())
 

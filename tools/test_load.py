@@ -922,8 +922,28 @@ def run(split_namespace):
 
     # --- Reiter Baugruppe -------------------------------------------------
     titles = list(ribbon._tab_titles)
-    if titles[-2:] != ["Ansicht", "Baugruppe"]:
-        print("  FEHLER: Reiter Baugruppe nicht rechts neben Ansicht", titles)
+    if titles[-3:] != ["Ansicht", "Baugruppe", "Zeichnungen"]:
+        print("  FEHLER: Reiter Baugruppe/Zeichnungen nicht rechts neben Ansicht", titles)
+        return False
+    lay_mod = sys.modules["swui.ribbon_layout"]
+
+    def tab_cmds(tab):
+        out = []
+
+        def walk(e):
+            if isinstance(e, tuple):
+                out.append(e[0])
+            elif isinstance(e, dict):
+                for k in ("flyout", "stack", "toggle"):
+                    for x in e.get(k, []):
+                        walk(x)
+        for g in tab[1]:
+            for e in g:
+                walk(e)
+        return out
+
+    if "SWUI_NewDrawing" in tab_cmds(lay_mod.FEATURES) or "SWUI_NewDrawing" not in tab_cmds(lay_mod.ZEICHNUNGEN):
+        print("  FEHLER: Zeichnung erstellen nicht vom Reiter Features in Zeichnungen verschoben")
         return False
     for big in ("Assembly_CreateJointDistance", "Assembly_CreateJointParallel", "Assembly_CreateJointCylindrical",
                 "Assembly_CreateView", "Assembly_CreateBom", "Assembly_InsertLink"):
@@ -1954,6 +1974,118 @@ def run(split_namespace):
         print("  FEHLER: Drehung/Rückgängig-Schritt/Beenden", after, trans, stopped)
         return False
     print("  Drehung : nur lose Teile (Verknüpfung/Fixierung -> grau); Ziehen dreht um den Teil-Ursprung mit Drehkreuz, FreeCAD-Verschieben gesperrt")
+
+    # --- Zeichnung erstellen (9a) ----------------------------------------
+    nd = sys.modules.get("swui.commands.new_drawing")
+    if nd is None or "SWUI_NewDrawing" not in commands:
+        print("  FEHLER: Befehl SWUI_NewDrawing nicht angemeldet")
+        return False
+
+    def solid(x, y, z):
+        return types.SimpleNamespace(Shape=types.SimpleNamespace(BoundBox=types.SimpleNamespace(XLength=x, YLength=y, ZLength=z)))
+
+    if nd.suggest_format([solid(40, 30, 20)]) != "A4 hoch" or nd.suggest_format([solid(40, 220, 20)]) != "A3 quer":
+        print("  FEHLER: Vorschlag Blattformat nach Teilgröße")
+        return False
+    if nd.suggested_path(types.SimpleNamespace(FileName="/h/a/Welle.FCStd", Label="Welle")) != "/h/a/Welle_Zeichnung.FCStd":
+        print("  FEHLER: Vorschlag Speicherort der Zeichnung")
+        return False
+    fcz = sys.modules["FreeCAD"]
+    old_res = getattr(fcz, "getResourceDir", None)
+    fcz.getResourceDir = lambda: os.path.join(ADDON, "nicht_da")  # Vorlage fehlt -> Rueckfall
+    fallback = nd.template_path("A3 quer")
+
+    class TDObj:
+        def __init__(self, type_id, name):
+            self.TypeId, self.Name, self.Label = type_id, name, name
+            self.views, self.projections = [], []
+
+        def addView(self, v):
+            self.views.append(v)
+
+        def addProjection(self, d):
+            self.projections.append(d)
+
+    class TDDoc:
+        def __init__(self, name):
+            self.Name, self.Label, self.Objects, self.FileName = name, name, [], ""
+            self.saved_as, self.saves, self.xsource_saved = None, 0, None
+
+        def addObject(self, t, n):
+            o = TDObj(t, n)
+            if t == "TechDraw::DrawProjGroup":
+                doc_ref = self
+
+                class G(TDObj):
+                    @property
+                    def XSource(self):
+                        return self._xs
+
+                    @XSource.setter
+                    def XSource(self, v):
+                        doc_ref.xsource_saved = bool(doc_ref.FileName)  # schon gespeichert?
+                        self._xs = v
+                o = G(t, n)
+            self.Objects.append(o)
+            return o
+
+        def saveAs(self, p):
+            self.saved_as, self.FileName = p, p
+
+        def save(self):
+            self.saves += 1
+
+        def recompute(self):
+            pass
+
+    made_docs = []
+    body = types.SimpleNamespace(Label="Körper")
+    src_doc = types.SimpleNamespace(Name="Welle", Label="Welle", FileName="/h/a/Welle.FCStd", Objects=[body])
+    qtw = sys.modules["PySide.QtWidgets"] if "PySide.QtWidgets" in sys.modules else sys.modules["PySide"].QtWidgets
+    real_src, real_new = nd.source_objects, getattr(fcz, "newDocument", None)
+    old_active = getattr(fcz, "ActiveDocument", None)
+    sys.modules["TechDraw"] = types.ModuleType("TechDraw")
+    try:
+        nd.source_objects = lambda d: [body] if d is src_doc else []
+        fcz.newDocument = lambda n: (made_docs.append(TDDoc(n)), made_docs[-1])[1]
+        fcz.ActiveDocument = src_doc
+        qtw.QInputDialog.getItem.return_value = ("A3 quer", True)
+        qtw.QFileDialog.getSaveFileName.return_value = ("/h/a/Welle Zeichnung", "")
+        result = nd.create()
+        qtw.QInputDialog.getItem.return_value = ("", False)  # Abbruch beim Format
+        cancelled = nd.create()
+    finally:
+        nd.source_objects = real_src
+        if real_new is None:
+            del fcz.newDocument
+        else:
+            fcz.newDocument = real_new
+        fcz.ActiveDocument = old_active
+        if old_res is None:
+            del fcz.getResourceDir
+        else:
+            fcz.getResourceDir = old_res
+        del sys.modules["TechDraw"]
+    if not fallback.endswith("Default_Template_A4_Landscape.svg"):
+        print("  FEHLER: kein Rückfall auf FreeCADs Standardvorlage", fallback)
+        return False
+    if result is None or len(made_docs) != 1 or cancelled is not None:
+        print("  FEHLER: Zeichnung nicht (genau einmal) erstellt", result, made_docs, cancelled)
+        return False
+    zdoc = made_docs[0]
+    types_ = [o.TypeId for o in zdoc.Objects]
+    page = [o for o in zdoc.Objects if o.TypeId == "TechDraw::DrawPage"][0]
+    group = [o for o in zdoc.Objects if o.TypeId == "TechDraw::DrawProjGroup"][0]
+    if (zdoc.saved_as != "/h/a/Welle Zeichnung.FCStd" or zdoc.Label != "Welle Zeichnung" or zdoc.Name != "Welle_Zeichnung"
+            or types_ != ["TechDraw::DrawSVGTemplate", "TechDraw::DrawPage", "TechDraw::DrawProjGroup"]):
+        print("  FEHLER: Zeichnungsdatei/Objekte", zdoc.saved_as, zdoc.Label, zdoc.Name, types_)
+        return False
+    if (group.XSource != [body] or not zdoc.xsource_saved or group.ProjectionType != "First angle"
+            or group.projections != ["Front", "Top", "Left"] or page.views != [group] or page.Label != "Blatt1"):
+        print("  FEHLER: Dreiansicht (Quelle, vorher gespeichert, Methode 1, Ansichten)",
+              group.XSource, zdoc.xsource_saved, group.ProjectionType, group.projections)
+        return False
+    print("  Zeichnung: eigene Datei, vor dem Verknüpfen gespeichert, Methode 1 Vorne/Oben/Links, A4/A3-Vorlage")
 
     gui.ActiveDocument = None
     print("  Konstrukt: nur neue Linien gestrichelt, Kreise/alte Linien bleiben; Ende bei Werkzeugwechsel/Skizzenende")

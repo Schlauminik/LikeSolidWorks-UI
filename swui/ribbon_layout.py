@@ -320,10 +320,28 @@ BAUGRUPPE = (
                 ("Assembly_CreateSimulation", "Bewegungsstudie", {"svg": "sketch/a_motion"}),
             ], "style": "text"},
         ],
+        [
+            # zweiter Knopf desselben Befehls -> eigene ID "SWUI_NewDrawing#1"
+            ("SWUI_NewDrawing", "Zeichnung\nerstellen", {"svg": "sketch/d_new", "index": 1}),
+        ],
     ],
 )
 
-TABS = [FEATURES, SKIZZE, EVALUIEREN, ANSICHT, BAUGRUPPE]
+# Zeichnungen (Schritt 9): eigener Reiter rechts neben Baugruppe
+# (Dominik, 17.10.). Hier landen nach und nach die wichtigsten Werkzeuge
+# aus TechDraw, Draft und Spreadsheet - nur in SolidWorks UI, FreeCADs
+# eigene Werkbaenke bleiben unveraendert.
+ZEICHNUNGEN = (
+    "Zeichnungen",
+    [
+        [
+            # Wie SW "Zeichnung aus Teil erstellen": eigene Datei (9a)
+            ("SWUI_NewDrawing", "Zeichnung\nerstellen", {"svg": "sketch/d_new"}),
+        ],
+    ],
+)
+
+TABS = [FEATURES, SKIZZE, EVALUIEREN, ANSICHT, BAUGRUPPE, ZEICHNUNGEN]
 
 # FreeCAD-Module, die die obigen Befehle bereitstellen. Sie werden vor
 # dem Aufbau geladen, sonst existieren die Befehle noch nicht, solange

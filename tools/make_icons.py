@@ -901,6 +901,19 @@ def _():
     return out
 
 
+@icon("d_new", "Zeichnung erstellen")
+def _():
+    # Blatt mit Schriftfeld und drei Ansichten (Methode 1), neue Ansicht blau
+    sheet = ('<rect x="6" y="8" width="52" height="44" rx="2" fill="%s" stroke="%s" stroke-width="2"/>'
+             % (GEO, OUTLINE))
+    title = '<path d="M36 52 V43 H58" fill="none" stroke="%s" stroke-width="1.6"/>' % OUTLINE
+    views = ('<rect x="12" y="13" width="14" height="11" fill="%s" stroke="%s" stroke-width="1.6"/>'
+             '<rect x="12" y="29" width="14" height="9" fill="%s" stroke="%s" stroke-width="1.6"/>'
+             '<rect x="31" y="13" width="9" height="11" fill="%s" stroke="%s" stroke-width="1.6"/>'
+             % (NEW, OUTLINE, OLD, OUTLINE, OLD, OUTLINE))
+    return [sheet, title, views, badge("M47 41 V53 M41 47 H53")]
+
+
 @icon("m_coincident", "Deckungsgleich")
 def _():
     return [plate(-18, -18, 0, 36, 36, 6), plate(-10, -10, 6, 22, 22, 10, NEW_FACES),

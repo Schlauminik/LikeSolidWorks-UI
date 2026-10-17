@@ -196,6 +196,14 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
                 "[SWUI] Verknüpfungs-Panel nicht beendet:\n%s\n" % tb.format_exc()
             )
         try:
+            from swui.commands import free_rotate
+
+            free_rotate.stop()  # laufende freie Drehung beenden
+        except Exception:
+            App.Console.PrintError(
+                "[SWUI] Freie Drehung nicht beendet:\n%s\n" % tb.format_exc()
+            )
+        try:
             from swui import feature_terms
 
             feature_terms.uninstall()

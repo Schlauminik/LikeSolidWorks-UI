@@ -281,6 +281,8 @@ BAUGRUPPE = (
             # FreeCADs Befehl wuerde sie in ein offenes Teil stecken.
             ("SWUI_NewAssembly", "Neue\nBaugruppe", {"icon": "Geoassembly", "svg": "sketch/a_new"}),
             ("Assembly_InsertLink", "Komponente\neinfügen", {"svg": "sketch/a_insert"}),
+            # Wie Inventor: nur fuer Teile ohne Verknuepfung/Fixierung (sonst grau)
+            ("SWUI_FreeRotate", "Freie\nDrehung", {"svg": "sketch/a_rotate"}),
             {"stack": [
                 ("Assembly_InsertNewPart", "Neues Teil", {"svg": "sketch/a_new_part"}),
                 ("Assembly_ToggleGrounded", "Fixieren / Lösen", {"svg": "sketch/a_ground"}),

@@ -888,6 +888,19 @@ def _():
             badge("M41 47 L46 52 L54 42")]
 
 
+@icon("a_rotate", "Freie Drehung")
+def _():
+    # blaues Teil mit zwei Drehpfeilen rundherum (wie ein Trackball)
+    up = "M6 32 A26 26 0 0 1 44 7"
+    down = "M58 32 A26 26 0 0 1 20 57"
+    out = [box(-9, -9, 6, 18, 18, 18, NEW_FACES)]
+    for d in (up, down):
+        out.append('<path d="%s" stroke="%s" stroke-width="5.6" fill="none"/>' % (d, OUTLINE))
+        out.append('<path d="%s" stroke="%s" stroke-width="3" fill="none"/>' % (d, GEO))
+    out += [arrow(40, 6, 50, 10, color=GEO, w=3, head=8), arrow(24, 58, 14, 54, color=GEO, w=3, head=8)]
+    return out
+
+
 @icon("m_coincident", "Deckungsgleich")
 def _():
     return [plate(-18, -18, 0, 36, 36, 6), plate(-10, -10, 6, 22, 22, 10, NEW_FACES),

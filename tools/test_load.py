@@ -24,6 +24,7 @@ Aufruf:
     python3 tools/test_load.py /pfad/zum/addon
 """
 
+import math
 import os
 import sys
 import types
@@ -1777,6 +1778,182 @@ def run(split_namespace):
         print("  FEHLER: Dialog offen / Knopf startet falschen Befehl", dialog_cur, ran_mates)
         return False
     print("  Verknüpf.: %d Auswahl-Fälle; Panel nur bei aktiver Baugruppe ohne Dialog; gleiches Teil abgelehnt" % len(mcases))
+
+    # --- Freie Drehung (8g) ---------------------------------------------
+    fr = sys.modules.get("swui.commands.free_rotate")
+    if fr is None or "SWUI_FreeRotate" not in commands:
+        print("  FEHLER: Befehl SWUI_FreeRotate nicht angemeldet")
+        return False
+    fc_ = sys.modules["FreeCAD"]
+
+    class V:
+        def __init__(self, x=0.0, y=0.0, z=0.0):
+            self.x, self.y, self.z = x, y, z
+
+        def __add__(self, o):
+            return V(self.x + o.x, self.y + o.y, self.z + o.z)
+
+        def __sub__(self, o):
+            return V(self.x - o.x, self.y - o.y, self.z - o.z)
+
+    class Rot:  # Drehung um z (Winkel in Grad) - reicht fuer den Test
+        def __init__(self, angle=0.0):
+            self.angle = angle
+
+        def multVec(self, v):
+            a = math.radians(self.angle)
+            return V(v.x * math.cos(a) - v.y * math.sin(a), v.x * math.sin(a) + v.y * math.cos(a), v.z)
+
+        def multiply(self, o):
+            return Rot(self.angle + o.angle)
+
+    class Pl:
+        def __init__(self, base=None, rot=None):
+            self.Base, self.Rotation = base or V(), rot or Rot()
+
+    rdoc = types.SimpleNamespace(Objects=[], opened=0, committed=0, recomputed=0)
+    rdoc.openTransaction = lambda _n: setattr(rdoc, "opened", rdoc.opened + 1)
+    rdoc.commitTransaction = lambda: setattr(rdoc, "committed", rdoc.committed + 1)
+    rdoc.recompute = lambda: setattr(rdoc, "recomputed", rdoc.recomputed + 1)
+    ca = types.SimpleNamespace(TypeId="App::Link", Name="Link", Label="Welle<1>", Document=rdoc, Placement=Pl(V(10, 0, 0)))
+    cb = types.SimpleNamespace(TypeId="App::Link", Name="Link001", Label="Platte<1>", Document=rdoc, Placement=Pl())
+    rasm = types.SimpleNamespace(Name="Assembly", Group=[ca, cb], Document=rdoc)
+    rdoc.Objects = [rasm, ca, cb]
+
+    def cref(_asm, _root, sub):
+        part = {"Link": ca, "Link001": cb}.get(sub.split(".")[1] if "." in sub else "")
+        return (part, "x") if part else (None, "")
+
+    sys.modules["UtilsAssembly"] = types.SimpleNamespace(activeAssembly=lambda: rasm, getComponentReference=cref)
+    root = types.SimpleNamespace(Name="Assembly")
+    try:
+        one = fr.selected_component(rasm, [types.SimpleNamespace(Object=root, SubElementNames=("Assembly.Link.Body.Face1", "Assembly.Link.Body.Edge3"))])
+        tree = fr.selected_component(rasm, [types.SimpleNamespace(Object=cb, SubElementNames=())])
+        two = fr.selected_component(rasm, [types.SimpleNamespace(Object=root, SubElementNames=("Assembly.Link.Body.Face1", "Assembly.Link001.Body.Face2"))])
+        free = fr.blocking_reason(rasm, ca)
+        jnt = types.SimpleNamespace(Name="Joint", Label="Konzentrisch1", JointType="Cylindrical",
+                                    Reference1=(root, ["Assembly.Link001.Body.Face2", "Assembly.Link001.Body.Face2"]),
+                                    Reference2=(root, ["Assembly.Link002.Body.Face1"]))
+        gnd = types.SimpleNamespace(Name="GroundedJoint", Label="GroundedJoint", ObjectToGround=ca)
+        rdoc.Objects += [jnt]
+        joined = fr.blocking_reason(rasm, cb)
+        still_free = fr.blocking_reason(rasm, ca)
+        rdoc.Objects += [gnd]
+        grounded_ = fr.blocking_reason(rasm, ca)
+        rdoc.Objects.remove(jnt)
+        rdoc.Objects.remove(gnd)
+        # Knopf grau/aktiv je nach Auswahl
+        gui._sel = [types.SimpleNamespace(Object=root, SubElementNames=("Assembly.Link.Body.Face1",))]
+        act_free = commands["SWUI_FreeRotate"].IsActive()
+        rdoc.Objects.append(gnd)
+        act_gnd = commands["SWUI_FreeRotate"].IsActive()
+        rdoc.Objects.remove(gnd)
+    finally:
+        del sys.modules["UtilsAssembly"]
+        gui._sel = []
+    if one is not ca or tree is not cb or two is not None:
+        print("  FEHLER: gewähltes Teil falsch erkannt", one, tree, two)
+        return False
+    if free is not None or still_free is not None or "Konzentrisch1" not in (joined or "") or "fixiert" not in (grounded_ or ""):
+        print("  FEHLER: Sperre (Verknüpfung/Fixierung)", free, joined, still_free, grounded_)
+        return False
+    if not act_free or act_gnd:
+        print("  FEHLER: Knopf nicht grau bei fixiertem Teil / grau bei freiem", act_free, act_gnd)
+        return False
+    ax, ang = fr.drag_rotation(10, 0)
+    ay, _ = fr.drag_rotation(0, -4)
+    if ax != (0.0, 1.0, 0.0) or abs(ang - 10 * fr.DEG_PER_PIXEL) > 1e-9 or ay != (1.0, 0.0, 0.0) or fr.drag_rotation(0, 0)[0] is not None:
+        print("  FEHLER: Mausweg -> Drehachse", ax, ang, ay)
+        return False
+
+    # Werkzeug: Ereignisse aus der 3D-Ansicht
+    class Btn:
+        BUTTON1, BUTTON2 = 1, 2
+
+        @staticmethod
+        def getClassTypeId():
+            return "btn"
+
+    coin_ = mock.MagicMock(name="coin")  # Szenengraph-Knoten (Drehkreuz) als Attrappe
+    coin_.SoMouseButtonEvent = Btn
+    coin_.SoButtonEvent = types.SimpleNamespace(DOWN=1, UP=0)
+    coin_.SoLocation2Event = types.SimpleNamespace(getClassTypeId=lambda: "move")
+    coin_.SoKeyboardEvent = types.SimpleNamespace(getClassTypeId=lambda: "key", ESCAPE=27,
+                                                  isKeyPressEvent=lambda ev, k: getattr(ev, "key", None) == k)
+    sg = mock.MagicMock(name="SceneGraph")
+    cbs = {}
+    rview = types.SimpleNamespace(
+        addEventCallbackPivy=lambda t, f: cbs.__setitem__(t, f),
+        removeEventCallbackPivy=lambda t, f: cbs.pop(t, None),
+        getCameraOrientation=lambda: types.SimpleNamespace(multVec=lambda v: v),
+        getSceneGraph=lambda: sg)
+    rasm.ViewObject = types.SimpleNamespace(EnableMovement=True)
+
+    class Node:
+        def __init__(self, ev):
+            self.ev, self.handled = ev, False
+
+        def getEvent(self):
+            return self.ev
+
+        def setHandled(self):
+            self.handled = True
+
+    def mouse(button, state, x=0, y=0):
+        pos = types.SimpleNamespace(getValue=lambda: (x, y))
+        return Node(types.SimpleNamespace(getButton=lambda: button, getState=lambda: state, getPosition=lambda: pos))
+
+    def move(x, y):
+        pos = types.SimpleNamespace(getValue=lambda: (x, y))
+        return Node(types.SimpleNamespace(getPosition=lambda: pos))
+
+    old_pivy_coin = getattr(sys.modules["pivy"], "coin", None)
+    sys.modules["pivy"].coin = coin_
+    old_pl, old_rot, old_vec = fc_.Placement, getattr(fc_, "Rotation", None), fc_.Vector
+    fc_.Placement, fc_.Vector = Pl, V
+    fc_.Rotation = lambda axis, angle: Rot(angle if axis.y >= 0 else -angle)
+    gui.ActiveDocument = types.SimpleNamespace(ActiveView=rview, getInEdit=lambda: None)
+    try:
+        sys.modules["UtilsAssembly"] = types.SimpleNamespace(activeAssembly=lambda: rasm)
+        fr.start(ca)
+        del sys.modules["UtilsAssembly"]
+        running = fr.is_running() and set(cbs) == {"btn", "move", "key"}
+        blocked = rasm.ViewObject.EnableMovement is False
+        marker_added = sg.addChild.called
+        idle = move(5, 5)
+        cbs["move"](idle)  # ohne Ziehen: FreeCAD darf vorwählen
+        down = mouse(1, 1, 0, 0)
+        cbs["btn"](down)
+        cbs["move"](move(30, 0))  # 30 px nach rechts -> 15 Grad
+        up = mouse(1, 0, 30, 0)
+        cbs["btn"](up)
+        after = (round(ca.Placement.Rotation.angle, 6), round(ca.Placement.Base.x, 6), round(ca.Placement.Base.y, 6))
+        trans = (rdoc.opened, rdoc.committed)
+        fr.stop()
+        stopped = not fr.is_running() and not cbs
+        restored = rasm.ViewObject.EnableMovement is True and sg.removeChild.called
+        orbit = fr.rotated_placement(Pl(V(10, 0, 0)), V(0, 0, 0), Rot(90))
+        orbit = (round(orbit.Base.x, 6), round(orbit.Base.y, 6), orbit.Rotation.angle)
+    finally:
+        fc_.Placement, fc_.Vector = old_pl, old_vec
+        if old_rot is None:
+            del fc_.Rotation
+        else:
+            fc_.Rotation = old_rot
+        sys.modules["pivy"].coin = old_pivy_coin
+        gui.ActiveDocument = None
+    if not (blocked and marker_added and restored):
+        print("  FEHLER: FreeCADs Verschieben nicht gesperrt / Drehkreuz fehlt / nicht zurückgesetzt",
+              blocked, marker_added, restored)
+        return False
+    if not running or idle.handled or not (down.handled and up.handled):
+        print("  FEHLER: Werkzeug hängt sich nicht (richtig) an die 3D-Ansicht", running, idle.handled, down.handled)
+        return False
+    # Drehpunkt = Ursprung des Teils (Placement-Basis 10,0,0): Lage bleibt, Winkel 15 Grad
+    if after != (15.0, 10.0, 0.0) or trans != (1, 1) or not stopped or orbit != (0.0, 10.0, 90):
+        print("  FEHLER: Drehung/Rückgängig-Schritt/Beenden", after, trans, stopped)
+        return False
+    print("  Drehung : nur lose Teile (Verknüpfung/Fixierung -> grau); Ziehen dreht um den Teil-Ursprung mit Drehkreuz, FreeCAD-Verschieben gesperrt")
 
     gui.ActiveDocument = None
     print("  Konstrukt: nur neue Linien gestrichelt, Kreise/alte Linien bleiben; Ende bei Werkzeugwechsel/Skizzenende")

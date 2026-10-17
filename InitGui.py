@@ -132,6 +132,14 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
                 "[SWUI] Beziehungs-Panel nicht gestartet:\n%s\n" % tb.format_exc()
             )
         try:
+            from swui import assembly_mates
+
+            assembly_mates.install()
+        except Exception:
+            App.Console.PrintError(
+                "[SWUI] Verknüpfungs-Panel nicht gestartet:\n%s\n" % tb.format_exc()
+            )
+        try:
             from swui import feature_terms
 
             feature_terms.install()
@@ -178,6 +186,14 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
         except Exception:
             App.Console.PrintError(
                 "[SWUI] Beziehungs-Panel nicht beendet:\n%s\n" % tb.format_exc()
+            )
+        try:
+            from swui import assembly_mates
+
+            assembly_mates.uninstall()
+        except Exception:
+            App.Console.PrintError(
+                "[SWUI] Verknüpfungs-Panel nicht beendet:\n%s\n" % tb.format_exc()
             )
         try:
             from swui import feature_terms

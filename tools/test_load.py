@@ -398,7 +398,7 @@ def _make_stubs():
     gui.Selection = types.SimpleNamespace(
         addObserver=lambda o: gui._sel_observers.append(o),
         removeObserver=lambda o: gui._sel_observers.remove(o),
-        getSelectionEx=lambda: list(gui._sel),
+        getSelectionEx=lambda *_a: list(gui._sel),
     )
     gui._ran = ran
 
@@ -1555,7 +1555,7 @@ def run(split_namespace):
     # Ablauf mit Auswahl-Beobachter
     rel.uninstall()
     rel.install()
-    if not rel.is_installed() or len(gui._sel_observers) != 1:
+    if not rel.is_installed() or len([o for o in gui._sel_observers if isinstance(o, rel._SelectionObserver)]) != 1:
         print("  FEHLER: Auswahl-Beobachter nicht (genau einmal) angemeldet", gui._sel_observers)
         return False
     vp3 = types.SimpleNamespace(Object=rsk)
@@ -1620,11 +1620,116 @@ def run(split_namespace):
         print("  FEHLER: Aufgaben-Panel nicht nach vorn / falsche Beziehungen")
         return False
     rel.uninstall()
-    if rel.is_installed() or gui._sel_observers:
+    if rel.is_installed() or any(isinstance(o, rel._SelectionObserver) for o in gui._sel_observers):
         print("  FEHLER: Beobachter nach dem Verlassen noch aktiv")
         return False
     gui._sel = []
     print("  Bezieh.  : %d Auswahl-Fälle passend; vorhandene ohne Maße; Knopf, Löschen, Ein-/Ausblenden OK" % len(cases))
+
+    # --- Verknuepfungs-Panel (Baugruppe, 8e) -----------------------------
+    mt = sys.modules.get("swui.assembly_mates")
+    if mt is None or not mt.is_installed():
+        print("  FEHLER: Workbench-Activated hat das Verknüpfungs-Panel nicht eingeschaltet")
+        return False
+    if len([o for o in gui._sel_observers if isinstance(o, mt._SelectionObserver)]) != 1:
+        print("  FEHLER: Verknüpfungs-Beobachter nicht genau einmal angemeldet")
+        return False
+    for cmd, _t, svg in mt.MATES.values():
+        if not os.path.isfile(os.path.join(ADDON, "resources", "icons", svg + ".svg")):
+            print("  FEHLER: Symbol fehlt", svg)
+            return False
+
+    class Plane: pass
+    class Cylinder: pass
+    class Cone: pass
+    class Sphere: pass
+    class Line: pass
+    class Circle: pass
+    class BSplineSurface: pass
+
+    def face(cls):
+        return types.SimpleNamespace(ShapeType="Face", Surface=cls())
+
+    def edge(cls):
+        return types.SimpleNamespace(ShapeType="Edge", Curve=cls())
+
+    kinds = [mt.kind_of_shape(x) for x in (face(Plane), face(Cylinder), face(Sphere), face(BSplineSurface),
+                                           edge(Line), edge(Circle), types.SimpleNamespace(ShapeType="Vertex"), None)]
+    if kinds != ["plane", "cylinder", "sphere", "face", "line", "circle", "point", "part"]:
+        print("  FEHLER: Geometrie-Art", kinds)
+        return False
+    E = mt.Element
+    mcases = [
+        (("plane", "plane"), ["coincident", "parallel", "perpendicular", "distance", "angle"]),
+        (("cylinder", "circle"), ["concentric", "coincident", "revolute", "parallel", "perpendicular", "distance"]),
+        (("cylinder", "plane"), ["parallel", "perpendicular", "distance"]),
+        (("line", "cylinder"), ["concentric", "coincident", "parallel", "perpendicular", "slider", "distance"]),
+        (("point", "plane"), ["coincident", "distance"]),
+        (("sphere", "sphere"), ["ball", "coincident", "distance"]),
+        (("plane",), []),
+        (("part", "plane"), []),
+    ]
+    for ks, want in mcases:
+        got = mt.suggest([E(k, "T%d" % i) for i, k in enumerate(ks)])
+        if got != want:
+            print("  FEHLER: Verknüpfungen für", ks, "->", got, "erwartet", want)
+            return False
+    if not mt.same_component([E("plane", "Welle<1>"), E("plane", "Welle<1>")]):
+        print("  FEHLER: gleiches Bauteil nicht erkannt")
+        return False
+
+    # Ablauf: aktive Baugruppe, zwei Flaechen an zwei Teilen gewaehlt
+    masm = types.SimpleNamespace(Name="Assembly")
+    parts = {"Link": types.SimpleNamespace(Label="Welle<1>"), "Link001": types.SimpleNamespace(Label="Platte<1>")}
+
+    def comp_ref(_asm, _root, sub):
+        first = sub.split(".")[1] if sub.startswith("Assembly.") else None
+        return (parts[first], "x") if first in parts else (None, "")
+
+    shapes = {"Assembly.Link.Body.Face1": face(Cylinder), "Assembly.Link001.Body.Face3": face(Cylinder),
+              "Assembly.Link.Body.Face2": face(Plane)}
+    root = types.SimpleNamespace(Name="Baugruppe", getSubObject=lambda sub: shapes.get(sub))
+    fake_ua = types.SimpleNamespace(activeAssembly=lambda: masm, getComponentReference=comp_ref)
+    sys.modules["UtilsAssembly"] = fake_ua
+    lay._find_dock = lambda _mw, _keys: tasks
+    ran_mates = []
+    real_run = gui.runCommand
+    try:
+        gui.ActiveDocument = types.SimpleNamespace(getInEdit=lambda: None)
+        gui._sel = [types.SimpleNamespace(Object=root, SubElementNames=(
+            "Assembly.Link.Body.Face1", "Assembly.Link001.Body.Face3", "Fremd.Face9"))]
+        host.layout.return_value.insertWidget.reset_mock()
+        mt.refresh()
+        mins = host.layout.return_value.insertWidget
+        first = mt._panel.offered if mt._panel else None
+        gui._sel = [types.SimpleNamespace(Object=root, SubElementNames=(
+            "Assembly.Link.Body.Face1", "Assembly.Link.Body.Face2"))]
+        mt.refresh()
+        same = list(mt._panel.offered)
+        same_hint = mt.hint_for(mt.current()[1], same)
+        gui._mw.dialog_open = True
+        dialog_cur = mt.current()
+        gui._mw.dialog_open = False
+        gui.runCommand = lambda c, *a: ran_mates.append(c)
+        mt.run_mate("concentric")
+    finally:
+        gui.runCommand = real_run
+        lay._find_dock = real_find
+        del sys.modules["UtilsAssembly"]
+        gui._sel = []
+    if first != ["concentric", "coincident", "revolute", "parallel", "perpendicular", "distance"]:
+        print("  FEHLER: Panel bietet für zwei Zylinder an zwei Teilen", first)
+        return False
+    if not mins.called or mins.call_args[0][0] != 0 or mins.call_args[0][1] is not mt._panel.widget:
+        print("  FEHLER: Verknüpfungs-Panel nicht oben ins Aufgaben-Panel eingehängt")
+        return False
+    if same or "selben Bauteil" not in same_hint:
+        print("  FEHLER: zwei Elemente am selben Teil", same, same_hint)
+        return False
+    if dialog_cur != (None, []) or ran_mates != ["Assembly_CreateJointCylindrical"]:
+        print("  FEHLER: Dialog offen / Knopf startet falschen Befehl", dialog_cur, ran_mates)
+        return False
+    print("  Verknüpf.: %d Auswahl-Fälle; Panel nur bei aktiver Baugruppe ohne Dialog; gleiches Teil abgelehnt" % len(mcases))
 
     gui.ActiveDocument = None
     print("  Konstrukt: nur neue Linien gestrichelt, Kreise/alte Linien bleiben; Ende bei Werkzeugwechsel/Skizzenende")
@@ -1738,6 +1843,9 @@ def run(split_namespace):
         return False
     if [d for d in mw.docks if d.name == "Model"][0].trees[0].qss != "/* FreeCAD-Baum */":
         print("  FEHLER: Baum-Schrift nicht zurück")
+        return False
+    if sys.modules["swui.assembly_mates"].is_installed():
+        print("  FEHLER: Verknüpfungs-Panel nach Verlassen noch aktiv")
         return False
     print("  Verlassen: alle Leisten, Panels, Farben und 3D-Einstellungen wiederhergestellt")
 

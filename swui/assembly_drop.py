@@ -53,8 +53,9 @@ _installed = False
 
 def install():
     """
-    Drop-Faenger anmelden (bleibt angemeldet, auch wenn die Werkbank
-    wechselt - er reagiert ohnehin nur, wenn eine Baugruppe da ist).
+    Drop-Faenger anmelden - aus Activated. Beim Verlassen der Werkbank
+    meldet Deactivated ihn wieder ab (uninstall): ausserhalb von
+    LikeSolidWorks UI oeffnet FreeCAD gezogene Dateien wie gewohnt.
     """
     global _filter, _installed
     if _installed:
@@ -210,6 +211,10 @@ def insert_files(assembly, paths):
     """Dateien als Komponenten einfuegen. Gibt die neuen Objekte zurueck."""
     doc = assembly.Document
     added = []
+    # Vorher aktivieren (Bearbeitungsmodus): FreeCAD fixiert die erste
+    # Komponente nur in der aktiven Baugruppe. Ausserhalb der Transaktion,
+    # damit Rueckgaengig nur das Einfuegen zuruecknimmt.
+    _ensure_active(assembly)
     doc.openTransaction("Komponente einfügen")
     try:
         for path in paths:
@@ -247,6 +252,12 @@ def insert_files(assembly, paths):
         doc.recompute()
     except Exception:
         pass
+    # Danach noch einmal: Teile lassen sich in FreeCAD nur ziehen, solange die
+    # Baugruppe im Bearbeitungsmodus ist (ViewProviderAssembly::mouseMove
+    # prueft isInEditMode). Dominik 18.10.: nach dem Reinziehen liess sich
+    # "manchmal" nichts mehr bewegen - die Baugruppe war dann nicht aktiv.
+    if added:
+        _ensure_active(assembly)
     return added
 
 
@@ -308,14 +319,31 @@ def _bbox(obj):
         return None
 
 
-def _ensure_active(assembly):
+def is_editing(assembly):
+    """Baugruppe im Bearbeitungsmodus? Nur dann lassen sich ihre Teile ziehen.
+    (Fett im Baum = nur als aktiv markiert - das reicht FreeCAD nicht.)"""
     try:
-        import UtilsAssembly
-
-        if UtilsAssembly.activeAssembly() is None:
-            FreeCADGui.getDocument(assembly.Document.Name).setEdit(assembly)
+        return bool(assembly.ViewObject.isInEditMode())
     except Exception:
-        pass
+        return False
+
+
+def _ensure_active(assembly):
+    """Baugruppe aktivieren wie ein Doppelklick (setEdit). True = aktiv."""
+    if is_editing(assembly):
+        return True
+    try:
+        if FreeCADGui.Control.activeDialog():
+            # Ein offener Dialog (z. B. Verknuepfung) wuerde dabei geschlossen
+            FreeCAD.Console.PrintMessage(
+                "[SWUI] Baugruppe nicht aktiviert (Dialog offen) - zum Bewegen der "
+                "Teile Doppelklick auf die Baugruppe.\n")
+            return False
+        FreeCADGui.getDocument(assembly.Document.Name).setEdit(assembly)
+    except Exception:
+        FreeCAD.Console.PrintLog("[SWUI] Baugruppe aktivieren: %s\n" % traceback.format_exc())
+        return False
+    return is_editing(assembly)
 
 
 def _find_open(path):
@@ -380,6 +408,8 @@ def handle_drag_event(event):
     True = Ereignis uebernommen (.FCStd auf aktive Baugruppe), sonst False
     und FreeCAD behandelt es wie gewohnt.
     """
+    if not _installed:
+        return False  # abgemeldet: nie eingreifen (Sicherung, falls Qt noch liefert)
     try:
         kind = event.type()
         T = QtCore.QEvent.Type

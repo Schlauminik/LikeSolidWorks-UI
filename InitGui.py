@@ -98,7 +98,10 @@ class LikeSolidWorksUIWorkbench(FreeCADGui.Workbench):
 
             zoom_lines.install()
 
-            # Harmlose Qt-Meldungen beim starken Zoomen ("render glyph failed") ausblenden.
+            # Harmlose Qt-Meldungen beim starken Zoomen ("render glyph failed")
+            # ausblenden - wirksam nur, solange diese Werkbank aktiv ist
+            # (set_active in Activated/Deactivated). Abschaltbar ueber den
+            # Parameter Mod/SWUI/QtMessageFilter.
             from swui import qt_messages
 
             qt_messages.install()
@@ -107,12 +110,6 @@ class LikeSolidWorksUIWorkbench(FreeCADGui.Workbench):
             from swui import weld_symbol
 
             weld_symbol.install()
-
-            # Drag & Drop in Baugruppen: dauerhaft angemeldet (auch wenn
-            # die Werkbank spaeter wechselt).
-            from swui import assembly_drop
-
-            assembly_drop.install()
 
             # Keine eigene Toolbar: Alles Sichtbare lebt im Ribbon.
             # Die Diagnose bleibt im Menue "LikeSolidWorks UI" erreichbar.
@@ -183,6 +180,14 @@ class LikeSolidWorksUIWorkbench(FreeCADGui.Workbench):
             App.Console.PrintError(
                 "[SWUI] Drag & Drop in Baugruppen nicht gestartet:\n%s\n" % tb.format_exc()
             )
+        try:
+            from swui import qt_messages
+
+            qt_messages.set_active(True)
+        except Exception:
+            App.Console.PrintError(
+                "[SWUI] Qt-Meldungsfilter nicht eingeschaltet:\n%s\n" % tb.format_exc()
+            )
 
     def Deactivated(self):
         """Workbench verlassen: Originalzustand herstellen, Ribbon weg."""
@@ -241,11 +246,21 @@ class LikeSolidWorksUIWorkbench(FreeCADGui.Workbench):
         try:
             from swui import assembly_drop
 
-            # Drop-Faenger bleibt angemeldet; nur FreeCADs Einstellung zurueck.
+            # Ausserhalb dieser Werkbank verhaelt sich FreeCAD wieder wie
+            # gewohnt: Drop-Faenger ab, Baugruppen-Einstellung zurueck.
+            assembly_drop.uninstall()
             assembly_drop.restore_workbench_setting()
         except Exception:
             App.Console.PrintError(
                 "[SWUI] Drag & Drop in Baugruppen nicht beendet:\n%s\n" % tb.format_exc()
+            )
+        try:
+            from swui import qt_messages
+
+            qt_messages.set_active(False)  # Meldungen wieder ungefiltert
+        except Exception:
+            App.Console.PrintError(
+                "[SWUI] Qt-Meldungsfilter nicht ausgeschaltet:\n%s\n" % tb.format_exc()
             )
 
     def GetClassName(self):

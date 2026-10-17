@@ -60,6 +60,8 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | Fix | Harmlose Qt-Meldungen „render glyph failed“ beim starken Hineinzoomen werden ausgeblendet (`swui/qt_messages.py`) | **fertig** |
 | 9g | Ausgabe: „Als PDF speichern“ schreibt alle Blätter in eine PDF (eigenes Zusammenfügen, sonst einzelne Dateien), „Als DXF exportieren“ je Blatt eine Datei; Dateiname aus der Zeichnungsnummer (`drawing_export.py`, `pdf_merge.py`) | **fertig** |
 | V1 | Veröffentlichung vorbereitet: Name **LikeSolidWorks UI**, Lizenzdateien (LGPL-2.1+/CC-BY-SA-4.0), Rechtshinweise, Manifest-Prüfung im Test | **fertig** |
+| V2 | Nur in der Werkbank: Drag & Drop in Baugruppen wird beim Verlassen abgemeldet; Qt-Meldungsfilter wirkt nur, solange LikeSolidWorks UI aktiv ist, und ist per Parameter abschaltbar | **fertig** |
+| Fix | Nach dem Reinziehen ließen sich die Teile manchmal nicht bewegen: Die Baugruppe war nur als aktiv markiert, nicht im Bearbeitungsmodus. Drag & Drop aktiviert sie jetzt vor und nach dem Einfügen (`swui/assembly_drop.py`) | **fertig** |
 
 Später: 3D-Skizzen.
 
@@ -118,6 +120,29 @@ Das Fenster zeigt alle Versionsangaben mit Kopier-Knopf.
 
 Python-Konsole einschalten: Ansicht → Panels → Python-Konsole.
 Report-Ansicht einschalten: Ansicht → Panels → Report-Ansicht.
+
+## Einstellungen
+
+**Qt-Meldungsfilter.** Beim starken Hineinzoomen ins Zeichenblatt meldet
+Qt für jedes Zeichen „render glyph failed“ (harmlos, tritt auch ohne
+das Add-on auf). Das Add-on blendet genau diese Meldung aus — **nur,
+solange LikeSolidWorks UI aktiv ist**. In anderen Werkbänken gehen alle
+Meldungen unverändert durch.
+
+Technischer Hinweis: FreeCADs eigener Meldungsweiterleiter ist C++-Code
+und lässt sich aus Python nicht wieder einsetzen, wenn er einmal
+ersetzt wurde. Der Filter bleibt deshalb angemeldet, ist außerhalb der
+Werkbank aber völlig durchlässig und leitet alles so weiter wie
+FreeCAD selbst. Wer ihn gar nicht möchte:
+
+*Werkzeuge → Bearbeiten → Parameter →*
+`BaseApp/Preferences/Mod/SWUI` → neuen Bool-Eintrag `QtMessageFilter`
+mit Wert `false` anlegen, FreeCAD neu starten. Dann wird nichts
+angemeldet.
+
+**Drag & Drop in Baugruppen** (.FCStd-Dateien aus dem Datei-Explorer
+auf eine aktive Baugruppe ziehen) wirkt nur in LikeSolidWorks UI.
+Außerhalb öffnet FreeCAD gezogene Dateien wie gewohnt.
 
 ## Lizenz
 

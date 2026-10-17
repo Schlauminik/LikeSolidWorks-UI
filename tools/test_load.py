@@ -1110,6 +1110,8 @@ def run(split_namespace):
 
         def __init__(self):
             self.Group, self.OutListRecursive = [], []
+            self.editing = False  # Bearbeitungsmodus (nur dann lassen sich Teile ziehen)
+            self.ViewObject = types.SimpleNamespace(isInEditMode=lambda: self.editing)
 
         def newObject(self, type_id, label):
             o = Obj(type_id, label, box=(0.0, 15.0))
@@ -1119,8 +1121,25 @@ def run(split_namespace):
     asm = Asm()
     opened = []
     fcm.listDocuments = lambda: {"Welle": welle_doc}
-    fcm.openDocument = lambda path, hidden=False: (opened.append((path, hidden)), sub_doc)[1]
+
+    def fake_open(path, hidden=False):
+        opened.append((path, hidden))
+        asm.editing = False  # schlimmster Fall: Oeffnen beendet den Bearbeitungsmodus
+        return sub_doc
+
+    fcm.openDocument = fake_open
     fcm.setActiveDocument = lambda name: None
+    guim_d = sys.modules["FreeCADGui"]
+    set_edit = []
+
+    def fake_set_edit(obj):
+        set_edit.append(asm_doc.opened - asm_doc.committed)  # 0 = ausserhalb der Transaktion
+        obj.editing = True
+
+    real_getdoc = getattr(guim_d, "getDocument", None)
+    real_ctl_d = getattr(guim_d, "Control", None)
+    guim_d.getDocument = lambda name: types.SimpleNamespace(setEdit=fake_set_edit)
+    guim_d.Control = types.SimpleNamespace(activeDialog=lambda: False)
 
     def fake_ground(obj):
         grounded.append(obj)
@@ -1131,8 +1150,27 @@ def run(split_namespace):
         BoundBox=Box(o.Placement.Base.x + o.box[0], o.Placement.Base.x + o.box[1]))
     try:
         added = ad.insert_files(asm, ["/h/a/Welle.FCStd", "/h/a/Lagerbock.FCStd"])
+        edit_after = asm.editing
+        n_set_edit = len(set_edit)
+        # Offener Dialog: nicht aktivieren (wuerde ihn schliessen), nur Hinweis
+        asm.editing = False
+        guim_d.Control = types.SimpleNamespace(activeDialog=lambda: True)
+        dlg_res = ad._ensure_active(asm)
+        dlg_calls = len(set_edit) - n_set_edit
     finally:
         del sys.modules["CommandCreateJoint"]
+        if real_getdoc is not None:
+            guim_d.getDocument = real_getdoc
+        else:
+            del guim_d.getDocument
+        guim_d.Control = real_ctl_d
+        asm.editing = True
+    if not edit_after:
+        print("  FEHLER: Baugruppe nach dem Einfügen nicht im Bearbeitungsmodus - Teile ließen sich nicht ziehen")
+        return False
+    if n_set_edit != 2 or set_edit[:2] != [0, 0] or dlg_res or dlg_calls:
+        print("  FEHLER: Aktivieren vor/nach dem Einfügen (außerhalb des Rückgängig-Schritts) bzw. bei offenem Dialog falsch", n_set_edit, set_edit, dlg_res, dlg_calls)
+        return False
     if [a.TypeId for a in added] != ["App::Link", "Assembly::AssemblyLink"] or added[0].LinkedObject is not part:
         print("  FEHLER: falsche Verknüpfungsart / falsches Ziel", [a.TypeId for a in added])
         return False
@@ -1236,7 +1274,7 @@ def run(split_namespace):
     if found is not top_asm or none_found is not None:
         print("  FEHLER: Ziel-Baugruppe falsch ermittelt", found, none_found)
         return False
-    print("  Drop     : .FCStd in Baugruppe -> Link/Unterbaugruppe, erste fixiert, weitere daneben, 1 Rückgängig-Schritt, vorher speichern")
+    print("  Drop     : .FCStd in Baugruppe -> Link/Unterbaugruppe, erste fixiert, weitere daneben, 1 Rückgängig-Schritt, vorher speichern, danach aktiv (Teile ziehbar)")
 
     # --- SW-Begriffe in Feature-Dialogen --------------------------------
     ft = sys.modules["swui.feature_terms"]
@@ -3041,18 +3079,47 @@ def run(split_namespace):
     if qm is None or not qm._installed:
         print("  FEHLER: Qt-Meldungsfilter nicht installiert (InitGui.Initialize)")
         return False
-    got_q = []
-    old_prev = qm._previous
-    qm._previous = lambda m_, c_, t_: got_q.append(t_)
-    try:
-        qm.handler(1, types.SimpleNamespace(category="default"), "render glyph failed err=62 face=0x1, glyph=72")
-        qm.handler(1, types.SimpleNamespace(category="default"), "QWidget: andere Warnung")
-    finally:
-        qm._previous = old_prev
-    if got_q != ["QWidget: andere Warnung"] or qm.format_message("qt.svg", "x") != "(qt.svg) x" or qm.format_message("default", "x") != "x":
-        print("  FEHLER: Qt-Meldungsfilter filtert falsch", got_q)
+    if not qm._active:
+        print("  FEHLER: Qt-Meldungsfilter nach Activated nicht aktiv")
         return False
-    print("  Meldungen: 'render glyph failed' beim starken Zoomen ausgeblendet, alles andere geht weiter")
+    got_q = []
+    old_prev, old_act = qm._previous, qm._active
+    qm._previous = lambda m_, c_, t_: got_q.append(t_)
+    glyph = "render glyph failed err=62 face=0x1, glyph=72"
+    try:
+        qm.set_active(True)  # in der Werkbank
+        qm.handler(1, types.SimpleNamespace(category="default"), glyph)
+        qm.handler(1, types.SimpleNamespace(category="default"), "QWidget: andere Warnung")
+        in_wb = list(got_q)
+        del got_q[:]
+        qm.set_active(False)  # ausserhalb: voellig durchlaessig
+        qm.handler(1, types.SimpleNamespace(category="default"), glyph)
+        out_wb = list(got_q)
+    finally:
+        qm._previous, qm._active = old_prev, old_act
+    if in_wb != ["QWidget: andere Warnung"] or qm.format_message("qt.svg", "x") != "(qt.svg) x" or qm.format_message("default", "x") != "x":
+        print("  FEHLER: Qt-Meldungsfilter filtert falsch", in_wb)
+        return False
+    if out_wb != [glyph]:
+        print("  FEHLER: Qt-Meldungsfilter wirkt auch außerhalb der Werkbank", out_wb)
+        return False
+    # Parameter Mod/SWUI/QtMessageFilter = false -> gar nicht anmelden
+    fc_q = sys.modules["FreeCAD"]
+    saved_inst = qm._installed
+    fc_q.ParamGet(qm.OWN_PARAMS).SetBool(qm.ENABLE_KEY, False)
+    try:
+        qm._installed = False
+        off_res = qm.install()
+        off_state = qm._installed
+        qm.set_active(True)
+        off_act = qm._active
+    finally:
+        fc_q.ParamGet(qm.OWN_PARAMS).RemBool(qm.ENABLE_KEY)
+        qm._installed, qm._active = saved_inst, old_act
+    if off_res or off_state or off_act:
+        print("  FEHLER: Qt-Meldungsfilter trotz QtMessageFilter=false angemeldet/aktiv")
+        return False
+    print("  Meldungen: 'render glyph failed' nur in der Werkbank ausgeblendet, sonst alles durchgelassen; abschaltbar")
 
     # --- Ausgabe PDF (alle Blaetter) / DXF (9g) ---
     de = sys.modules.get("swui.drawing_export")
@@ -3303,9 +3370,38 @@ def run(split_namespace):
     print("  Absturz  : Einstellungen beim nächsten Start zurückgesetzt")
     _ad = sys.modules.get("swui.assembly_drop")
     if _ad is not None:
-        if not _ad.is_installed():
-            print("  FEHLER: Drop-Fänger nach Verlassen der Workbench abgemeldet")
+        if _ad.is_installed():
+            print("  FEHLER: Drop-Fänger nach Verlassen der Workbench noch angemeldet")
             return False
+        # Abgemeldet greift er nie ein - auch nicht bei .FCStd auf eine Baugruppe
+        _T = sys.modules["PySide.QtCore"].QEvent.Type
+        _ev = types.SimpleNamespace(
+            type=lambda: _T.DragEnter, acceptProposedAction=lambda: None,
+            mimeData=lambda: types.SimpleNamespace(
+                hasUrls=lambda: True, urls=lambda: ["/h/a/Welle.FCStd"]))
+        _real_t = _ad.target_assembly
+        _ad.target_assembly = lambda: types.SimpleNamespace(Label="Baugruppe1")
+        try:
+            _grab = _ad.handle_drag_event(_ev)
+        finally:
+            _ad.target_assembly = _real_t
+        if _grab:
+            print("  FEHLER: abgemeldeter Drop-Fänger übernimmt trotzdem ein Ereignis")
+            return False
+        _ad.install()  # Gegenprobe: angemeldet würde er übernehmen
+        _ad.target_assembly = lambda: types.SimpleNamespace(Label="Baugruppe1")
+        try:
+            _grab_on = _ad.handle_drag_event(_ev)
+        finally:
+            _ad.target_assembly = _real_t
+            _ad.uninstall()
+        if not _grab_on:
+            print("  FEHLER: Testereignis ungültig (angemeldet würde es auch nicht übernommen)")
+            return False
+    _qm2 = sys.modules.get("swui.qt_messages")
+    if _qm2 is not None and _qm2._active:
+        print("  FEHLER: Qt-Meldungsfilter nach Verlassen der Workbench noch aktiv")
+        return False
         if sys.modules["FreeCAD"].ParamGet(_ad.OWN_PARAMS).GetString(_ad.BACKUP_KEY, ""):
             print("  FEHLER: Baugruppen-Einstellung nach Verlassen nicht zurückgesetzt")
             return False

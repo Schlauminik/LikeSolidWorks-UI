@@ -25,7 +25,7 @@ class NewAssembly:
 
     def GetResources(self):
         return {
-            "Pixmap": "Assembly_CreateAssembly",  # FreeCADs Baugruppen-Symbol
+            "Pixmap": "Geoassembly",  # FreeCADs Baugruppen-Symbol (wie Assembly_CreateAssembly in 1.1.4)
             "MenuText": "Neue Baugruppe",
             "ToolTip": "Neue Baugruppe als eigene Datei anlegen (wie in SOLIDWORKS). "
             "Teile per Drag & Drop oder \"Komponente einfügen\" hinzufügen.",

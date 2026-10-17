@@ -279,7 +279,7 @@ BAUGRUPPE = (
         [
             # Eigener Befehl: legt die Baugruppe als NEUE DATEI an (wie SW) -
             # FreeCADs Befehl wuerde sie in ein offenes Teil stecken.
-            ("SWUI_NewAssembly", "Neue\nBaugruppe", {"icon": "Assembly_CreateAssembly"}),
+            ("SWUI_NewAssembly", "Neue\nBaugruppe", {"icon": "Geoassembly"}),
             ("Assembly_InsertLink", "Komponente\neinfügen"),
             {"stack": [
                 ("Assembly_InsertNewPart", "Neues Teil"),

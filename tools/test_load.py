@@ -834,6 +834,10 @@ def run(split_namespace):
     if tried != list(ribbon_layout_mod.ASSEMBLY_COMMAND_MODULES):
         print("  FEHLER: Baugruppen-Befehlsmodule werden nicht geladen", tried)
         return False
+    # Symbolname wie in FreeCAD 1.1.4 (CommandCreateAssembly.py: "Geoassembly")
+    if commands["SWUI_NewAssembly"].GetResources()["Pixmap"] != "Geoassembly":
+        print("  FEHLER: Neue Baugruppe zeigt auf ein nicht vorhandenes Symbol")
+        return False
     # Neue Baugruppe = neues Dokument, erst darin Assembly_CreateAssembly
     na = sys.modules["swui.commands.new_assembly"]
     if "SWUI_NewAssembly" not in ribbon._buttons or "Assembly_CreateAssembly" in ribbon._buttons:

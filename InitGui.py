@@ -86,6 +86,11 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
 
             view_labels.install()
 
+            # Projizierte Ansichten: nach dem Verteilen von Hand verschiebbar (Achse bleibt).
+            from swui import proj_views
+
+            proj_views.install()
+
             # Drag & Drop in Baugruppen: dauerhaft angemeldet (auch wenn
             # die Werkbank spaeter wechselt).
             from swui import assembly_drop

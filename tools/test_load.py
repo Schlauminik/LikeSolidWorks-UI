@@ -2377,6 +2377,164 @@ def run(split_namespace):
         return False
     print("  Benenn.  : Schnitt A-A, B-B …, Detail Z, Y … mit Maßstab; Textfeld frei verschiebbar, wandert mit, umbenennbar")
 
+    # --- Projizierte Ansichten ---------------------------------------------
+    pv = sys.modules.get("swui.proj_views")
+    if pv is None or "SWUI_ProjectedView" not in commands:
+        print("  FEHLER: Projizierte Ansicht nicht angemeldet")
+        return False
+
+    class PItem:
+        def __init__(self, t, x=0.0, y=0.0, grp=None):
+            self.TypeId, self.Type, self.X, self.Y, self.Label = "TechDraw::DrawProjGroupItem", t, x, y, t
+            self.InList = [grp] if grp else []
+
+    class PGroup:
+        TypeId = "TechDraw::DrawProjGroup"
+
+        def __init__(self, method="First angle"):
+            self.ProjectionType, self.AutoDistribute, self.Scale = method, True, 0.5
+            self.X, self.Y = 150.0, 180.0
+            self.XSource = [types.SimpleNamespace(Shape=types.SimpleNamespace(
+                BoundBox=types.SimpleNamespace(XLength=200, YLength=80, ZLength=60)))]
+            self.Views = [PItem("Front", grp=self)]
+            self.Document = types.SimpleNamespace(opened=0, committed=0)
+            self.Document.openTransaction = lambda _n: None
+            self.Document.commitTransaction = lambda: None
+            self.Document.recompute = lambda: None
+
+        def addProjection(self, t):
+            it = PItem(t, grp=self)
+            self.Views.append(it)
+            return it
+
+    if (pv.direction_from(50, 3), pv.direction_from(-2, -40), pv.direction_from(30, 25), pv.direction_from(0, 0)) != ((1, 0), (0, -1), (1, 1), None):
+        print("  FEHLER: Mausrichtung -> Richtung")
+        return False
+    g1 = PGroup()
+    if (pv.target_type(g1, "Front", (1, 0)), pv.target_type(g1, "Front", (0, -1)), pv.target_type(g1, "Left", (1, 0)),
+            pv.target_type(g1, "Top", (1, 0)), pv.target_type(g1, "Top", (0, -1))) != ("Left", "Top", "Rear", "FrontTopLeft", None):
+        print("  FEHLER: Methode-1-Raster relativ zur angeklickten Ansicht")
+        return False
+    g1.addProjection("Top"); g1.addProjection("Left")
+    pv.setup_group(g1)
+    dx, dy = pv.default_steps(g1)
+    top, left = pv.item_of_type(g1, "Top"), pv.item_of_type(g1, "Left")
+    if g1.AutoDistribute is not False or (top.X, top.Y) != (0.0, -dy) or (left.X, left.Y) != (dx, 0.0) or abs(dx - (140 * 0.5 + pv.SPACING)) > 1e-9:
+        print("  FEHLER: Startlage / sofort verschiebbar", g1.AutoDistribute, top.Y, left.X)
+        return False
+    # Klick rechts neben der Seitenansicht (von links) -> Rückansicht, Höhe wie Vorderansicht
+    left.X = 120.0  # vorher verschoben
+    page_click = (150.0 + 260.0, 180.0 + 7.0)
+    rear, created = pv.create_at(left, page_click)
+    # Klick unten links neben der Vorderansicht -> Isometrie (Methode 1: FrontTopRight)
+    iso, c_iso = pv.create_at(g1.Views[0], (150.0 - 100.0, 180.0 - 90.0))
+    # Klick unter der Draufsicht -> dort gibt es keine Projektion
+    none_, c_none = pv.create_at(top, (150.0, 180.0 - dy - 100.0))
+    # Klick über der Vorderansicht -> Untersicht, senkrecht über Vorne, Höhe = Klick
+    bottom, c_b = pv.create_at(g1.Views[0], (152.0, 180.0 + 95.0))
+    if (rear.Type, rear.X, rear.Y, created) != ("Rear", 260.0, 0.0, True):
+        print("  FEHLER: Rückansicht neben Seitenansicht", rear.Type, rear.X, rear.Y)
+        return False
+    if (iso.Type, iso.X, iso.Y, iso.Label) != ("FrontTopRight", -100.0, -90.0, "Isometrie") or none_ is not None or c_none:
+        print("  FEHLER: Isometrie/keine Projektion", iso.Type, iso.X, iso.Y, none_)
+        return False
+    if (bottom.Type, bottom.X, bottom.Y) != ("Bottom", 0.0, 95.0):
+        print("  FEHLER: Untersicht nicht auf der Achse", bottom.Type, bottom.X, bottom.Y)
+        return False
+    g3 = PGroup("Third angle")
+    if pv.target_type(g3, "Front", (1, 0)) != "Right" or pv.place_for(g3, "Right") != (pv.default_steps(g3)[0], 0.0):
+        print("  FEHLER: Methode 3")
+        return False
+    # Bestehende Zeichnung: verteilte Gruppen werden verschiebbar, unverteilte nicht
+    g5, g6 = PGroup(), PGroup()
+    g5.Views.append(PItem("Top", 0.0, -80.0, g5))
+    g6.Views.append(PItem("Top", 0.0, 0.0, g6))
+    n = pv.freeze_doc(types.SimpleNamespace(Objects=[g5, g6]))
+    if n != 1 or g5.AutoDistribute is not False or g6.AutoDistribute is not True:
+        print("  FEHLER: bestehende Gruppen verschiebbar machen", n)
+        return False
+    if pv.scene_to_page(1500.0, -900.0, 10.0) != (150.0, 90.0):
+        print("  FEHLER: Szene -> Blatt")
+        return False
+    print("  Projiz.  : Klick neben die Ansicht -> Projektion nach Methode 1 relativ zur Ansicht, auf der Achse; Gruppen verschiebbar")
+
+    # --- Ansichten mit einem Linksklick ziehen ------------------------------
+    pd = sys.modules.get("swui.page_drag")
+    if pd is None:
+        import importlib
+        pd = importlib.import_module("swui.page_drag")
+    g7 = PGroup()
+    t7, l7, i7 = g7.addProjection("Top"), g7.addProjection("Left"), g7.addProjection("FrontTopLeft")
+    f7 = g7.Views[0]
+    flags = [pd.axis_flags(v) for v in (t7, l7, i7)]
+    if flags != [(False, True), (True, False), (True, True)] or pd.drag_target(f7)[0] is not g7:
+        print("  FEHLER: Achsbindung beim Ziehen", flags)
+        return False
+    pd.apply_delta(t7, 5.0, -7.0)
+    pd.apply_delta(l7, 4.0, 9.0)
+    pd.apply_delta(f7, 10.0, 2.0)
+    if (t7.X, t7.Y, l7.X, l7.Y, g7.X, g7.Y) != (0.0, -7.0, 4.0, 0.0, 160.0, 182.0):
+        print("  FEHLER: Verschieben mit Achsbindung", t7.X, t7.Y, l7.X, l7.Y, g7.X, g7.Y)
+        return False
+    if pd.movable_view(types.SimpleNamespace(TypeId="TechDraw::DrawViewDimension")) is not None:
+        print("  FEHLER: Bemaßung wird als Ansicht gezogen")
+        return False
+    # Ereignisablauf: Druecken (TechDraw waehlt Kante) -> Ziehen -> Loslassen
+    QE = sys.modules["PySide.QtCore"].QEvent.Type
+    LB = sys.modules["PySide.QtCore"].Qt.MouseButton.LeftButton
+
+    class Pt:
+        def __init__(self, x, y):
+            self._x, self._y = x, y
+
+        def x(self):
+            return self._x
+
+        def y(self):
+            return self._y
+
+        def toPoint(self):
+            return self
+
+    class Ev:
+        def __init__(self, kind, x, y):
+            self.kind, self.p = kind, Pt(x, y)
+
+        def type(self):
+            return self.kind
+
+        def button(self):
+            return LB
+
+        def position(self):
+            return self.p
+
+    trans = []
+    t7.Document = types.SimpleNamespace(openTransaction=lambda n: trans.append("open"),
+                                        commitTransaction=lambda: trans.append("commit"),
+                                        recompute=lambda: trans.append("recompute"))
+    gview = mock.MagicMock(name="QGraphicsView")
+    gview.mapToScene.side_effect = lambda p_: p_
+    gview.transform.return_value.m11.return_value = 1.0
+    gview.scene.return_value.mouseGrabberItem.return_value = None  # Kante: TechDraw zieht nicht
+    gui._sel = [types.SimpleNamespace(Object=t7, SubElementNames=("Edge3",))]
+    st = pd.DragState()
+    y0 = t7.Y
+    try:
+        r_press = pd.handle_event(st, gview, Ev(QE.MouseButtonPress, 100.0, 100.0))
+        r_small = pd.handle_event(st, gview, Ev(QE.MouseMove, 102.0, 101.0))
+        r_move = pd.handle_event(st, gview, Ev(QE.MouseMove, 130.0, 150.0))  # 50 Einheiten nach unten
+        r_rel = pd.handle_event(st, gview, Ev(QE.MouseButtonRelease, 130.0, 150.0))
+    finally:
+        gui._sel = []
+    if r_press or r_small or not r_move or not r_rel or trans != ["open", "commit", "recompute"]:
+        print("  FEHLER: Ziehen-Ablauf", r_press, r_small, r_move, r_rel, trans)
+        return False
+    if t7.X != 0.0 or abs(t7.Y - (y0 - 50.0 / 10.0)) > 1e-9:
+        print("  FEHLER: Draufsicht beim Ziehen nicht senkrecht verschoben", t7.X, t7.Y)
+        return False
+    print("  Ziehen   : ein Linksklick genügt (auch auf Kanten), Achse bleibt, 1 Rückgängig-Schritt je Zug")
+
     gui.ActiveDocument = None
     print("  Konstrukt: nur neue Linien gestrichelt, Kreise/alte Linien bleiben; Ende bei Werkzeugwechsel/Skizzenende")
 

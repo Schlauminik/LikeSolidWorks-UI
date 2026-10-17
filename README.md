@@ -40,6 +40,8 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | 9b+ | Bild einfügen: SVG (Vektor), PNG/JPG (eingebettet), Position X/Y, Breite in mm, Drehung von Hand; gewähltes Bild nachträglich bearbeiten (`swui/insert_image.py`) | **fertig** |
 | 9c | Reiter Zeichnungen: Ansichtslayout (Modell-, Schnitt-, Detailansicht …), Beschriftung (Intelligente Bemaßung, Positionsnummer, Notiz, Mittellinie …), PDF/DXF; springt bei aktivem Blatt nach vorn | **fertig** (Symbole folgen) |
 | 9c+ | Benennung nach Norm: Schnitte A-A, B-B …, Details Z, Y … mit Maßstab; eigenes Textfeld, frei verschiebbar, wandert mit, umbenennbar (`swui/view_labels.py`) | **fertig** |
+| 9c++ | Projizierte Ansicht (wie SW): Lage wählen, Projektion nach Methode 1 ausgerichtet; Ansichten verschiebbar mit verbundener Mittelachse (`swui/proj_views.py`) | **fertig** |
+| 9c+++ | Ansichten mit einem Linksklick ziehen (auch auf Kanten), Achsbindung bleibt; Projizierte Ansicht per Mausklick relativ zur gewählten Ansicht (`swui/page_drag.py`, `swui/proj_views.py`) | **fertig** |
 
 Später: 3D-Skizzen.
 

@@ -348,7 +348,9 @@ ZEICHNUNGEN = (
             # Ansichtslayout (SW-Begriffe; Befehle geprueft gegen 1.1.4,
             # src/Mod/TechDraw/Gui/Command*.cpp)
             ("TechDraw_View", "Modell-\nansicht", {}),
-            ("TechDraw_ProjectionGroup", "Projizierte\nAnsichten", {}),
+            # Wie SW: Ansicht waehlen -> ausgerichtete Projektion daneben (proj_views.py)
+            ("SWUI_ProjectedView", "Projizierte\nAnsicht", {}),
+            ("TechDraw_ProjectionGroup", "Standard-\nDreiansicht", {}),
             ("TechDraw_SectionView", "Schnitt-\nansicht", {}),
             ("TechDraw_DetailView", "Detail-\nansicht", {}),
             {"stack": [

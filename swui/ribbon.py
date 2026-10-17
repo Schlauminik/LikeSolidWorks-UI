@@ -721,11 +721,27 @@ def _check_drawing():
     if DRAWING_TAB not in _tab_titles:
         return
     now = _drawing_active()
+    if now:
+        # Ansichten mit einem Linksklick ziehen (auch auf Kanten) - jedes Blatt-Fenster
+        try:
+            from swui import page_drag
+
+            page_drag.attach_active()
+        except Exception:
+            pass
     if now == _on_drawing:
         return
     _on_drawing = now
     if now:
         _tabs.setCurrentIndex(_tab_titles.index(DRAWING_TAB))
+        # Bestehende Zeichnungen: Ansichten verschiebbar machen (Achse bleibt verbunden)
+        try:
+            from swui import proj_views
+
+            proj_views.freeze_doc(FreeCAD.ActiveDocument)
+        except Exception:
+            pass
+
 
 
 def _drawing_active():

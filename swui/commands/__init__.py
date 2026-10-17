@@ -41,5 +41,9 @@ def register_all():
 
     FreeCADGui.addCommand("SWUI_InsertImage", insert_image.InsertImage())
 
+    from swui import proj_views
+
+    FreeCADGui.addCommand("SWUI_ProjectedView", proj_views.ProjectedView())
+
     _REGISTERED = True
     FreeCAD.Console.PrintLog("[SWUI] Befehle angemeldet.\n")

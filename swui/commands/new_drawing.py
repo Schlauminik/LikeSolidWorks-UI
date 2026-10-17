@@ -139,6 +139,17 @@ def build(doc, objs, fmt):
     return page, group
 
 
+def _make_movable(group):
+    """Startlage setzen, Ansichten sofort verschiebbar (verbundene Achse) - proj_views."""
+    try:
+        from swui import proj_views
+
+        proj_views.setup_group(group)
+        group.Document.recompute()
+    except Exception:
+        FreeCAD.Console.PrintLog("[SWUI] Ansichten nicht verschiebbar gemacht: %s\n" % traceback.format_exc())
+
+
 def prefill_title_block(page):
     """Schriftfeld vorbelegen (Benennung, Nr., Werkstoff, Massstab, Ersteller, Datum) - 9b."""
     try:
@@ -182,8 +193,9 @@ def create():
         doc = FreeCAD.newDocument(_doc_name(stem))
         doc.Label = stem
         doc.saveAs(path)  # vor XSource speichern (siehe Modulkopf)
-        page, _group = build(doc, objs, fmt)
+        page, group = build(doc, objs, fmt)
         doc.recompute()
+        _make_movable(group)
         prefill_title_block(page)
         doc.save()
         FreeCAD.setActiveDocument(doc.Name)

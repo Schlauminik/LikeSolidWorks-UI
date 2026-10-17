@@ -950,7 +950,7 @@ def run(split_namespace):
         return False
     zcmds = tab_cmds(lay_mod.ZEICHNUNGEN)
     for need in ("TechDraw_View", "TechDraw_SectionView", "TechDraw_DetailView", "TechDraw_Dimension",
-                 "TechDraw_Balloon", "Std_PrintPdf", "TechDraw_ExportPageDXF"):
+                 "TechDraw_Balloon", "SWUI_ExportPDF", "SWUI_ExportDXF"):
         if need not in zcmds:
             print("  FEHLER: Zeichnungs-Werkzeug fehlt im Reiter:", need)
             return False
@@ -3051,6 +3051,71 @@ def run(split_namespace):
         print("  FEHLER: Qt-Meldungsfilter filtert falsch", got_q)
         return False
     print("  Meldungen: 'render glyph failed' beim starken Zoomen ausgeblendet, alles andere geht weiter")
+
+    # --- Ausgabe PDF (alle Blaetter) / DXF (9g) ---
+    de = sys.modules.get("swui.drawing_export")
+    pm = sys.modules.get("swui.pdf_merge")
+    if de is None or pm is None:
+        print("  FEHLER: drawing_export/pdf_merge nicht geladen")
+        return False
+    tplx = types.SimpleNamespace(EditableTexts={"drawing_number": "TZ-001/A"})
+    pg1 = types.SimpleNamespace(TypeId="TechDraw::DrawPage", Label="Blatt1", Name="Page", Template=tplx)
+    pg2 = types.SimpleNamespace(TypeId="TechDraw::DrawPage", Label="Blatt2", Name="Page001", Template=None)
+    xdoc = types.SimpleNamespace(Objects=[pg1, types.SimpleNamespace(TypeId="TechDraw::DrawViewPart"), pg2],
+                                 FileName="/h/z/Tisch_Zeichnung.FCStd", Label="Tisch_Zeichnung", Name="Tisch")
+    pgs = de.pages_of(xdoc)
+    if pgs != [pg1, pg2] or de.suggested_path(xdoc, pgs, ".pdf") != "/h/z/TZ-001_A.pdf":
+        print("  FEHLER: Blätter/Dateiname aus Zeichnungsnummer", de.suggested_path(xdoc, pgs, ".pdf"))
+        return False
+    tplx.EditableTexts = {"drawing_number": ""}
+    if de.suggested_path(xdoc, pgs, ".dxf") != "/h/z/Tisch_Zeichnung.dxf":
+        print("  FEHLER: Dateiname ohne Zeichnungsnummer")
+        return False
+    if de.sheet_paths("/o/T.dxf", pgs, ".dxf") != ["/o/T_Blatt1.dxf", "/o/T_Blatt2.dxf"] or de.sheet_paths("/o/T.dxf", [pg1], ".dxf") != ["/o/T.dxf"]:
+        print("  FEHLER: DXF je Blatt", de.sheet_paths("/o/T.dxf", pgs, ".dxf"))
+        return False
+    # PDF: echte Mini-PDFs (klassische xref-Tabelle wie Qt) zusammenfuegen
+    def mini_pdf(path, w, h, text):
+        objs = [b"<< /Type /Catalog /Pages 2 0 R >>",
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 %d %d] /Contents 4 0 R /Resources << >> >>" % (w, h)]
+        stream = b"BT /F1 12 Tf 20 20 Td (" + text + b") Tj ET"
+        objs.append(b"<< /Length 5 0 R >>\nstream\n" + stream + b"\nendstream")
+        objs.append(b"%d" % len(stream))
+        out = bytearray(b"%PDF-1.4\n")
+        offs = []
+        for i_, o_ in enumerate(objs, 1):
+            offs.append(len(out))
+            out += b"%d 0 obj\n" % i_ + o_ + b"\nendobj\n"
+        xr = len(out)
+        out += b"xref\n0 %d\n0000000000 65535 f \n" % (len(objs) + 1)
+        for o_ in offs:
+            out += b"%010d 00000 n \n" % o_
+        out += b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (len(objs) + 1, xr)
+        with open(path, "wb") as fh_:
+            fh_.write(bytes(out))
+
+    pdir = os.path.join(SCRATCH_TMP, "pdf9g")
+    os.makedirs(pdir, exist_ok=True)
+    texts_pdf = {pg1.Name: (595, 842, b"Blatt eins"), pg2.Name: (1191, 842, b"Blatt zwei")}
+    outp = os.path.join(pdir, "TZ.pdf")
+    files_p, merged_p = de.export_pdf(pgs, outp, lambda p_, f_: mini_pdf(f_, *texts_pdf[p_.Name]), pm.merge)
+    data_p = open(outp, "rb").read()
+    objs_p = pm.read_objects(data_p)
+    pages_p = [o_ for o_ in objs_p.values() if b"/Type /Page " in o_ or b"/Type /Page\n" in o_]
+    if (not merged_p or files_p != [outp] or b"/Count 2" not in data_p or len(pages_p) != 2
+            or b"Blatt eins" not in data_p or b"Blatt zwei" not in data_p or b"/Parent 2 0 R" not in pages_p[0]
+            or data_p.index(b"Blatt eins") > data_p.index(b"Blatt zwei")):
+        print("  FEHLER: PDF – alle Blätter in einer Datei", merged_p, files_p, len(pages_p))
+        return False
+    # Zusammenfuegen klappt nicht -> einzelne Dateien
+    def broken(_files, _out):
+        raise pm.UnsupportedPdf("Test")
+    files_b, merged_b = de.export_pdf(pgs, os.path.join(pdir, "B.pdf"), lambda p_, f_: mini_pdf(f_, *texts_pdf[p_.Name]), broken)
+    if merged_b or [os.path.basename(f_) for f_ in files_b] != ["B_Blatt1.pdf", "B_Blatt2.pdf"] or not all(os.path.isfile(f_) for f_ in files_b):
+        print("  FEHLER: PDF-Rückfall auf einzelne Dateien", files_b)
+        return False
+    print("  Ausgabe  : PDF alle Blätter in einer Datei (sonst einzeln), DXF je Blatt, Name aus Zeichnungsnummer")
 
     gui.ActiveDocument = None
     print("  Konstrukt: nur neue Linien gestrichelt, Kreise/alte Linien bleiben; Ende bei Werkzeugwechsel/Skizzenende")

@@ -389,8 +389,9 @@ ZEICHNUNGEN = (
         ],
         [
             # Ausgabe (Dominik: PDF und DXF)
-            ("Std_PrintPdf", "Als PDF\nspeichern", {"svg": "sketch/d_pdf"}),
-            ("TechDraw_ExportPageDXF", "Als DXF\nexportieren", {"svg": "sketch/d_dxf"}),
+            # alle Blaetter in eine PDF, Name aus der Zeichnungsnummer (drawing_export.py)
+            ("SWUI_ExportPDF", "Als PDF\nspeichern", {"svg": "sketch/d_pdf"}),
+            ("SWUI_ExportDXF", "Als DXF\nexportieren", {"svg": "sketch/d_dxf"}),
         ],
     ],
 )

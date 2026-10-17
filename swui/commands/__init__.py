@@ -57,5 +57,10 @@ def register_all():
 
     FreeCADGui.addCommand("SWUI_WeldSymbol", weld_symbol.WeldSymbol())
 
+    from swui import drawing_export
+
+    FreeCADGui.addCommand("SWUI_ExportPDF", drawing_export.ExportPdf())
+    FreeCADGui.addCommand("SWUI_ExportDXF", drawing_export.ExportDxf())
+
     _REGISTERED = True
     FreeCAD.Console.PrintLog("[SWUI] Befehle angemeldet.\n")

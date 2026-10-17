@@ -54,6 +54,7 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | 9e2d | Eigenes Schweißsymbol nach DIN EN ISO 2553 wie in SOLIDWORKS: Pfeilspitze anklicken, Symbol setzen, Pfeil folgt beim Verschieben; Pfeil-/Gegenseite, Nahtdicke, Länge, Oberfläche, G/C/M/F, ringsum, Baustelle, Gabel, wahlweise Strichlinie; Doppelklick (`swui/weld_symbol.py`) | **fertig** |
 | 9f | Namen im Zeichnungsbaum wie SW: Blatt1, Blattformat1, Standard-Dreiansicht, Vorderansicht/Draufsicht/Seitenansicht von links, Zeichenansicht1, Schnittansicht A-A, Detailansicht Z (2:1), Bemaßung1, Positionsnummer1, Notiz1, Schraffur1, Schweißsymbol1, Oberflächenangabe1; bestehende Zeichnungen werden beim Öffnen nachgezogen (`naming.py`, `view_labels.py`) | **fertig** |
 | Fix | Harmlose Qt-Meldungen „render glyph failed“ beim starken Hineinzoomen werden ausgeblendet (`swui/qt_messages.py`) | **fertig** |
+| 9g | Ausgabe: „Als PDF speichern“ schreibt alle Blätter in eine PDF (eigenes Zusammenfügen, sonst einzelne Dateien), „Als DXF exportieren“ je Blatt eine Datei; Dateiname aus der Zeichnungsnummer (`drawing_export.py`, `pdf_merge.py`) | **fertig** |
 
 Später: 3D-Skizzen.
 

@@ -40,7 +40,7 @@ DETAIL_LETTERS = list(reversed(SECTION_LETTERS))
 TEXT_SIZE = 7.0  # mm
 GAP = 10.0  # mm Abstand unter der Ansicht
 POLL_MS = 300
-WB_NAME = "SolidWorksUIWorkbench"
+WB_NAME = "LikeSolidWorksUIWorkbench"
 
 _AUTO = re.compile(r"^\s*([A-Z]{1,2})(\s*-\s*[A-Z]{1,2})?(\s*\(\s*[\d.,]+\s*:\s*[\d.,]+\s*\))?\s*$")
 

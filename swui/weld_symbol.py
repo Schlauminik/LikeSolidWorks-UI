@@ -320,7 +320,7 @@ def rebuild(obj, data=None):
 
 def _ensure_props(obj):
     for name, typ, doc in (
-        (KIND_PROP, "App::PropertyString", "SolidWorks UI: Art des Symbols"),
+        (KIND_PROP, "App::PropertyString", "LikeSolidWorks UI: Art des Symbols"),
         (DATA_PROP, "App::PropertyString", "Schweißangaben (intern, JSON)"),
         (TIP_X, "App::PropertyFloat", "Pfeilspitze X auf dem Blatt (mm)"),
         (TIP_Y, "App::PropertyFloat", "Pfeilspitze Y auf dem Blatt (mm)"),

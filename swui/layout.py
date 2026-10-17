@@ -40,7 +40,7 @@ KEEP_TOOLBARS = ("File", "Edit", "Workbench")
 TASK_DOCK_KEYS = ("Tasks", "TaskView", "TaskList", "Task")
 MODEL_DOCK_KEYS = ("Model", "ComboView", "TreeView", "Tree")
 
-WB_NAME = "SolidWorksUIWorkbench"
+WB_NAME = "LikeSolidWorksUIWorkbench"
 
 _active = False
 _saved_state = None

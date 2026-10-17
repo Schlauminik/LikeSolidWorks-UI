@@ -43,7 +43,7 @@ REFRESH_MS = 500
 # ein- und ausgeblendet.
 _dock = None
 _timer = None
-_wanted = False  # soll das Ribbon gerade sichtbar sein? (nur in SolidWorks UI)
+_wanted = False  # soll das Ribbon gerade sichtbar sein? (nur in LikeSolidWorks UI)
 _buttons = {}  # Knopf-ID -> QToolButton. ID = Befehl oder "Befehl#Index"
 _flyouts = []  # Ausklappknoepfe: {"button", "variants", "current", "id"}
 _toggles = []  # Umschaltknoepfe: {"button", "variants", "current"}
@@ -91,7 +91,7 @@ def hide():
 
 def _on_visibility(visible):
     """
-    Waechter: Taucht das Ribbon ausserhalb von SolidWorks UI wieder auf,
+    Waechter: Taucht das Ribbon ausserhalb von LikeSolidWorks UI wieder auf,
     sofort wieder ausblenden. Das passiert, wenn FreeCAD beim Werkbank-
     Wechsel Fenster- und Panel-Zustaende zeitversetzt wiederherstellt
     (Dominiks Hinweis vom 17.10.).

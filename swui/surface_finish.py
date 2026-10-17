@@ -147,7 +147,7 @@ def write_state(obj, kind, all_around, texts, rotation=None):
 
 def _ensure_props(obj):
     for name, typ, doc in (
-        (KIND_PROP, "App::PropertyString", "SolidWorks UI: Art des Symbols"),
+        (KIND_PROP, "App::PropertyString", "LikeSolidWorks UI: Art des Symbols"),
         (TYPE_PROP, "App::PropertyString", "Grundsymbol: any / required / prohibited"),
         (ROUND_PROP, "App::PropertyBool", "Rundum die Kontur"),
     ):

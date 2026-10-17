@@ -157,7 +157,7 @@ def tool_active(gview):
 
 def _is_active_workbench():
     try:
-        return FreeCADGui.activeWorkbench().name() == "SolidWorksUIWorkbench"
+        return FreeCADGui.activeWorkbench().name() == "LikeSolidWorksUIWorkbench"
     except Exception:
         return False
 

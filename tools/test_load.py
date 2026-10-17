@@ -367,7 +367,7 @@ def _make_stubs():
     gui.getMainWindow = lambda: mw
     gui._mw = mw
     gui.Control = types.SimpleNamespace(activeDialog=lambda: mw.dialog_open)
-    gui._active_wb = "SolidWorksUIWorkbench"
+    gui._active_wb = "LikeSolidWorksUIWorkbench"
     gui.activeWorkbench = lambda: types.SimpleNamespace(name=lambda: gui._active_wb)
 
     # FreeCADs Show-Modul: TempoVis wechselt beim Skizzieren die Workbench.
@@ -556,17 +556,17 @@ def run(split_namespace):
 
     print("  Befehle  :", list(commands) or "KEINE")
 
-    # --- Skizze bleibt in SolidWorks UI -------------------------------
+    # --- Skizze bleibt in LikeSolidWorks UI -------------------------------
     show = sys.modules["Show"]
     gui = sys.modules["FreeCADGui"]
     tv = show.TempoVis()
     tv.activateWorkbench("SketcherWorkbench")
     if show._switched:
-        print("  FEHLER: In SolidWorks UI wurde trotzdem zum Sketcher gewechselt")
+        print("  FEHLER: In LikeSolidWorks UI wurde trotzdem zum Sketcher gewechselt")
         return False
     gui._active_wb = "PartDesignWorkbench"
     tv.activateWorkbench("SketcherWorkbench")
-    gui._active_wb = "SolidWorksUIWorkbench"
+    gui._active_wb = "LikeSolidWorksUIWorkbench"
     if show._switched != ["SketcherWorkbench"]:
         print("  FEHLER: Part Design wechselt nicht mehr in den Sketcher", show._switched)
         return False
@@ -575,7 +575,7 @@ def run(split_namespace):
     if getattr(orig, "_swui_original", None) is not None:
         print("  FEHLER: doppelt eingehakt")
         return False
-    print("  Skizze   : bleibt in SolidWorks UI; Part Design wechselt weiter zum Sketcher")
+    print("  Skizze   : bleibt in LikeSolidWorks UI; Part Design wechselt weiter zum Sketcher")
 
     # --- SOLIDWORKS-Namen fuer neue Features ----------------------------
     fc = sys.modules["FreeCAD"]
@@ -629,7 +629,7 @@ def run(split_namespace):
     doc.Transacting = False
     gui._active_wb = "PartDesignWorkbench"
     other = create("PartDesign::Fillet", "Fillet")
-    gui._active_wb = "SolidWorksUIWorkbench"
+    gui._active_wb = "LikeSolidWorksUIWorkbench"
     naming._flush()
     if (loaded.Label, redone.Label, other.Label) != ("Sketch001", "Pad001", "Fillet"):
         print("  FEHLER: umbenannt beim Laden/Rückgängig/anderer Workbench",
@@ -3244,10 +3244,10 @@ def run(split_namespace):
         return False
     rb._dock.hide.reset_mock()
     rb._wanted = True
-    rb._hide_if_unwanted()  # in SolidWorks UI: nichts ausblenden
+    rb._hide_if_unwanted()  # in LikeSolidWorks UI: nichts ausblenden
     rb._wanted = False
     if rb._dock.hide.called:
-        print("  FEHLER: Ribbon-Wächter blendet in SolidWorks UI aus")
+        print("  FEHLER: Ribbon-Wächter blendet in LikeSolidWorks UI aus")
         return False
     print("  Verlassen: alle Leisten, Panels, Farben und 3D-Einstellungen wiederhergestellt")
 
@@ -3311,6 +3311,37 @@ def run(split_namespace):
     return True
 
 
+def check_manifest():
+    """package.xml passt zu InitGui.py und zu den Lizenzdateien (Addon-Manager prueft das auch)."""
+    import re
+    import xml.etree.ElementTree as ET
+
+    ns = "{https://wiki.freecad.org/Package_Metadata}"
+    try:
+        root = ET.parse(os.path.join(ADDON, "package.xml")).getroot()
+    except Exception as exc:
+        print("  FEHLER: package.xml nicht lesbar: %s" % exc)
+        return False
+    ok = True
+    cls = root.findtext("%scontent/%sworkbench/%sclassname" % (ns, ns, ns)) or ""
+    with open(os.path.join(ADDON, "InitGui.py"), encoding="utf-8") as fh:
+        src = fh.read()
+    if not re.search(r"^class %s\(" % re.escape(cls), src, re.M) or not cls:
+        print("  FEHLER: <classname> '%s' ist keine Klasse in InitGui.py" % cls)
+        ok = False
+    if '_WB_KEY = "%s"' % cls not in src:
+        print("  FEHLER: _WB_KEY in InitGui.py passt nicht zu <classname> '%s'" % cls)
+        ok = False
+    for lic in root.findall(ns + "license"):
+        f = lic.get("file")
+        if not f or not os.path.isfile(os.path.join(ADDON, f)):
+            print("  FEHLER: Lizenzdatei '%s' fehlt (%s)" % (f, lic.text))
+            ok = False
+    if ok:
+        print("  Manifest : <classname> %s passt, Lizenzdateien vorhanden" % cls)
+    return ok
+
+
 # --- Hauptteil -------------------------------------------------------
 
 print("Add-on:", ADDON)
@@ -3318,6 +3349,7 @@ print("Add-on:", ADDON)
 results = {
     "getrennte Namensraeume": run(split_namespace=True),
     "ein Namensraum": run(split_namespace=False),
+    "package.xml": check_manifest(),
 }
 
 print("\n" + "=" * 62)

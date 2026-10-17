@@ -1,4 +1,6 @@
-# SolidWorks UI — FreeCAD Add-on
+# LikeSolidWorks UI — FreeCAD Add-on
+
+*Eine SOLIDWORKS-ähnliche Oberfläche für FreeCAD. Nicht verbunden mit Dassault Systèmes.*
 
 SOLIDWORKS-ähnliche Benutzeroberfläche und Werkzeuge für FreeCAD.
 Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
@@ -55,6 +57,7 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | 9f | Namen im Zeichnungsbaum wie SW: Blatt1, Blattformat1, Standard-Dreiansicht, Vorderansicht/Draufsicht/Seitenansicht von links, Zeichenansicht1, Schnittansicht A-A, Detailansicht Z (2:1), Bemaßung1, Positionsnummer1, Notiz1, Schraffur1, Schweißsymbol1, Oberflächenangabe1; bestehende Zeichnungen werden beim Öffnen nachgezogen (`naming.py`, `view_labels.py`) | **fertig** |
 | Fix | Harmlose Qt-Meldungen „render glyph failed“ beim starken Hineinzoomen werden ausgeblendet (`swui/qt_messages.py`) | **fertig** |
 | 9g | Ausgabe: „Als PDF speichern“ schreibt alle Blätter in eine PDF (eigenes Zusammenfügen, sonst einzelne Dateien), „Als DXF exportieren“ je Blatt eine Datei; Dateiname aus der Zeichnungsnummer (`drawing_export.py`, `pdf_merge.py`) | **fertig** |
+| V1 | Veröffentlichung vorbereitet: Name **LikeSolidWorks UI**, Lizenzdateien (LGPL-2.1+/CC-BY-SA-4.0), Rechtshinweise, Manifest-Prüfung im Test | **fertig** |
 
 Später: 3D-Skizzen.
 
@@ -98,15 +101,66 @@ resources/
 
 ### Konventionen
 
-- Qt immer über `from swui.compat import QtWidgets` — nie direkt `PySide6`
+- Qt immer über `from swui.compat import QtWidgets` — nie direkt `PySide6`.
+  Einzige dokumentierte Ausnahme: `swui/qt_messages.py` versucht zuerst
+  `PySide6.QtCore.qInstallMessageHandler`, weil die Schicht diese
+  Funktion nicht immer hat, und fällt danach auf `compat` zurück.
 - Befehls-IDs beginnen mit `SWUI_`
 - Pfade nur über `swui.paths`, nie zusammengestückelt
 - Schwere Imports in `Initialize()`, nicht auf Modulebene
 
 ## Fehlersuche
 
-Workbench → **SolidWorks UI** → Toolbar **SW Diagnose** → Knopf *Diagnose*.
+Workbench → **LikeSolidWorks UI** → Toolbar **SW Diagnose** → Knopf *Diagnose*.
 Das Fenster zeigt alle Versionsangaben mit Kopier-Knopf.
 
 Python-Konsole einschalten: Ansicht → Panels → Python-Konsole.
 Report-Ansicht einschalten: Ansicht → Panels → Report-Ansicht.
+
+## Lizenz
+
+Zwei Lizenzen, wie bei FreeCAD-Add-ons üblich:
+
+| Teil | Lizenz | Datei |
+|---|---|---|
+| Quelltext (`*.py`) | LGPL-2.1-or-later | `LICENSE-Code` |
+| Symbole und Vorlagen (`resources/`) | CC-BY-SA-4.0 | `LICENSE-Assets` |
+
+LGPL für den Code, weil FreeCAD selbst unter dieser Lizenz steht und
+der Code damit notfalls auch in FreeCAD einfließen könnte. CC-BY-SA
+für die Grafiken, weil die LGPL auf Nicht-Quelltext schlecht passt.
+Beides erlaubt Weitergabe und Änderung, verlangt aber, dass
+Änderungen unter derselben Lizenz bleiben.
+
+## Marken und Rechtliches
+
+**SOLIDWORKS ist eine eingetragene Marke von Dassault Systèmes.**
+Dieses Projekt steht in keiner Verbindung zu Dassault Systèmes und
+wird von dort weder unterstützt, geprüft noch genehmigt. Der Name
+„LikeSolidWorks UI“ soll nur ausdrücken, woran sich die Bedienung
+anlehnt; er ist kein Produkt- oder Markenname von Dassault Systèmes.
+
+**Alle Symbole sind Eigenentwürfe.** Die 124 SVG-Dateien unter
+`resources/icons/` wurden von Grund auf neu gezeichnet
+(`tools/make_icons.py`) und sind keine Kopien oder Bearbeitungen
+fremder Symbole. Dasselbe gilt für die Zeichnungsvorlagen unter
+`resources/templates/`.
+
+**Normen.** Das Add-on setzt den technischen Inhalt von DIN EN ISO
+7200 (Schriftfeld), 1302 (Oberflächenangaben) und 2553
+(Schweißsymbole) um. Die Normtexte selbst sind urheberrechtlich
+geschützt und werden hier weder mitgeliefert noch zitiert — verwendet
+wird nur das Fachwissen, so wie es jedes CAD-Programm tut.
+
+**Schriftart.** Die Vorlagen verweisen über den Namen auf `osifont`.
+Die Schriftdatei selbst gehört zu FreeCAD und liegt nicht in diesem
+Projekt.
+
+## Haftungsausschluss
+
+Dieses Add-on wird ohne jede Gewährleistung bereitgestellt. Es
+verändert die Oberfläche von FreeCAD, solange die Werkbank aktiv ist,
+und stellt den Ursprungszustand beim Verlassen wieder her. Für
+Datenverlust oder fehlerhafte Zeichnungen wird keine Haftung
+übernommen — technische Zeichnungen vor der Weitergabe immer selbst
+prüfen.

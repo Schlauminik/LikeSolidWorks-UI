@@ -2,7 +2,7 @@
 """
 naming.py - SOLIDWORKS-Namen fuer neu angelegte Features.
 
-Legt man in der Workbench "SolidWorks UI" ein Feature an, bekommt es
+Legt man in der Workbench "LikeSolidWorks UI" ein Feature an, bekommt es
 statt "Pad" / "Sketch" einen Namen wie in SOLIDWORKS:
 
     Skizze1, Linear austragen1, Linearer Schnitt1, Verrundung1 ...
@@ -30,7 +30,7 @@ Name (Pad, Sketch001 ...) bleibt unveraendert; FreeCAD verweist intern
 nur ueber ihn, daher ist das Umbenennen gefahrlos.
 
 Wann NICHT umbenannt wird (gegen FreeCAD 1.1.4 geprueft):
-  - ausserhalb der Workbench "SolidWorks UI"
+  - ausserhalb der Workbench "LikeSolidWorks UI"
   - beim Laden einer Datei      (Dokument meldet Restoring)
   - bei Rueckgaengig/Wiederholen (Dokument meldet Transacting)
 Bestehende Objekte werden nie angefasst - nur frisch angelegte.
@@ -48,7 +48,7 @@ import FreeCADGui
 
 from swui.compat import QtCore
 
-WB_NAME = "SolidWorksUIWorkbench"
+WB_NAME = "LikeSolidWorksUIWorkbench"
 
 # Typ -> Grundname. Die Nummer wird angehaengt (Skizze1, Skizze2 ...).
 # Gleich beschriftet wie die Ribbon-Knoepfe, die das Feature anlegen.

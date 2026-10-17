@@ -22,7 +22,7 @@ Ansichten springen zurueck. Darum:
   - neue Zeichnungen: Startlage wird selbst berechnet, AutoDistribute aus
     (setup_group)
   - bestehende Zeichnungen: AutoDistribute wird ausgeschaltet, sobald ein
-    Blatt in SolidWorks UI aktiv wird (freeze_doc) oder "Projizierte
+    Blatt in LikeSolidWorks UI aktiv wird (freeze_doc) oder "Projizierte
     Ansicht" benutzt wird. Die Lage bleibt dabei wie sie ist.
 
 Raster der Projektionsgruppe (DrawProjGroup::getViewIndex, FreeCAD 1.1.4),

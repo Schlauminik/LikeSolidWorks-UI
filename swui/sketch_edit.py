@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-sketch_edit.py - Skizzen in der Workbench "SolidWorks UI" bearbeiten,
+sketch_edit.py - Skizzen in der Workbench "LikeSolidWorks UI" bearbeiten,
 statt automatisch in den FreeCAD-Sketcher zu springen.
 
 Hintergrund (FreeCAD 1.1.4, ViewProviderSketch.cpp, setEdit):
@@ -14,7 +14,7 @@ auf; beim Schliessen stellt TempoVis die vorherige Workbench wieder her.
 Nur der Sketcher nutzt diesen Mechanismus.
 
 Loesung: Wir haengen uns in TempoVis.activateWorkbench ein. Ist gerade
-"SolidWorks UI" aktiv, wird der Wechsel uebersprungen - TempoVis merkt
+"LikeSolidWorks UI" aktiv, wird der Wechsel uebersprungen - TempoVis merkt
 sich dann auch nichts und stellt beim Schliessen nichts zurueck. In
 jeder anderen Workbench (z.B. Part Design) laeuft alles wie gewohnt.
 
@@ -26,7 +26,7 @@ auch das Verhalten in Part Design.
 import FreeCAD
 import FreeCADGui
 
-WB_NAME = "SolidWorksUIWorkbench"
+WB_NAME = "LikeSolidWorksUIWorkbench"
 
 
 def install():
@@ -47,7 +47,7 @@ def install():
     def activateWorkbench(self, wb_name, _original=current):
         if _swui_active():
             FreeCAD.Console.PrintLog(
-                "[SWUI] Skizze bleibt in SolidWorks UI (statt %s).\n" % wb_name
+                "[SWUI] Skizze bleibt in LikeSolidWorks UI (statt %s).\n" % wb_name
             )
             return None
         return _original(self, wb_name)
@@ -55,7 +55,7 @@ def install():
     activateWorkbench._swui_original = current
     activateWorkbench.__doc__ = current.__doc__
     cls.activateWorkbench = activateWorkbench
-    FreeCAD.Console.PrintLog("[SWUI] Skizzen bleiben in SolidWorks UI.\n")
+    FreeCAD.Console.PrintLog("[SWUI] Skizzen bleiben in LikeSolidWorks UI.\n")
     return True
 
 

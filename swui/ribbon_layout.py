@@ -329,7 +329,7 @@ BAUGRUPPE = (
 
 # Zeichnungen (Schritt 9): eigener Reiter rechts neben Baugruppe
 # (Dominik, 17.10.). Hier landen nach und nach die wichtigsten Werkzeuge
-# aus TechDraw, Draft und Spreadsheet - nur in SolidWorks UI, FreeCADs
+# aus TechDraw, Draft und Spreadsheet - nur in LikeSolidWorks UI, FreeCADs
 # eigene Werkbaenke bleiben unveraendert.
 ZEICHNUNGEN = (
     "Zeichnungen",

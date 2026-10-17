@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Erzeugt die deutschen Zeichnungsvorlagen von SolidWorks UI.
+Erzeugt die deutschen Zeichnungsvorlagen von LikeSolidWorks UI.
 
 Grundlage: FreeCADs ISO-Vorlagen mit Schriftfeld nach DIN EN ISO 7200
 (tools/template_sources/, aus FreeCAD 1.1.4, Lizenz CC0 - Ableitungen
@@ -115,7 +115,7 @@ def convert(svg):
     data = ('    <text id="unit_data_field" x="%s" y="236.2" freecad:editable="unit" '
             'style="text-align:center;text-anchor:middle"><tspan>%s</tspan></text>\n' % (_num(f + UNIT_DATA_X), UNIT_DEFAULT))
     svg = svg.replace('    <text id="part_material_data_field"', data + '    <text id="part_material_data_field"', 1)
-    note = ("<!-- Erzeugt von SolidWorks UI (tools/make_templates.py) aus FreeCADs ISO-Vorlage (CC0): "
+    note = ("<!-- Erzeugt von LikeSolidWorks UI (tools/make_templates.py) aus FreeCADs ISO-Vorlage (CC0): "
             "deutsche Beschriftung, Feld Maßeinheit. Nicht von Hand ändern. -->\n")
     svg = svg.replace("<svg", note + "<svg", 1)
     return svg

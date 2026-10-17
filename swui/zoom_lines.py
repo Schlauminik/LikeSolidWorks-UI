@@ -278,7 +278,7 @@ def _quiet(fn):
 
 def _active_workbench():
     try:
-        return FreeCADGui.activeWorkbench().name() == "SolidWorksUIWorkbench"
+        return FreeCADGui.activeWorkbench().name() == "LikeSolidWorksUIWorkbench"
     except Exception:
         return False
 

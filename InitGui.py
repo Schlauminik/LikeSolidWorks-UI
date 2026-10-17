@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-InitGui.py - Einstiegspunkt fuer die SolidWorks-UI Workbench.
+InitGui.py - Einstiegspunkt fuer die LikeSolidWorks-UI-Workbench.
 
 Diese Datei wird von FreeCAD beim Start automatisch ausgefuehrt,
 sobald der Ordner unter Mod/ liegt. Sie darf nichts Schweres tun:
@@ -47,14 +47,14 @@ import FreeCAD
 import FreeCADGui
 
 # Schluessel, unter dem FreeCAD die Workbench fuehrt.
-_WB_KEY = "SolidWorksUIWorkbench"
+_WB_KEY = "LikeSolidWorksUIWorkbench"
 
 
-class SolidWorksUIWorkbench(FreeCADGui.Workbench):
+class LikeSolidWorksUIWorkbench(FreeCADGui.Workbench):
     """Die Workbench, die in FreeCADs Auswahlliste erscheint."""
 
     # Nur Literale - siehe Fallstrick 2 im Kopf dieser Datei.
-    MenuText = "SolidWorks UI"
+    MenuText = "LikeSolidWorks UI"
     ToolTip = "SOLIDWORKS-aehnliche Oberflaeche und Werkzeuge"
     Icon = ""  # wird unten nach der Klassendefinition gesetzt
 
@@ -71,7 +71,7 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
             compat.report_environment_to_console()
             commands.register_all()
 
-            # Skizzen in SolidWorks UI bearbeiten statt im Sketcher.
+            # Skizzen in LikeSolidWorks UI bearbeiten statt im Sketcher.
             from swui import sketch_edit
 
             sketch_edit.install()
@@ -113,8 +113,8 @@ class SolidWorksUIWorkbench(FreeCADGui.Workbench):
             assembly_drop.install()
 
             # Keine eigene Toolbar: Alles Sichtbare lebt im Ribbon.
-            # Die Diagnose bleibt im Menue "SolidWorks UI" erreichbar.
-            self.appendMenu("SolidWorks UI", ["SWUI_Diagnostics"])
+            # Die Diagnose bleibt im Menue "LikeSolidWorks UI" erreichbar.
+            self.appendMenu("LikeSolidWorks UI", ["SWUI_Diagnostics"])
 
             App.Console.PrintMessage("[SWUI] Workbench initialisiert.\n")
         except Exception:
@@ -282,7 +282,7 @@ def _find_addon_dir():
 _HERE = _find_addon_dir()
 
 if _HERE:
-    SolidWorksUIWorkbench.Icon = os.path.join(
+    LikeSolidWorksUIWorkbench.Icon = os.path.join(
         _HERE, "resources", "icons", "swui_workbench.svg"
     )
 
@@ -302,7 +302,7 @@ try:
             "[SWUI] Bereits registriert - dieser Pfad wird uebersprungen: %s\n" % _HERE
         )
     else:
-        FreeCADGui.addWorkbench(SolidWorksUIWorkbench())
+        FreeCADGui.addWorkbench(LikeSolidWorksUIWorkbench())
         FreeCAD.Console.PrintMessage(
             "[SWUI] Workbench angemeldet - geladen aus: %s\n" % (_HERE or "PFAD UNBEKANNT")
         )

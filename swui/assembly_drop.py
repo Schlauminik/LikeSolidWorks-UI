@@ -34,7 +34,7 @@ EXTENSIONS = (".fcstd",)
 
 # FreeCAD wechselt beim Doppelklick auf eine Baugruppe in die eigene
 # Baugruppen-Werkbank (ViewProviderAssembly::doubleClicked, Einstellung
-# "SwitchToWB"). Dann waere SolidWorks UI weg. Solange SW UI aktiv ist,
+# "SwitchToWB"). Dann waere LikeSolidWorks UI weg. Solange SW UI aktiv ist,
 # schalten wir das ab - mit Sicherung, wie bei den 3D-Farben.
 ASSEMBLY_PARAMS = "User parameter:BaseApp/Preferences/Mod/Assembly"
 OWN_PARAMS = "User parameter:BaseApp/Preferences/Mod/SWUI"

@@ -10,6 +10,14 @@ statt "Pad" / "Sketch" einen Namen wie in SOLIDWORKS:
 Ausserdem heissen die Ebenen eines neuen Koerpers "Ebene oben",
 "Ebene vorne", "Ebene rechts".
 
+Baugruppen (Schritt 8d) wie im SOLIDWORKS-FeatureManager:
+    Baugruppe1                    (statt "Assembly")
+      (f) Welle<1>                fixiertes Teil, Name = Datei des Teils
+      Welle<2>                    zweite Instanz desselben Teils
+      Verknuepfungen              (statt "Joints")
+Das "(f) " wird bei jedem Fixieren/Loesen nachgefuehrt - auch bei
+Rueckgaengig, weil es nur den aktuellen Zustand abbildet.
+
 Der Name ist die Beschriftung (Label) - sie wird in der Datei
 gespeichert und erscheint deshalb auch in Part Design so. Der interne
 Name (Pad, Sketch001 ...) bleibt unveraendert; FreeCAD verweist intern
@@ -60,7 +68,21 @@ FEATURE_NAMES = {
     "PartDesign::Plane": "Ebene",
     "PartDesign::Line": "Achse",
     "PartDesign::Point": "Punkt",
+    "Assembly::AssemblyObject": "Baugruppe",
+    "Assembly::BomObject": "Stückliste",
 }
+
+# Ordner in einer Baugruppe: fester Name ohne Nummer.
+GROUP_NAMES = {
+    "Assembly::JointGroup": "Verknüpfungen",
+    "Assembly::ViewGroup": "Explosionsansichten",
+    "Assembly::BomGroup": "Stücklisten",
+    "Assembly::SimulationGroup": "Bewegungsstudien",
+}
+
+# Komponenten (Verweise auf Teile/Unterbaugruppen) in einer Baugruppe.
+COMPONENT_TYPES = ("App::Link", "Assembly::AssemblyLink")
+FIXED_PREFIX = "(f) "
 
 # Ursprungsebenen nach FreeCADs Ansichten (Z zeigt nach oben):
 # XY wird in "Oben" von oben gesehen, XZ in "Vorne", YZ in "Rechts".
@@ -94,10 +116,60 @@ def sw_label_for(obj):
     type_id = getattr(obj, "TypeId", "")
     if type_id == "App::Plane":
         return PLANE_NAMES.get(getattr(obj, "Role", ""))
+    if type_id in GROUP_NAMES:
+        return GROUP_NAMES[type_id]
+    if type_id in COMPONENT_TYPES:
+        return component_label(obj)
     base = FEATURE_NAMES.get(type_id)
     if base is None:
         return None
     return "%s%d" % (base, _next_number(obj.Document, base, obj))
+
+
+def component_label(link):
+    """
+    "Welle<1>", "Welle<2>" ... fuer eine Komponente in einer Baugruppe,
+    None fuer Verweise ausserhalb einer Baugruppe.
+    Grundname wie in SW: die Datei des Teils (Dokument-Beschriftung),
+    bei einem Teil aus derselben Datei dessen eigener Name.
+    """
+    if not _in_assembly(link):
+        return None
+    target = getattr(link, "LinkedObject", None)
+    if target is None:
+        return None
+    if getattr(target, "Document", None) is not getattr(link, "Document", None):
+        base = getattr(target.Document, "Label", "") or target.Document.Name
+    else:
+        base = strip_instance(getattr(target, "Label", "") or target.Name)
+    return "%s<%d>" % (base, _next_instance(link.Document, base, link))
+
+
+def strip_instance(label):
+    """'(f) Welle<2>' -> 'Welle'."""
+    label = label[len(FIXED_PREFIX):] if label.startswith(FIXED_PREFIX) else label
+    return re.sub(r"<\d+>$", "", label)
+
+
+def refresh_fixed(doc):
+    """'(f) ' vor genau die Komponenten setzen, die fixiert sind."""
+    try:
+        objects = list(doc.Objects)
+    except Exception:
+        return
+    grounded = set()
+    for o in objects:
+        target = getattr(o, "ObjectToGround", None)
+        if target is not None:
+            grounded.add(getattr(target, "Name", id(target)))
+    for o in objects:
+        if getattr(o, "TypeId", "") not in COMPONENT_TYPES or not _in_assembly(o):
+            continue
+        label = o.Label or ""
+        bare = label[len(FIXED_PREFIX):] if label.startswith(FIXED_PREFIX) else label
+        want = (FIXED_PREFIX + bare) if o.Name in grounded else bare
+        if want != label:
+            o.Label = want
 
 
 # --- Intern ----------------------------------------------------------
@@ -111,12 +183,33 @@ class _Observer:
             if not _swui_active():
                 return
             doc = obj.Document
-            if getattr(doc, "Restoring", False) or getattr(doc, "Transacting", False):
+            if getattr(doc, "Restoring", False):
                 return
+            _mark_dirty(doc)
+            if getattr(doc, "Transacting", False):
+                return  # Rueckgaengig: nur "(f)" nachfuehren, nicht umbenennen
         except Exception:
             return
         _pending.append(obj)
         QtCore.QTimer.singleShot(0, _flush)
+
+    def slotDeletedObject(self, obj):
+        # Fixierung geloescht (Loesen) -> "(f)" weg. Erst danach pruefen,
+        # wenn das Objekt wirklich weg ist.
+        try:
+            if _swui_active() and hasattr(obj, "ObjectToGround"):
+                _mark_dirty(obj.Document)
+                QtCore.QTimer.singleShot(0, _flush)
+        except Exception:
+            pass
+
+
+_dirty_docs = []
+
+
+def _mark_dirty(doc):
+    if doc not in _dirty_docs:
+        _dirty_docs.append(doc)
 
 
 def _flush():
@@ -131,6 +224,38 @@ def _flush():
         except Exception as exc:
             # Z.B. Objekt inzwischen geloescht (Befehl abgebrochen).
             FreeCAD.Console.PrintLog("[SWUI] Umbenennen uebersprungen: %s\n" % exc)
+    docs = list(_dirty_docs)
+    del _dirty_docs[:]
+    for doc in docs:
+        try:
+            if any(_is_assembly(o) for o in doc.Objects):
+                refresh_fixed(doc)
+        except Exception as exc:
+            FreeCAD.Console.PrintLog("[SWUI] (f) nicht nachgefuehrt: %s\n" % exc)
+
+
+def _is_assembly(obj):
+    return getattr(obj, "TypeId", "") == "Assembly::AssemblyObject"
+
+
+def _in_assembly(obj):
+    try:
+        return any(_is_assembly(p) for p in obj.InList)
+    except Exception:
+        return False
+
+
+def _next_instance(doc, base, exclude):
+    """Hoechste Instanznummer <n> zu einem Teil + 1 (im ganzen Dokument)."""
+    pattern = re.compile("^(?:%s)?%s<(\\d+)>$" % (re.escape(FIXED_PREFIX), re.escape(base)))
+    highest = 0
+    for other in doc.Objects:
+        if other is exclude:
+            continue
+        match = pattern.match(getattr(other, "Label", "") or "")
+        if match:
+            highest = max(highest, int(match.group(1)))
+    return highest + 1
 
 
 def _next_number(doc, base, exclude):

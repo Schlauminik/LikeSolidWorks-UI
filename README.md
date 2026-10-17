@@ -31,6 +31,7 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | 8c | Eigene Symbole für den Reiter Baugruppe (22 Stück) | **fertig** |
 | 8c+ | Drop in ungespeicherte Baugruppe: erst Speichern-Dialog, dann einfügen; fehlgeschlagene Teile nicht im Baum lassen | **fertig** |
 | 8c++ | Baum links als durchsichtige Überlagerung (Schrift grau); Aufgaben oben + Ausgabefenster unten rechts fest angedockt (`swui/overlay_panels.py`); 3D-Hintergrund wird beim Verlassen wieder korrekt zurückgesetzt | **fertig** |
+| 8d | Baum wie in SW: Baugruppe1, Welle<1>/Welle<2> (Name = Teil-Datei), „(f)“ vor fixierten Teilen, Ordner „Verknüpfungen“ (`swui/naming.py`) | **fertig** |
 
 Später: 3D-Skizzen, Baugruppen.
 

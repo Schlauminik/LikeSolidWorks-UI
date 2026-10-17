@@ -646,6 +646,53 @@ def run(split_namespace):
         print("  FEHLER: gelöschtes Objekt bricht das Umbenennen:", exc)
         return False
     print("  Namen    : Skizze5, Linear austragen2, Ebene vorne; Laden/Rückgängig/Part Design unberührt")
+
+    # Baugruppen-Baum wie in SW (8d)
+    doc = Doc()
+
+    def acreate(type_id, label, name, inlist=(), **attrs):
+        o = Obj(doc, type_id, label)
+        o.Name, o.InList = name, list(inlist)
+        for k, v in attrs.items():
+            setattr(o, k, v)
+        obs.slotCreatedObject(o)
+        return o
+
+    asm = acreate("Assembly::AssemblyObject", "Assembly", "Assembly")
+    jg = acreate("Assembly::JointGroup", "Joints", "Joints", [asm])
+    welle_doc = types.SimpleNamespace(Label="Welle", Name="Welle")
+    welle = types.SimpleNamespace(Document=welle_doc, Label="Body", Name="Body")
+    platte = types.SimpleNamespace(Document=doc, Label="Platte", Name="Part")
+    l1 = acreate("App::Link", "Body", "Link", [asm], LinkedObject=welle)
+    l2 = acreate("App::Link", "Body", "Link001", [asm], LinkedObject=welle)
+    l3 = acreate("App::Link", "Platte", "Link002", [asm], LinkedObject=platte)
+    loose = acreate("App::Link", "Body", "Link003", [], LinkedObject=welle)
+    naming._flush()
+    got = (asm.Label, jg.Label, l1.Label, l2.Label, l3.Label, loose.Label)
+    if got != ("Baugruppe1", "Verknüpfungen", "Welle<1>", "Welle<2>", "Platte<1>", "Body"):
+        print("  FEHLER: Baugruppen-Namen", got)
+        return False
+    ground = acreate("App::FeaturePython", "GroundedJoint", "GroundedJoint", [jg], ObjectToGround=l1)
+    naming._flush()
+    if l1.Label != "(f) Welle<1>" or l2.Label != "Welle<2>":
+        print("  FEHLER: fixiertes Teil nicht mit (f) markiert", l1.Label, l2.Label)
+        return False
+    doc.Objects.remove(ground)
+    obs.slotDeletedObject(ground)
+    naming._flush()
+    if l1.Label != "Welle<1>":
+        print("  FEHLER: (f) nach dem Lösen nicht entfernt", l1.Label)
+        return False
+    doc.Transacting = True  # Rueckgaengig stellt die Fixierung wieder her
+    ground = acreate("App::FeaturePython", "GroundedJoint", "GroundedJoint", [jg], ObjectToGround=l1)
+    doc.Transacting = False
+    naming._flush()
+    l4 = acreate("App::Link", "Body", "Link004", [asm], LinkedObject=welle)
+    naming._flush()
+    if l1.Label != "(f) Welle<1>" or ground.Label != "GroundedJoint" or l4.Label != "Welle<3>":
+        print("  FEHLER: (f) bei Rückgängig / Nummer nach (f)", l1.Label, ground.Label, l4.Label)
+        return False
+    print("  Baum     : Baugruppe1, (f) Welle<1>, Welle<2>, Verknüpfungen; (f) folgt Fixieren/Lösen/Rückgängig")
     if not (bool(commands) and icon_ok):
         return False
 

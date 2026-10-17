@@ -2158,6 +2158,109 @@ def run(split_namespace):
         return False
     print("  Blatt    : Vorlagen A4 hoch/A3 quer zuerst, Wechsel behält Schriftfeld + Ansichten, Vorbelegung aus Teil")
 
+    # --- Bild einfuegen ---------------------------------------------------
+    ii = sys.modules.get("swui.insert_image")
+    if ii is None or "SWUI_InsertImage" not in commands:
+        print("  FEHLER: Befehl SWUI_InsertImage nicht angemeldet")
+        return False
+    mm_svg = '<svg xmlns="http://www.w3.org/2000/svg" width="50mm" height="20mm" viewBox="0 0 50 20"><rect/></svg>'
+    px_svg = '<svg width="300" height="150"><rect/></svg>'
+    vb_svg = '<svg viewBox="0 0 400 100"></svg>'
+    sizes = (ii.svg_natural_size(mm_svg, 10.0), ii.svg_natural_size(px_svg, 10.0), ii.svg_natural_size(vb_svg, 10.0),
+             ii.svg_natural_size("kein svg", 10.0), ii.bitmap_natural_size(800, 600, 10.0))
+    if sizes != ((50.0, 20.0), (30.0, 15.0), (40.0, 10.0), None, (80.0, 60.0)):
+        print("  FEHLER: natürliche Bildgröße", sizes)
+        return False
+    if (ii.initial_scale((200.0, 100.0), 420.0), ii.initial_scale((50.0, 20.0), 420.0), ii.width_to_scale(25.0, (50.0, 20.0))) != (0.63, 1.0, 0.5):
+        print("  FEHLER: Startgröße / Breite -> Maßstab",
+              ii.initial_scale((200.0, 100.0), 420.0), ii.width_to_scale(25.0, (50.0, 20.0)))
+        return False
+    svg_path = os.path.join(SCRATCH_TMP, "logo.svg")
+    open(svg_path, "w", encoding="utf-8").write(mm_svg)
+
+    class ImgDoc:
+        def __init__(self):
+            self.Objects = []
+
+        def addObject(self, t, n):
+            o = types.SimpleNamespace(TypeId=t, Name=n, Label=n, X=0.0, Y=0.0, Scale=1.0, Rotation=0.0, Document=self)
+            self.Objects.append(o)
+            return o
+
+    idoc = ImgDoc()
+    ipage = types.SimpleNamespace(Document=idoc, Template=types.SimpleNamespace(Width=420.0, Height=297.0), views=[])
+    ipage.addView = lambda v: ipage.views.append(v)
+    real_px = ii.image_pixels
+    sys.modules["TechDraw"] = types.ModuleType("TechDraw")
+    try:
+        sym = ii.add_image(ipage, svg_path)
+        ii.image_pixels = lambda p_: (2000, 1000)
+        bmp = ii.add_image(ipage, "/h/a/foto.JPG")
+        try:
+            ii.add_image(ipage, "/h/a/text.pdf")
+            wrong_ok = True
+        except ValueError:
+            wrong_ok = False
+    finally:
+        ii.image_pixels = real_px
+        del sys.modules["TechDraw"]
+    if (sym.TypeId, sym.Scale, sym.X, sym.Y, sym.ScaleType) != ("TechDraw::DrawViewSymbol", 1.0, 210.0, 148.5, "Custom") or "<rect/>" not in sym.Symbol:
+        print("  FEHLER: SVG nicht als Symbol in Blattmitte eingefügt", sym)
+        return False
+    if bmp.TypeId != "TechDraw::DrawViewImage" or bmp.ImageFile != "/h/a/foto.JPG" or abs(bmp.Scale - 0.63) > 1e-9 or wrong_ok:
+        print("  FEHLER: PNG/JPG nicht als Bild eingefügt (oder falsches Format angenommen)", bmp.TypeId, bmp.Scale)
+        return False
+    if ipage.views != [sym, bmp]:
+        print("  FEHLER: Bilder nicht aufs Blatt gelegt")
+        return False
+    ii.set_geometry(sym, x=30, y=40, width=100, rotation=90, natural=(50.0, 20.0))
+    if (sym.X, sym.Y, sym.Scale, sym.Rotation) != (30.0, 40.0, 2.0, 90.0):
+        print("  FEHLER: Position/Breite/Drehung nicht gesetzt", sym.X, sym.Y, sym.Scale, sym.Rotation)
+        return False
+    if ii.selected_image([types.SimpleNamespace(TypeId="TechDraw::DrawPage"), sym]) is not sym:
+        print("  FEHLER: gewähltes Bild nicht erkannt")
+        return False
+    if ii.geometry_of(sym, (50.0, 20.0)) != (30.0, 40.0, 100.0, 90.0):
+        print("  FEHLER: Geometrie des Bildes", ii.geometry_of(sym, (50.0, 20.0)))
+        return False
+    sym.X, sym.Y = 120.0, 80.0  # mit der Maus verschoben
+    if ii.changed_fields([30.0, 40.0, 100.0, 90.0], ii.geometry_of(sym, (50.0, 20.0)), tol=0.05) != [0, 1]:
+        print("  FEHLER: Mausverschiebung nicht erkannt")
+        return False
+    # Panel: Abgleich und OK schreiben die alten Feldwerte NICHT aufs Bild zurück
+    class Spin:
+        def __init__(self, v):
+            self.v, self.blocked = v, False
+
+        def value(self):
+            return self.v
+
+        def setValue(self, v):
+            self.v = v
+
+        def blockSignals(self, b):
+            self.blocked = b
+
+    commits = []
+    sym.Document.commitTransaction = lambda: commits.append(1)
+    pnl = ii._TaskPanel.__new__(ii._TaskPanel)
+    pnl.obj, pnl.natural = sym, (50.0, 20.0)
+    pnl.x, pnl.y, pnl.width, pnl.rot = Spin(30.0), Spin(40.0), Spin(100.0), Spin(90.0)
+    pnl.height, pnl.timer = mock.MagicMock(), mock.MagicMock()
+    real_close = gui.Control.closeDialog if hasattr(gui.Control, "closeDialog") else None
+    gui.Control.closeDialog = lambda: None
+    try:
+        pnl.accept()
+    finally:
+        if real_close is None:
+            del gui.Control.closeDialog
+        else:
+            gui.Control.closeDialog = real_close
+    if (sym.X, sym.Y) != (120.0, 80.0) or (pnl.x.v, pnl.y.v) != (120.0, 80.0) or commits != [1]:
+        print("  FEHLER: OK setzt das Bild auf die alte Position zurück", sym.X, sym.Y, pnl.x.v)
+        return False
+    print("  Bild     : SVG als Vektor, PNG/JPG eingebettet, Breite in mm -> Maßstab; Felder folgen der Maus, OK behält Position")
+
     gui.ActiveDocument = None
     print("  Konstrukt: nur neue Linien gestrichelt, Kreise/alte Linien bleiben; Ende bei Werkzeugwechsel/Skizzenende")
 

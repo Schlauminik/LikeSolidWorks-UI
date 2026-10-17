@@ -340,6 +340,10 @@ ZEICHNUNGEN = (
             # Blattformat/Vorlage wechseln + Schriftfeld ausfuellen (9b)
             ("SWUI_SheetProperties", "Blatt-\neigenschaften", {"svg": "sketch/d_sheet"}),
         ],
+        [
+            # SVG/PNG/JPG aufs Blatt, Position und Groesse von Hand (Dominik, 17.10.)
+            ("SWUI_InsertImage", "Bild\neinfügen", {"svg": "sketch/d_image"}),
+        ],
     ],
 )
 

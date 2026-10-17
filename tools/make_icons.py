@@ -926,6 +926,17 @@ def _():
     return [sheet, view, block]
 
 
+@icon("d_image", "Bild einfügen")
+def _():
+    # Bilderrahmen mit Berg (blau) und Sonne (grau), Pfeil hinein
+    frame = ('<rect x="6" y="10" width="44" height="36" rx="2" fill="%s" stroke="%s" stroke-width="2"/>'
+             % (GEO, OUTLINE))
+    hills = ('<path d="M9 43 L22 26 L31 36 L37 30 L47 43 Z" fill="%s" stroke="%s" stroke-width="1.6" '
+             'stroke-linejoin="round"/>' % (NEW, OUTLINE))
+    sun = '<circle cx="38" cy="20" r="4.5" fill="%s" stroke="%s" stroke-width="1.4"/>' % (OLD, OUTLINE)
+    return [frame, hills, sun, badge("M47 41 V53 M41 47 H53")]
+
+
 @icon("m_coincident", "Deckungsgleich")
 def _():
     return [plate(-18, -18, 0, 36, 36, 6), plate(-10, -10, 6, 22, 22, 10, NEW_FACES),

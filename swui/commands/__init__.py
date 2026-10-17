@@ -37,5 +37,9 @@ def register_all():
 
     FreeCADGui.addCommand("SWUI_SheetProperties", sheet_properties.SheetProperties())
 
+    from swui import insert_image
+
+    FreeCADGui.addCommand("SWUI_InsertImage", insert_image.InsertImage())
+
     _REGISTERED = True
     FreeCAD.Console.PrintLog("[SWUI] Befehle angemeldet.\n")

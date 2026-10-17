@@ -76,6 +76,8 @@ FEATURE_NAMES = {
     "PartDesign::Point": "Punkt",
     "Assembly::AssemblyObject": "Baugruppe",
     "Assembly::BomObject": "Stückliste",
+    "TechDraw::DrawViewImage": "Bild",
+    "TechDraw::DrawViewSymbol": "Bild",
 }
 
 # Ordner in einer Baugruppe: fester Name ohne Nummer.

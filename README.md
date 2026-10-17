@@ -37,6 +37,7 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | 8g | Freie Drehung (wie Inventor) um den Teil-Ursprung mit Drehkreuz, nur für Teile ohne Verknüpfung/Fixierung, sonst Knopf grau mit Grund im Tooltip (`swui/commands/free_rotate.py`) | **fertig** |
 | 9a | Zeichnung erstellen (eigener Reiter „Zeichnungen“ rechts neben Baugruppe, zusätzlich im Reiter Baugruppe): eigene Datei, A4 hoch/A3 quer mit ISO-7200-Schriftfeld, Standard-Dreiansicht Methode 1 (`swui/commands/new_drawing.py`) | **fertig** |
 | 9b | Blatteigenschaften: Blattformat/Vorlage per Liste wechseln (Ansichten bleiben), Schriftfeld als Eingabefelder mit deutschen Namen, Vorbelegung aus dem Teil (`swui/sheet_properties.py`) | **fertig** |
+| 9b+ | Bild einfügen: SVG (Vektor), PNG/JPG (eingebettet), Position X/Y, Breite in mm, Drehung von Hand; gewähltes Bild nachträglich bearbeiten (`swui/insert_image.py`) | **fertig** |
 
 Später: 3D-Skizzen.
 

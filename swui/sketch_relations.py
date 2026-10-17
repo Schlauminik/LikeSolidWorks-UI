@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# SPDX-FileCopyrightText: 2026 Dominik Ladewig
 """
 Panel "Beziehungen hinzufuegen" - wie der SOLIDWORKS-PropertyManager.
 

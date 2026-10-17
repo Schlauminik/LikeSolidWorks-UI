@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# SPDX-FileCopyrightText: 2026 Dominik Ladewig
 """
 sketch_edit.py - Skizzen in der Workbench "LikeSolidWorks UI" bearbeiten,
 statt automatisch in den FreeCAD-Sketcher zu springen.

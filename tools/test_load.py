@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# SPDX-FileCopyrightText: 2026 Dominik Ladewig
 """
 Simuliert, wie FreeCAD eine Workbench laedt.
 
@@ -3353,8 +3355,25 @@ def check_manifest():
         if not f or not os.path.isfile(os.path.join(ADDON, f)):
             print("  FEHLER: Lizenzdatei '%s' fehlt (%s)" % (f, lic.text))
             ok = False
+    # Jede Quelldatei traegt die Code-Lizenz aus package.xml als SPDX-Kopfzeile
+    code_lic = [l.text for l in root.findall(ns + "license") if l.get("file") == "LICENSE-Code"]
+    want = "# SPDX-License-Identifier: %s" % (code_lic[0] if code_lic else "?")
+    missing = []
+    for base, dirs, files in os.walk(ADDON):
+        dirs[:] = [d for d in dirs if d != "__pycache__" and not d.startswith(".")]
+        for f in files:
+            if f.endswith(".py"):
+                p = os.path.join(base, f)
+                with open(p, encoding="utf-8") as fh:
+                    head = [fh.readline().rstrip("\n") for _ in range(5)]
+                if want not in head:
+                    missing.append(os.path.relpath(p, ADDON))
+    if missing:
+        print("  FEHLER: SPDX-Kopfzeile '%s' fehlt in: %s" % (want, ", ".join(sorted(missing))))
+        ok = False
     if ok:
         print("  Manifest : <classname> %s passt, Lizenzdateien vorhanden" % cls)
+        print("  Lizenz   : SPDX-Kopfzeile in allen Quelldateien")
         print("  Manifest : Addon-Manager zeigt '%s', Suche nach '%s' findet es" % (shown, wb_name))
     return ok
 

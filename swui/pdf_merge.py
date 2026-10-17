@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# SPDX-FileCopyrightText: 2026 Dominik Ladewig
 """
 Mehrere PDF-Dateien zu einer zusammenfuegen - ohne Zusatzbibliothek (9g).
 

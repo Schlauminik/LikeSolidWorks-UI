@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: LGPL-2.1-or-later
+# SPDX-FileCopyrightText: 2026 Dominik Ladewig
 """
 Schweisssymbol wie in SOLIDWORKS (9e2d) - nach DIN EN ISO 2553.
 
@@ -70,7 +72,10 @@ SEAMS = (
     ("plug", "Lochnaht"),
 )
 CONTOURS = (("", "Ohne"), ("flat", "flach"), ("convex", "konvex (gewölbt)"), ("concave", "konkav (hohl)"))
-FINISHES = ("", "G", "C", "M", "F")  # Schleifen, Spanen, Maschinell, Fertig (ISO 2553)
+# Kennbuchstaben der Nachbearbeitung: G = Schleifen, C = Meisseln (engl. chipping),
+# M = spanende Bearbeitung (machining). F: Bedeutung vor einer Erweiterung der
+# Auswahl in der aktuellen Normfassung nachpruefen.
+FINISHES = ("", "G", "C", "M", "F")
 SIZES = ("a3", "a4", "a5", "a6", "a8", "s3", "s5", "s8", "z5")
 TEXT_FIELDS = ("arrow_size", "arrow_len", "other_size", "other_len", "tail")
 

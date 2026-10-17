@@ -121,18 +121,25 @@ Report-Ansicht einschalten: Ansicht → Panels → Report-Ansicht.
 
 ## Lizenz
 
-Zwei Lizenzen, wie bei FreeCAD-Add-ons üblich:
+Zwei Lizenzen, wie bei FreeCAD-Add-ons üblich, dazu gemeinfreie Vorlagen:
 
 | Teil | Lizenz | Datei |
 |---|---|---|
 | Quelltext (`*.py`) | LGPL-2.1-or-later | `LICENSE-Code` |
-| Symbole und Vorlagen (`resources/`) | CC-BY-SA-4.0 | `LICENSE-Assets` |
+| Symbole (`resources/icons/`) | CC-BY-SA-4.0 | `LICENSE-Assets` |
+| Zeichnungsvorlagen (`resources/templates/`, `tools/template_sources/`) | CC0-1.0 (gemeinfrei) | Angabe in den SVG-Dateien |
 
 LGPL für den Code, weil FreeCAD selbst unter dieser Lizenz steht und
 der Code damit notfalls auch in FreeCAD einfließen könnte. CC-BY-SA
 für die Grafiken, weil die LGPL auf Nicht-Quelltext schlecht passt.
 Beides erlaubt Weitergabe und Änderung, verlangt aber, dass
 Änderungen unter derselben Lizenz bleiben.
+
+Die Zeichnungsvorlagen sind aus FreeCADs ISO-Vorlagen abgeleitet
+(`tools/template_sources/`, aus FreeCAD 1.1.4), die FreeCAD als CC0
+freigegeben hat. Sie bleiben ebenfalls CC0 — so steht es auch in den
+Metadaten der Dateien. Jede Quelldatei trägt eine
+`SPDX-License-Identifier`-Kopfzeile; der Test prüft das.
 
 ## Marken und Rechtliches
 
@@ -145,8 +152,9 @@ anlehnt; er ist kein Produkt- oder Markenname von Dassault Systèmes.
 **Alle Symbole sind Eigenentwürfe.** Die 124 SVG-Dateien unter
 `resources/icons/` wurden von Grund auf neu gezeichnet
 (`tools/make_icons.py`) und sind keine Kopien oder Bearbeitungen
-fremder Symbole. Dasselbe gilt für die Zeichnungsvorlagen unter
-`resources/templates/`.
+fremder Symbole. Die Zeichnungsvorlagen sind dagegen Bearbeitungen
+von FreeCADs gemeinfreien ISO-Vorlagen (deutsche Beschriftung, Feld
+„Maßeinheit“) — siehe Abschnitt Lizenz.
 
 **Normen.** Das Add-on setzt den technischen Inhalt von DIN EN ISO
 7200 (Schriftfeld), 1302 (Oberflächenangaben) und 2553

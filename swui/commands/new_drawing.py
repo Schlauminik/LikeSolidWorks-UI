@@ -139,6 +139,18 @@ def build(doc, objs, fmt):
     return page, group
 
 
+def prefill_title_block(page):
+    """Schriftfeld vorbelegen (Benennung, Nr., Werkstoff, Massstab, Ersteller, Datum) - 9b."""
+    try:
+        from swui import sheet_properties as sp
+
+        tpl = page.Template
+        tpl.EditableTexts = sp.fill_empty(dict(tpl.EditableTexts or {}), sp.auto_values(page))
+        page.Document.recompute()
+    except Exception:
+        FreeCAD.Console.PrintLog("[SWUI] Schriftfeld nicht vorbelegt: %s\n" % traceback.format_exc())
+
+
 # --- Ablauf mit Dialogen ---------------------------------------------
 
 
@@ -172,6 +184,7 @@ def create():
         doc.saveAs(path)  # vor XSource speichern (siehe Modulkopf)
         page, _group = build(doc, objs, fmt)
         doc.recompute()
+        prefill_title_block(page)
         doc.save()
         FreeCAD.setActiveDocument(doc.Name)
         _show_page(page)

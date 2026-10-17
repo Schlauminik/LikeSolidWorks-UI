@@ -337,6 +337,8 @@ ZEICHNUNGEN = (
         [
             # Wie SW "Zeichnung aus Teil erstellen": eigene Datei (9a)
             ("SWUI_NewDrawing", "Zeichnung\nerstellen", {"svg": "sketch/d_new"}),
+            # Blattformat/Vorlage wechseln + Schriftfeld ausfuellen (9b)
+            ("SWUI_SheetProperties", "Blatt-\neigenschaften", {"svg": "sketch/d_sheet"}),
         ],
     ],
 )

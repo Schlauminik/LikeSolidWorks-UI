@@ -31,6 +31,7 @@ import types
 from unittest import mock
 
 ADDON = os.path.abspath(sys.argv[1])
+SCRATCH_TMP = __import__("tempfile").mkdtemp(prefix="swui_test_")
 
 log = []
 
@@ -2086,6 +2087,76 @@ def run(split_namespace):
               group.XSource, zdoc.xsource_saved, group.ProjectionType, group.projections)
         return False
     print("  Zeichnung: eigene Datei, vor dem Verknüpfen gespeichert, Methode 1 Vorne/Oben/Links, A4/A3-Vorlage")
+
+    # --- Blatteigenschaften (9b) -----------------------------------------
+    sp = sys.modules.get("swui.sheet_properties")
+    if sp is None or "SWUI_SheetProperties" not in commands:
+        print("  FEHLER: Befehl SWUI_SheetProperties nicht angemeldet")
+        return False
+    if (sp.display_name("/x/A3_Landscape_ISO5457_advanced.svg") != "A3 quer – Schriftfeld ISO 7200"
+            or sp.display_name("/x/A4_Portrait_blank.svg") != "A4 hoch – leer"
+            or sp.display_name("/x/Firma.svg") != "Firma"):
+        print("  FEHLER: Anzeigenamen der Vorlagen", sp.display_name("/x/A3_Landscape_ISO5457_advanced.svg"))
+        return False
+    tmpdir = os.path.join(SCRATCH_TMP, "iso_tpl")
+    os.makedirs(tmpdir, exist_ok=True)
+    for n in ("A0_Landscape_blank.svg", "A3_Landscape_ISO5457_advanced.svg", "A4_Portrait_ISO5457_advanced.svg"):
+        open(os.path.join(tmpdir, n), "w").close()
+    cat = [os.path.basename(p_) for _n, p_ in sp.template_catalog(tmpdir)]
+    if cat[:2] != ["A4_Portrait_ISO5457_advanced.svg", "A3_Landscape_ISO5457_advanced.svg"] or len(cat) != 3:
+        print("  FEHLER: Vorlagenliste (A4 hoch, A3 quer zuerst)", cat)
+        return False
+    if sp.ordered_fields(["scale", "zzz", "title", "creator"]) != ["title", "scale", "creator", "zzz"]:
+        print("  FEHLER: Reihenfolge der Schriftfeld-Felder")
+        return False
+    if (sp.scale_text(0.5), sp.scale_text(2), sp.scale_text(1), sp.scale_text(0.4)) != ("1:2", "2:1", "1:1", "1:2.5"):
+        print("  FEHLER: Maßstab als Text", sp.scale_text(0.5), sp.scale_text(0.4))
+        return False
+
+    class Tpl:
+        def __init__(self):
+            self._t, self.Width, self.Height = "/t/A4_Portrait_ISO5457_advanced.svg", 210.0, 297.0
+            self.EditableTexts = {"title": "", "scale": "", "creator": "", "general_tolerances": ""}
+
+        @property
+        def Template(self):
+            return self._t
+
+        @Template.setter
+        def Template(self, v):  # wie FreeCAD: neue Felder, Eingaben weg, neues Format
+            self._t, self.Width, self.Height = v, 420.0, 297.0
+            self.EditableTexts = {"title": "", "scale": "", "drawing_number": ""}
+
+    welle_doc = types.SimpleNamespace(Label="Welle")
+    welle_body = types.SimpleNamespace(Document=welle_doc, Label="Körper", ShapeMaterial=types.SimpleNamespace(Name="S235JR"))
+    view = types.SimpleNamespace(X=105.0, Y=150.0, Scale=0.5, XSource=[welle_body])
+    zdoc2 = types.SimpleNamespace(Label="Welle_Zeichnung", recomputed=0)
+    zdoc2.recompute = lambda: setattr(zdoc2, "recomputed", zdoc2.recomputed + 1)
+    pg = types.SimpleNamespace(TypeId="TechDraw::DrawPage", Template=Tpl(), Views=[view], Document=zdoc2, InList=[])
+    zdoc2.Objects = [pg, view]
+    auto = sp.auto_values(pg, today=__import__("datetime").date(2026, 10, 17))
+    if (auto.get("title"), auto.get("part_material"), auto.get("scale"), auto.get("drawing_number"), auto.get("date_of_issue")) != (
+            "Welle", "S235JR", "1:2", "Welle_Zeichnung", "17.10.2026"):
+        print("  FEHLER: Schriftfeld-Vorbelegung aus dem Teil", auto)
+        return False
+    filled = sp.fill_empty({"title": "Eigene Benennung", "scale": ""}, auto)
+    if filled != {"title": "Eigene Benennung", "scale": "1:2"}:
+        print("  FEHLER: Vorbelegung überschreibt Eingaben", filled)
+        return False
+    sp.apply_sheet(pg, pg.Template.Template, {"title": "Welle", "scale": "1:2", "creator": "Dominik", "general_tolerances": "ISO 2768-m"})
+    same = dict(pg.Template.EditableTexts)
+    sp.apply_sheet(pg, "/t/A3_Landscape_ISO5457_advanced.svg", {"title": "Welle", "scale": "1:2", "creator": "Dominik"})
+    switched = dict(pg.Template.EditableTexts)
+    if same.get("general_tolerances") != "ISO 2768-m" or switched != {"title": "Welle", "scale": "1:2", "drawing_number": ""}:
+        print("  FEHLER: Schriftfeld beim Vorlagenwechsel nicht übernommen", same, switched)
+        return False
+    if (round(view.X, 3), round(view.Y, 3)) != (210.0, 150.0) or pg.Template.Template != "/t/A3_Landscape_ISO5457_advanced.svg":
+        print("  FEHLER: Ansichten nicht aufs neue Blatt umgerechnet", view.X, view.Y)
+        return False
+    if sp.find_page(zdoc2, [view]) is not pg or sp.find_page(zdoc2) is not pg or sp.find_page(types.SimpleNamespace(Objects=[])) is not None:
+        print("  FEHLER: Blatt wird nicht gefunden")
+        return False
+    print("  Blatt    : Vorlagen A4 hoch/A3 quer zuerst, Wechsel behält Schriftfeld + Ansichten, Vorbelegung aus Teil")
 
     gui.ActiveDocument = None
     print("  Konstrukt: nur neue Linien gestrichelt, Kreise/alte Linien bleiben; Ende bei Werkzeugwechsel/Skizzenende")

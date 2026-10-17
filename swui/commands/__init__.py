@@ -33,5 +33,9 @@ def register_all():
     FreeCADGui.addCommand("SWUI_FreeRotate", free_rotate.FreeRotate())
     FreeCADGui.addCommand("SWUI_NewDrawing", new_drawing.NewDrawing())
 
+    from swui import sheet_properties
+
+    FreeCADGui.addCommand("SWUI_SheetProperties", sheet_properties.SheetProperties())
+
     _REGISTERED = True
     FreeCAD.Console.PrintLog("[SWUI] Befehle angemeldet.\n")

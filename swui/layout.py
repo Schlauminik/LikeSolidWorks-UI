@@ -104,6 +104,13 @@ def _restore_state_again():
         FreeCADGui.getMainWindow().restoreState(_saved_state)
     except Exception:
         pass
+    # restoreState kann das Ribbon-Dock wieder einblenden
+    try:
+        from swui import ribbon
+
+        ribbon._hide_if_unwanted()
+    except Exception:
+        pass
 
 
 def _apply_overlay(mw):

@@ -43,6 +43,7 @@ REFRESH_MS = 500
 # ein- und ausgeblendet.
 _dock = None
 _timer = None
+_wanted = False  # soll das Ribbon gerade sichtbar sein? (nur in SolidWorks UI)
 _buttons = {}  # Knopf-ID -> QToolButton. ID = Befehl oder "Befehl#Index"
 _flyouts = []  # Ausklappknoepfe: {"button", "variants", "current", "id"}
 _toggles = []  # Umschaltknoepfe: {"button", "variants", "current"}
@@ -66,7 +67,8 @@ _icon_index = None  # Symbolname -> Ressourcenpfad, einmal aufgebaut
 
 def show():
     """Ribbon einblenden. Baut es beim ersten Aufruf."""
-    global _dock
+    global _dock, _wanted
+    _wanted = True
     if _dock is None:
         _dock = _build()
     _dock.show()
@@ -76,10 +78,37 @@ def show():
 
 def hide():
     """Ribbon ausblenden. Der Inhalt bleibt erhalten."""
+    global _wanted
+    _wanted = False
     if _dock is not None:
         _dock.hide()
     if _timer is not None:
         _timer.stop()
+
+
+def _on_visibility(visible):
+    """
+    Waechter: Taucht das Ribbon ausserhalb von SolidWorks UI wieder auf,
+    sofort wieder ausblenden. Das passiert, wenn FreeCAD beim Werkbank-
+    Wechsel Fenster- und Panel-Zustaende zeitversetzt wiederherstellt
+    (Dominiks Hinweis vom 17.10.).
+    """
+    if visible and not _wanted:
+        QtCore.QTimer.singleShot(0, _hide_if_unwanted)
+
+
+def _hide_if_unwanted():
+    if _wanted or _dock is None:
+        return
+    try:
+        if _dock.isVisible():
+            _dock.hide()
+    except Exception:
+        pass
+
+
+def is_wanted():
+    return _wanted
 
 
 def button_names():
@@ -141,6 +170,10 @@ def _build():
 
     dock.setWidget(tabs)
     main_window.addDockWidget(QtCore.Qt.DockWidgetArea.TopDockWidgetArea, dock)
+    try:
+        dock.visibilityChanged.connect(_on_visibility)
+    except Exception:
+        pass
 
     _timer = QtCore.QTimer(dock)
     _timer.setInterval(REFRESH_MS)

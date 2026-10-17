@@ -693,6 +693,37 @@ def run(split_namespace):
         print("  FEHLER: (f) bei Rückgängig / Nummer nach (f)", l1.Label, ground.Label, l4.Label)
         return False
     print("  Baum     : Baugruppe1, (f) Welle<1>, Welle<2>, Verknüpfungen; (f) folgt Fixieren/Lösen/Rückgängig")
+
+    # Verknuepfungen (Gelenke) mit SW-Namen (8f)
+    def joint(label, jtype, name, dist=0.0):
+        o = acreate("App::FeaturePython", label, name, [jg])
+        o.JointType, o.Distance = jtype, types.SimpleNamespace(Value=dist)
+        obs.slotChangedObject(o, "JointType")
+        return o
+
+    sys.modules["JointObject"] = types.SimpleNamespace(TranslatedJointTypes=[
+        "Fest", "Drehgelenk", "Zylindrisch", "Schieber", "Kugel", "Abstand", "Parallel",
+        "Senkrecht", "Winkel", "Zahnstange", "Schraube", "Zahnräder", "Riemen"])
+    j1 = joint("Abstand", "Distance", "Joint")
+    j2 = joint("Zylindrisch", "Cylindrical", "Joint001")
+    j3 = joint("Abstand001", "Distance", "Joint002", dist=5.0)
+    j4 = joint("Lager vorne", "Cylindrical", "Joint003")  # vom Benutzer benannt
+    naming._flush()
+    got = (j1.Label, j2.Label, j3.Label, j4.Label)
+    if got != ("Deckungsgleich1", "Konzentrisch1", "Abstand1", "Lager vorne"):
+        print("  FEHLER: Verknüpfungs-Namen", got)
+        return False
+    j1.JointType = "Parallel"  # im Dialog umgestellt
+    obs.slotChangedObject(j1, "JointType")
+    j3.Distance = types.SimpleNamespace(Value=0.0)
+    obs.slotChangedObject(j3, "Distance")
+    obs.slotChangedObject(j2, "Label")  # andere Eigenschaft: nichts tun
+    naming._flush()
+    if (j1.Label, j3.Label, j2.Label) != ("Parallel1", "Deckungsgleich1", "Konzentrisch1"):
+        print("  FEHLER: Name folgt der Verknüpfungsart nicht", j1.Label, j3.Label)
+        return False
+    del sys.modules["JointObject"]
+    print("  Verkn.Nm : Deckungsgleich1, Konzentrisch1, Abstand1; folgt Art/Abstand; eigene Namen bleiben")
     if not (bool(commands) and icon_ok):
         return False
 
@@ -1240,7 +1271,23 @@ def run(split_namespace):
     if closed_text != "Seite 1" or pad2.kids["side1Label"].t != "Richtung 1":
         print("  FEHLER: Takt findet offenen Dialog nicht / arbeitet ohne Dialog", closed_text, pad2.kids["side1Label"].t)
         return False
-    print("  Dialoge : Linear austragen/Schnitt/Rotieren mit SW-Begriffen; fremde Listenlängen bleiben unberührt")
+    jroot = FRoot({
+        "jointType": FCombo(["Fest", "Drehgelenk", "Zylindrisch", "Schieber", "Kugel", "Abstand", "Parallel",
+                             "Senkrecht", "Winkel", "Zahnstange", "Schraube", "Zahnräder", "Riemen"]),
+        "groupBox_limits": FGroup("Begrenzungen"), "PushButtonReverse": FLabel("Umkehren"),
+        "distanceLabel": FLabel("Radius 1"),  # wechselt je nach Art - muss FreeCADs bleiben
+    })
+    ft.apply(jroot, ft.JOINT)
+    jk = jroot.kids
+    if (jk["jointType"].items[2], jk["jointType"].items[5], jk["groupBox_limits"].t, jk["PushButtonReverse"].t,
+            jk["distanceLabel"].t) != ("Konzentrisch", "Deckungsgleich / Abstand", "Grenzwerte",
+                                       "Ausrichtung umkehren", "Radius 1"):
+        print("  FEHLER: Verknüpfungs-Dialog", jk["jointType"].items, jk["groupBox_limits"].t)
+        return False
+    if ft.JOINT not in ft.SPECS or ft.INSERT not in ft.SPECS:
+        print("  FEHLER: Baugruppen-Dialoge nicht im Takt")
+        return False
+    print("  Dialoge : Linear austragen/Schnitt/Rotieren/Verknüpfung mit SW-Begriffen; fremde Listenlängen bleiben unberührt")
 
     # --- Reiter wechselt beim Skizzieren --------------------------------
     gui = sys.modules["FreeCADGui"]
@@ -1846,6 +1893,22 @@ def run(split_namespace):
         return False
     if sys.modules["swui.assembly_mates"].is_installed():
         print("  FEHLER: Verknüpfungs-Panel nach Verlassen noch aktiv")
+        return False
+    rb = sys.modules["swui.ribbon"]
+    if rb.is_wanted():
+        print("  FEHLER: Ribbon nach Verlassen noch gewünscht")
+        return False
+    rb._dock.hide.reset_mock()
+    layout._restore_state_again()  # FreeCAD stellt verzögert wieder her ...
+    if not rb._dock.hide.called:
+        print("  FEHLER: Ribbon nach verzögertem Wiederherstellen nicht wieder ausgeblendet")
+        return False
+    rb._dock.hide.reset_mock()
+    rb._wanted = True
+    rb._hide_if_unwanted()  # in SolidWorks UI: nichts ausblenden
+    rb._wanted = False
+    if rb._dock.hide.called:
+        print("  FEHLER: Ribbon-Wächter blendet in SolidWorks UI aus")
         return False
     print("  Verlassen: alle Leisten, Panels, Farben und 3D-Einstellungen wiederhergestellt")
 

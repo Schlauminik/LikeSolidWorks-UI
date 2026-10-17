@@ -18,6 +18,12 @@ Baugruppen (Schritt 8d) wie im SOLIDWORKS-FeatureManager:
 Das "(f) " wird bei jedem Fixieren/Loesen nachgefuehrt - auch bei
 Rueckgaengig, weil es nur den aktuellen Zustand abbildet.
 
+Verknuepfungen (FreeCAD: Gelenke, Schritt 8f) heissen wie in SW:
+    Deckungsgleich1, Abstand1, Konzentrisch1, Parallel1 ...
+Abstand-Gelenk mit 0 mm = "Deckungsgleich", sonst "Abstand". Der Name
+folgt der Art, solange man sie im Dialog umstellt. Selbst vergebene
+Namen werden nie ueberschrieben - nur FreeCADs Standardnamen.
+
 Der Name ist die Beschriftung (Label) - sie wird in der Datei
 gespeichert und erscheint deshalb auch in Part Design so. Der interne
 Name (Pad, Sketch001 ...) bleibt unveraendert; FreeCAD verweist intern
@@ -79,6 +85,24 @@ GROUP_NAMES = {
     "Assembly::BomGroup": "Stücklisten",
     "Assembly::SimulationGroup": "Bewegungsstudien",
 }
+
+# Gelenk-Art (JointObject.JointTypes) -> SW-Verknuepfung
+JOINT_NAMES = {
+    "Fixed": "Starr",
+    "Revolute": "Drehgelenk",
+    "Cylindrical": "Konzentrisch",
+    "Slider": "Linear",
+    "Ball": "Kugelgelenk",
+    "Distance": "Abstand",  # bei 0 mm: "Deckungsgleich" (joint_base)
+    "Parallel": "Parallel",
+    "Perpendicular": "Senkrecht",
+    "Angle": "Winkel",
+    "RackPinion": "Zahnstange",
+    "Screw": "Schraube",
+    "Gears": "Zahnrad",
+    "Belt": "Riemen",
+}
+COINCIDENT = "Deckungsgleich"
 
 # Komponenten (Verweise auf Teile/Unterbaugruppen) in einer Baugruppe.
 COMPONENT_TYPES = ("App::Link", "Assembly::AssemblyLink")
@@ -172,6 +196,67 @@ def refresh_fixed(doc):
             o.Label = want
 
 
+def joint_base(joint):
+    """SW-Name ohne Nummer fuer ein Gelenk, oder None."""
+    jtype = getattr(joint, "JointType", None)
+    if jtype not in JOINT_NAMES:
+        return None
+    if jtype == "Distance":
+        d = getattr(joint, "Distance", 0)
+        try:
+            value = float(getattr(d, "Value", d))
+        except Exception:
+            value = 0.0
+        if abs(value) < 1e-9:
+            return COINCIDENT
+    return JOINT_NAMES[jtype]
+
+
+def _default_joint_names():
+    """Namen, die FreeCAD (oder wir) automatisch vergeben - nur die werden ersetzt."""
+    names = set(JOINT_NAMES) | set(JOINT_NAMES.values()) | {COINCIDENT, "Joint", "Deckungsgleich / Abstand"}
+    try:
+        import JointObject
+
+        names |= set(JointObject.TranslatedJointTypes)
+    except Exception:
+        pass
+    # Zusaetzlich zur Laufzeit uebersetzt (falls JointObject vor der
+    # Sprachwahl geladen wurde): "Cylindrical" -> "Zylindrisch" ...
+    for english in JOINT_NAMES:
+        try:
+            tr = QtCore.QCoreApplication.translate("Assembly", english)
+            if isinstance(tr, str):
+                names.add(tr)
+        except Exception:
+            pass
+    return names | {n.replace(" ", "") for n in names}
+
+
+def refresh_joints(doc):
+    """Gelenke in Baugruppen nach ihrer Art benennen (Deckungsgleich1 ...)."""
+    try:
+        objects = list(doc.Objects)
+    except Exception:
+        return
+    defaults = None
+    for o in objects:
+        if hasattr(o, "ObjectToGround") or not _in_joint_group(o):
+            continue
+        base = joint_base(o)
+        if base is None:
+            continue
+        label = o.Label or ""
+        if re.match("^%s[1-9]\\d*$" % re.escape(base), label):
+            continue  # passt schon (SW-Zaehlung ohne fuehrende Nullen)
+        if defaults is None:
+            defaults = _default_joint_names()
+        stem = re.sub(r"\d+$", "", label)
+        if stem not in defaults:
+            continue  # vom Benutzer benannt
+        o.Label = "%s%d" % (base, _next_number(doc, base, o))
+
+
 # --- Intern ----------------------------------------------------------
 
 
@@ -192,6 +277,18 @@ class _Observer:
             return
         _pending.append(obj)
         QtCore.QTimer.singleShot(0, _flush)
+
+    def slotChangedObject(self, obj, prop):
+        # Art oder Abstand im Verknuepfungs-Dialog umgestellt -> Name nachziehen
+        if prop not in ("JointType", "Distance"):
+            return
+        try:
+            if not _swui_active() or getattr(obj.Document, "Restoring", False):
+                return
+            _mark_dirty(obj.Document)
+            QtCore.QTimer.singleShot(0, _flush)
+        except Exception:
+            pass
 
     def slotDeletedObject(self, obj):
         # Fixierung geloescht (Loesen) -> "(f)" weg. Erst danach pruefen,
@@ -230,12 +327,20 @@ def _flush():
         try:
             if any(_is_assembly(o) for o in doc.Objects):
                 refresh_fixed(doc)
+                refresh_joints(doc)
         except Exception as exc:
             FreeCAD.Console.PrintLog("[SWUI] (f) nicht nachgefuehrt: %s\n" % exc)
 
 
 def _is_assembly(obj):
     return getattr(obj, "TypeId", "") == "Assembly::AssemblyObject"
+
+
+def _in_joint_group(obj):
+    try:
+        return any(getattr(p, "TypeId", "") == "Assembly::JointGroup" for p in obj.InList)
+    except Exception:
+        return False
 
 
 def _in_assembly(obj):

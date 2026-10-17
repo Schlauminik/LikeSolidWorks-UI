@@ -33,6 +33,7 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | 8c++ | Baum links als durchsichtige Überlagerung (Schrift grau); Aufgaben oben + Ausgabefenster unten rechts fest angedockt (`swui/overlay_panels.py`); 3D-Hintergrund wird beim Verlassen wieder korrekt zurückgesetzt | **fertig** |
 | 8d | Baum wie in SW: Baugruppe1, Welle<1>/Welle<2> (Name = Teil-Datei), „(f)“ vor fixierten Teilen, Ordner „Verknüpfungen“ (`swui/naming.py`) | **fertig** |
 | 8e | Panel „Verknüpfung hinzufügen“: zwei Flächen/Kanten wählen → nur passende Verknüpfungen, Klick startet FreeCADs Gelenk mit der Auswahl (`swui/assembly_mates.py`) | **fertig** |
+| 8f | SW-Begriffe im Verknüpfungs-Dialog (Verknüpfungsart, Grenzwerte …) und Verknüpfungen im Baum als Deckungsgleich1, Konzentrisch1, Abstand1 … (`feature_terms.py`, `naming.py`) | **fertig** |
 
 Später: 3D-Skizzen, Baugruppen.
 

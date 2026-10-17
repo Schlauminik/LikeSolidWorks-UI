@@ -72,7 +72,46 @@ REVOLUTION = {
     },
 }
 
-SPECS = (PAD_POCKET, REVOLUTION)
+# Verknuepfung (FreeCAD: Gelenk) - src/Mod/Assembly/Gui/Resources/panels/
+# TaskAssemblyCreateJoint.ui. "distanceLabel" bleibt FreeCADs: es wechselt
+# je nach Art zwischen Abstand, Radius, Steigung (JointObject.adaptUi).
+JOINT = {
+    "root": "TaskAssemblyCreateJoint",
+    "labels": {
+        "offsetLabel": "Versatz",
+        "rotationLabel": "Drehung",
+        "advancedOffsetCheckbox": "Erweiterte Versätze anzeigen",
+        "PushButtonReverse": "Ausrichtung umkehren",
+        "groupBox_limits": "Grenzwerte",
+        "limitCheckbox1": "Min. Abstand",
+        "limitCheckbox2": "Max. Abstand",
+        "limitCheckbox3": "Min. Winkel",
+        "limitCheckbox4": "Max. Winkel",
+        "reverseRotCheckbox": "Drehrichtung umkehren",
+    },
+    "combos": {
+        # Reihenfolge wie JointObject.JointTypes in 1.1.4: Fixed, Revolute,
+        # Cylindrical, Slider, Ball, Distance, Parallel, Perpendicular,
+        # Angle, RackPinion, Screw, Gears, Belt
+        "jointType": [
+            "Starr", "Drehgelenk", "Konzentrisch", "Linear", "Kugelgelenk",
+            "Deckungsgleich / Abstand", "Parallel", "Senkrecht", "Winkel",
+            "Zahnstange", "Schraube", "Zahnrad", "Riemen",
+        ],
+    },
+}
+
+# Komponente einfuegen - TaskAssemblyInsertLink.ui
+INSERT = {
+    "root": "TaskAssemblyInsertLink",
+    "labels": {
+        "label1": "Teil nicht in der Liste?",
+        "openFileButton": "Datei öffnen …",
+    },
+    "combos": {},
+}
+
+SPECS = (PAD_POCKET, REVOLUTION, JOINT, INSERT)
 
 _timer = None
 _installed = False

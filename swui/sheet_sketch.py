@@ -5,8 +5,8 @@
 Zeichnen auf dem Zeichenblatt mit einer Blatt-Skizze (Dominik, 18.10.).
 
 Im Reiter Zeichnungen gibt es die Felder "Formen" (Linie, Rechteck, Kreis,
-Bogen, Vieleck), "Abhaengigkeiten" und "Text". Formen und Abhaengigkeiten
-arbeiten in einer Skizze, die zum Blatt gehoert - so hat man alle
+Bogen, Vieleck) und "Text" (text_note.py). Die Formen arbeiten in einer
+Skizze, die zum Blatt gehoert - so hat man alle
 Beziehungen und Masse des Sketchers (TechDraw selbst hat keinen Loeser).
 
 Ablauf beim Klick auf eine Form:
@@ -265,6 +265,10 @@ def edit(page, tool=None):
     global _editing
     doc = page.Document
     sketch = find_sheet_sketch(page)
+    if sketch is not None and in_edit(doc.Name, sketch.Name):
+        if tool:  # Skizze ist schon offen: nur das Werkzeug starten
+            _run(tool)
+        return sketch
     if sketch is None:
         doc.openTransaction(tr("Blatt-Skizze"))
         try:
@@ -366,16 +370,19 @@ def finish(doc_name, sketch_name, page_name, offset=(0.0, 0.0)):
 
 
 class SheetShape:
-    """FreeCAD-Befehl SWUI_SheetShape_<key>: Form auf dem Blatt zeichnen."""
+    """FreeCAD-Befehl SWUI_SheetShape_<key>: Form in der Blatt-Skizze zeichnen."""
 
-    def __init__(self, key, tool, text):
+    TIP = "Auf dem Blatt zeichnen (Blatt-Skizze mit Abhängigkeiten und Maßen)"
+
+    def __init__(self, key, tool, text, tip=None):
         self.key, self.tool, self.text = key, tool, text
+        self.tip = tip or self.TIP
 
     def GetResources(self):
         return {
             "Pixmap": self.tool,
             "MenuText": self.text,
-            "ToolTip": "Auf dem Blatt zeichnen (Blatt-Skizze mit Abhängigkeiten und Maßen)",
+            "ToolTip": self.tip,
         }
 
     def IsActive(self):

@@ -1244,6 +1244,16 @@ def _():
             centre("M6 50 H58", NEW, 3)]
 
 
+@icon("d_text", "Text")
+def _():
+    # grosses T (weiss mit dunkler Kontur), blaue Grundlinie, roter Einfuegepunkt
+    t = "M14 10 H50 M32 10 V48"
+    return ['<path d="%s" stroke="%s" stroke-width="11" stroke-linecap="square"/>' % (t, OUTLINE),
+            '<path d="%s" stroke="%s" stroke-width="7" stroke-linecap="square"/>' % (t, GEO),
+            '<path d="M8 56 H56" stroke="%s" stroke-width="3"/>' % NEW,
+            '<circle cx="8" cy="56" r="4.5" fill="%s"/>' % RED]
+
+
 @icon("d_leader", "Hinweislinie")
 def _():
     return [part("M4 40 H30 V60 H4 Z"),

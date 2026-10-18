@@ -692,6 +692,14 @@ TEXTS = {
     'Formen': 'Shapes',
     '[SWUI] Werkzeug %s nicht gestartet:\n%s\n': '[SWUI] Tool %s not started:\n%s\n',
     '[SWUI] Blatt-Skizze: %s\n': '[SWUI] Sheet sketch: %s\n',
+    # === Feld Text (text_note.py) =======================================
+    'Baum|Text': 'Text',
+    'Erst das Blatt-Fenster anklicken, dann „Text“.': 'Click into the sheet window first, then "Text".',
+    'Text': 'Text',
+    'Text aufs Blatt setzen: Knopf, dann aufs Blatt klicken und tippen (gewählten Text ändern). Esc bricht ab.': 'Put text on the sheet: click the button, then click on the sheet and type (edits the selected text). Esc cancels.',
+    'Text:': 'Text:',
+    'Text: Stelle auf dem Blatt anklicken (Esc bricht ab)': 'Text: click a position on the sheet (Esc cancels)',
+    '[SWUI] Text: %s\n': '[SWUI] Text: %s\n',
     # === Schritt 4: Namen im Baum (i18n.tree, Vorsatz "Baum|") ======
     # Wie im englischen SOLIDWORKS-FeatureManager: Boss-Extrude1, Top Plane ...
     "Baum|Skizze": "Sketch",

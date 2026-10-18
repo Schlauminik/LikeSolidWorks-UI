@@ -413,6 +413,8 @@ ZEICHNUNGEN = (
                 ("SWUI_SheetShape_Arc", "Bogen", {"svg": "sketch/arc_center"}),
                 ("SWUI_SheetShape_Polygon", "Vieleck", {"svg": "sketch/polygon"}),
             ], "title": "Formen"},
+            # einfacher Text per Klick aufs Blatt (text_note.py)
+            ("SWUI_Text", "Text", {"svg": "sketch/d_text"}),
         ],
         [
             # Ausgabe (Dominik: PDF und DXF)

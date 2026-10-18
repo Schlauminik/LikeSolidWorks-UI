@@ -67,6 +67,10 @@ def register_all():
 
     sheet_sketch.register()
 
+    from swui import text_note
+
+    FreeCADGui.addCommand("SWUI_Text", text_note.TextNote())
+
     from swui import drawing_export
 
     FreeCADGui.addCommand("SWUI_ExportPDF", drawing_export.ExportPdf())

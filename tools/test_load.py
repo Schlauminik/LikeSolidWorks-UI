@@ -2144,10 +2144,15 @@ def run(split_namespace):
     had_td2 = "TechDraw" in sys.modules
     sys.modules.setdefault("TechDraw", types.ModuleType("TechDraw"))
     edits_s, ran_s = [], []
-    in_edit_s = [True]
+    in_edit_s = [False]
+
+    def set_edit_s(n_):
+        edits_s.append(n_)
+        in_edit_s[0] = True
+
     gdoc_s = types.SimpleNamespace(
         mdiViewsOfType=lambda _c: [],  # Zeichnungsdatei ohne 3D-Fenster
-        setEdit=lambda n_: edits_s.append(n_),
+        setEdit=set_edit_s,
         getInEdit=lambda: types.SimpleNamespace(Object=sdoc.getObject("SheetSketch")) if in_edit_s[0] else None)
     fc_s = sys.modules["FreeCAD"]
     old_gd_s, old_fgd_s = getattr(gui, "getDocument", None), getattr(fc_s, "getDocument", None)
@@ -2166,7 +2171,7 @@ def run(split_namespace):
         view_s = ss.find_sheet_view(sk)
         frame_init = [(g[1], g[2]) for g, c in sk.geo if c]
         blocks_init = [c for c in sk.cons if c[0] == "Block"]
-        again_s = ss.edit(spage, None)  # zweites Mal: dieselbe Skizze, nichts Neues
+        again_s = ss.edit(spage, "Sketcher_ConstrainEqual")  # schon offen: nur Werkzeug, nicht neu oeffnen
         n_objs = len(sdoc.Objects)
         # Kreis bei (100, 50) r=10 gezeichnet -> Huelle 90..110 / 40..60
         sk.Shape = types.SimpleNamespace(BoundBox=types.SimpleNamespace(
@@ -2180,7 +2185,6 @@ def run(split_namespace):
         # Benutzer zieht die Zeichnung auf dem Blatt um (+50, +30) -> beim naechsten Bearbeiten
         # wandert der Blattrand um (-50, -30), nach "Skizze beenden" bleibt die Ansicht, wo sie ist
         view_s.X, view_s.Y = 150.0, 80.0
-        in_edit_s[0] = True
         ss.edit(spage, "Sketcher_CreateLine")
         frame_moved = [(g[1], g[2]) for g, c in sk.geo if c]
         blocks_moved = sorted(c[1] for c in sk.cons)
@@ -2214,10 +2218,10 @@ def run(split_namespace):
             or getattr(view_s, "LockPosition", False)):
         print("  FEHLER: Ansicht der Blatt-Skizze (1:1, von oben, auf dem Blatt)")
         return False
-    if again_s is not sk or n_objs != 3 or edits_s[:2] != ["SheetSketch", "SheetSketch"]:
+    if again_s is not sk or n_objs != 3 or edits_s != ["SheetSketch", "SheetSketch"]:
         print("  FEHLER: Blatt-Skizze wird doppelt angelegt / nicht bearbeitet", n_objs, edits_s)
         return False
-    if ran_s[:2] != ["Std_ViewCreate", "Sketcher_CreateCircle"]:
+    if ran_s[:3] != ["Std_ViewCreate", "Sketcher_CreateCircle", "Sketcher_ConstrainEqual"]:
         print("  FEHLER: 3D-Fenster/Werkzeug beim Zeichnen", ran_s)
         return False
     if still != (210.0, 148.5) or after_s != (100.0, 50.0, 1):
@@ -2245,6 +2249,59 @@ def run(split_namespace):
         print("  FEHLER: Feld Formen im Ribbon (feste Beschriftung, alle Formen)")
         return False
     print("  Blatt-Sk.: Formen öffnen Blatt-Skizze (Rand blockiert, aufs Blatt gezoomt), 1:1 aufs Blatt, frei verschiebbar – Rand wandert mit")
+
+    # --- Feld "Text" (Z2) --------------------------------------------------
+    tn = sys.modules.get("swui.text_note")
+    if tn is None or "SWUI_Text" not in commands:
+        print("  FEHLER: Befehl SWUI_Text nicht angemeldet")
+        return False
+    if tn.lines_of("Allgemeintoleranz ISO 2768-m") != ["Allgemeintoleranz ISO 2768-m"] or tn.lines_of("   ") != [] \
+            or tn.lines_of("Zeile 1\\nZeile 2") != ["Zeile 1", "Zeile 2"]:
+        print("  FEHLER: Text in Zeilen", tn.lines_of("Zeile 1\\nZeile 2"))
+        return False
+    tdoc = SDoc()
+    tpage = tdoc.addObject("TechDraw::DrawPage", "Page")
+    qtw_t = sys.modules["PySide.QtWidgets"]
+    qtc_t = sys.modules["PySide.QtCore"]
+    answers_t = [("Bohrungen entgratet", True), ("", True), ("geändert", True)]
+    old_dialog_t = qtw_t.QInputDialog.getText
+    qtw_t.QInputDialog.getText = lambda *a_: answers_t.pop(0)
+    old_single_t = qtc_t.QTimer.singleShot
+    qtc_t.QTimer.singleShot = lambda _ms, fn: fn()
+    had_td3 = "TechDraw" in sys.modules
+    sys.modules.setdefault("TechDraw", types.ModuleType("TechDraw"))
+    try:
+        # Klick bei Szene (1200, -800) -> Blatt (120, 80) mm (Rez 10, y nach oben)
+        T_ = qtc_t.QEvent.Type
+        gview_t = types.SimpleNamespace(mapToScene=lambda _p: types.SimpleNamespace(x=lambda: 1200.0, y=lambda: -800.0))
+        picker_t = types.SimpleNamespace(page=tpage, gview=gview_t)
+        click_t = types.SimpleNamespace(type=lambda: T_.MouseButtonPress, button=lambda: qtc_t.Qt.MouseButton.LeftButton,
+                                        position=lambda: types.SimpleNamespace(toPoint=lambda: (0, 0)))
+        took_t = tn.handle_pick_event(picker_t, click_t)
+        made_t = [o for o in tdoc.Objects if o.TypeId == tn.ANNOTATION_TYPE]
+        tn.handle_pick_event(picker_t, click_t)  # leere Eingabe -> nichts
+        made_t2 = [o for o in tdoc.Objects if o.TypeId == tn.ANNOTATION_TYPE]
+        esc_t = types.SimpleNamespace(type=lambda: T_.KeyPress, key=lambda: qtc_t.Qt.Key.Key_Escape)
+        esc_took = tn.handle_pick_event(picker_t, esc_t)
+        if made_t:
+            tn.edit_text(made_t[0])
+    finally:
+        qtw_t.QInputDialog.getText = old_dialog_t
+        qtc_t.QTimer.singleShot = old_single_t
+        if not had_td3:
+            del sys.modules["TechDraw"]
+    if not took_t or len(made_t) != 1 or len(made_t2) != 1 or not esc_took:
+        print("  FEHLER: Text per Klick aufs Blatt (genau ein Text, leere Eingabe/Esc ohne Text)", took_t, len(made_t), len(made_t2))
+        return False
+    tx = made_t[0]
+    if ((round(tx.X, 6), round(tx.Y, 6)) != (120.0, 80.0) or tx.Text != ["geändert"] or getattr(tx, "TextSize", None) != 3.5
+            or tpage.views != [tx] or not tn.is_text(tx) or tdoc.tx.count("commit") != 2):
+        print("  FEHLER: Text – Lage, Inhalt, Schrifthöhe, Rückgängig", tx.X, tx.Y, tx.Text, tdoc.tx)
+        return False
+    if sys.modules["swui.naming"].sw_label_for(tx) != "Text1":
+        print("  FEHLER: Baumname des Texts", sys.modules["swui.naming"].sw_label_for(tx))
+        return False
+    print("  Text     : Klick aufs Blatt, Text tippen (3,5 mm), gewählten Text ändern, Esc bricht ab, Baum Text1")
 
     # --- Verknuepfungs-Panel (Baugruppe, 8e) -----------------------------
     mt = sys.modules.get("swui.assembly_mates")

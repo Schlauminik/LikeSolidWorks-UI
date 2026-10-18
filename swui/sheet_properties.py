@@ -64,11 +64,13 @@ _LABELS = dict(FIELD_LABELS)
 _ORDER = [k for k, _ in FIELD_LABELS]
 
 UNIT_DEFAULT = "mm"
-FAVORITES = ("A4_hoch_ISO7200_DE.svg", "A3_quer_ISO7200_DE.svg", "A4_Portrait_ISO5457_advanced.svg", "A3_Landscape_ISO5457_advanced.svg")
+FAVORITES = ("A4_hoch_ISO7200_DE.svg", "A3_quer_ISO7200_DE.svg", "A4_Portrait_ISO7200_EN.svg",
+             "A3_Landscape_ISO7200_EN.svg", "A4_Portrait_ISO5457_advanced.svg", "A3_Landscape_ISO5457_advanced.svg")
 _SIZES = {"Portrait": N_("hoch"), "Landscape": N_("quer"), "hoch": N_("hoch"), "quer": N_("quer")}
 _VARIANTS = {
     "ISO7200_DE": N_("Schriftfeld ISO 7200 (deutsch, mit Maßeinheit)"),
-    "ISO5457_advanced": N_("Schriftfeld ISO 7200 (englisch)"),
+    "ISO7200_EN": N_("Schriftfeld ISO 7200 (englisch, mit Maßeinheit)"),
+    "ISO5457_advanced": N_("Schriftfeld ISO 7200 (englisch, FreeCAD)"),
     "ISO5457_minimal": N_("Schriftfeld klein"),
     "ISO5457_notitleblock": N_("ohne Schriftfeld"),
     "blank": N_("leer"),

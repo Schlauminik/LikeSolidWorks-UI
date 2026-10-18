@@ -2217,6 +2217,18 @@ def run(split_namespace):
     if os.path.basename(own) != "A3_quer_ISO7200_DE.svg" or not os.path.isfile(own):
         print("  FEHLER: eigene deutsche Vorlage wird nicht bevorzugt", own)
         return False
+    # Englische Oberflaeche: englische Vorlage (Feld Unit), sonst deutsche als Rueckfall
+    i18_t = sys.modules["swui.i18n"]
+    par_t = fcz.ParamGet(i18_t.PARAMS)
+    par_t.SetString(i18_t.KEY, "en")
+    try:
+        own_en = nd.template_path("A3 quer")
+        own_en4 = nd.template_path("A4 hoch")
+    finally:
+        par_t.RemString(i18_t.KEY)
+    if (os.path.basename(own_en), os.path.basename(own_en4)) != ("A3_Landscape_ISO7200_EN.svg", "A4_Portrait_ISO7200_EN.svg"):
+        print("  FEHLER: englische Vorlage bei englischer Oberfläche", own_en, own_en4)
+        return False
 
     class TDObj:
         def __init__(self, type_id, name):
@@ -2315,7 +2327,7 @@ def run(split_namespace):
     if sp is None or "SWUI_SheetProperties" not in commands:
         print("  FEHLER: Befehl SWUI_SheetProperties nicht angemeldet")
         return False
-    if (sp.display_name("/x/A3_Landscape_ISO5457_advanced.svg") != "A3 quer – Schriftfeld ISO 7200 (englisch)"
+    if (sp.display_name("/x/A3_Landscape_ISO5457_advanced.svg") != "A3 quer – Schriftfeld ISO 7200 (englisch, FreeCAD)"
             or sp.display_name("/x/A4_hoch_ISO7200_DE.svg") != "A4 hoch – Schriftfeld ISO 7200 (deutsch, mit Maßeinheit)"
             or sp.display_name("/x/A4_Portrait_blank.svg") != "A4 hoch – leer"
             or sp.display_name("/x/Firma.svg") != "Firma"):
@@ -2342,6 +2354,20 @@ def run(split_namespace):
                 or "Maßeinheit:" not in txt_ or "Werkstoff:" not in txt_ or "Part Material" in txt_):
             print("  FEHLER: Vorlage ohne Maßeinheit bzw. nicht deutsch", n_)
             return False
+    for n_ in ("A4_Portrait_ISO7200_EN.svg", "A3_Landscape_ISO7200_EN.svg"):
+        f_ = os.path.join(sp.own_templates_dir(), n_)
+        if not os.path.isfile(f_):
+            print("  FEHLER: englische Vorlage fehlt", f_)
+            return False
+        txt_ = open(f_, encoding="utf-8").read()
+        _md.parseString(txt_.encode("utf-8"))
+        if ('freecad:editable="unit"' not in txt_ or "<tspan>mm</tspan>" not in txt_ or "Unit:" not in txt_
+                or "Material:" not in txt_ or "<tspan>EN</tspan>" not in txt_ or "Werkstoff" in txt_ or "Maßeinheit" in txt_):
+            print("  FEHLER: englische Vorlage ohne Unit bzw. nicht englisch", n_)
+            return False
+    if sp.display_name("/x/A4_Portrait_ISO7200_EN.svg") != "A4 hoch – Schriftfeld ISO 7200 (englisch, mit Maßeinheit)":
+        print("  FEHLER: Anzeigename englische Vorlage", sp.display_name("/x/A4_Portrait_ISO7200_EN.svg"))
+        return False
     fc_ = sys.modules["FreeCAD"]
     had_ = hasattr(fc_, "getResourceDir")
     old_ = getattr(fc_, "getResourceDir", None)

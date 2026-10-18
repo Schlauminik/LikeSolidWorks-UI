@@ -35,11 +35,15 @@ FORMATS = {
     "A4 hoch": "A4_Portrait_ISO5457_advanced.svg",
     "A3 quer": "A3_Landscape_ISO5457_advanced.svg",
 }
-# Bevorzugt: eigene deutsche Vorlagen mit Feld "Maßeinheit" (resources/templates,
-# erzeugt von tools/make_templates.py)
+# Bevorzugt: eigene Vorlagen mit Feld "Maßeinheit"/"Unit" (resources/templates,
+# erzeugt von tools/make_templates.py) - passend zur eingestellten Sprache
 OWN_FORMATS = {
     "A4 hoch": "A4_hoch_ISO7200_DE.svg",
     "A3 quer": "A3_quer_ISO7200_DE.svg",
+}
+OWN_FORMATS_LANG = {
+    "de": OWN_FORMATS,
+    "en": {"A4 hoch": "A4_Portrait_ISO7200_EN.svg", "A3 quer": "A3_Landscape_ISO7200_EN.svg"},
 }
 FORMAT_ORDER = (N_("A4 hoch"), N_("A3 quer"))  # intern deutsch, Anzeige mit tr()
 A3_FROM_MM = 150.0  # groesste Teilabmessung, ab der A3 vorgeschlagen wird
@@ -112,10 +116,23 @@ def own_templates_dir():
 
 
 def template_path(fmt):
-    """Pfad der Vorlage: eigene deutsche > FreeCADs ISO-Vorlage > Standardvorlage."""
-    own = os.path.join(own_templates_dir(), OWN_FORMATS.get(fmt, OWN_FORMATS["A4 hoch"]))
-    if os.path.isfile(own):
-        return own
+    """
+    Pfad der Vorlage: eigene in der eingestellten Sprache > eigene deutsche
+    > FreeCADs ISO-Vorlage > Standardvorlage. Weitere Sprachen ohne eigene
+    Vorlage bekommen die englische (Rueckfall wie bei den Texten).
+    """
+    from swui import i18n
+
+    lang = i18n.current()
+    tables = [OWN_FORMATS_LANG.get(lang), OWN_FORMATS_LANG.get(i18n.FALLBACK), OWN_FORMATS]
+    if lang == i18n.SOURCE:
+        tables = [OWN_FORMATS]
+    for table in tables:
+        if not table:
+            continue
+        own = os.path.join(own_templates_dir(), table.get(fmt, table["A4 hoch"]))
+        if os.path.isfile(own):
+            return own
     name = FORMATS.get(fmt, FORMATS["A4 hoch"])
     base = os.path.join(FreeCAD.getResourceDir(), "Mod", "TechDraw", "Templates")
     for candidate in (os.path.join(base, "ISO", name), os.path.join(base, name)):

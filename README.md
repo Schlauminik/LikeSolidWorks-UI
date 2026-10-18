@@ -67,6 +67,7 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | L2b | Sprache: Beziehungs- und Verknüpfungs-Panel, freie Drehung (auch Sperrgründe im Tooltip), Diagnose, Drag & Drop und alle Meldungen im Ausgabefenster zweisprachig; Test prüft Platzhalter (%s, %d) jeder Übersetzung | **fertig** |
 | L3 | Sprache: SW-Begriffe in FreeCADs eigenen Dialogen auch auf Englisch (Direction 1, End Condition, Blind, Through All, Mid Plane, Projected Views, Balloon …) | **fertig** |
 | L4a | Sprache: Namen im Baum für neue Objekte auf Englisch wie in SW (Sketch1, Boss-Extrude1, Top Plane, Mates, Coincident1, Sheet1, Standard 3 View, Section View A-A …), vorhandene Namen bleiben; Export je Blatt `…_Sheet2.pdf`; Reiter Evaluieren ganz links (Knopf Language sofort sichtbar), Start weiter auf Features | **fertig** |
+| L4b1 | Sprache: englische Zeichnungsvorlagen A4 hoch / A3 quer (ISO 7200, Feld „Unit“, Sprache EN); neue Zeichnung nimmt die Vorlage der eingestellten Sprache | **fertig** |
 
 Später: 3D-Skizzen.
 

@@ -2440,6 +2440,79 @@ def run(split_namespace):
         return False
     print("  Blatt    : Vorlagen A4 hoch/A3 quer zuerst, Wechsel behält Schriftfeld + Ansichten, Vorbelegung aus Teil")
 
+    # --- Projektionsmethode (Sprache, Schritt 4b2) ---
+    import re
+    import xml.dom.minidom as _md2
+    own_dir = sp.own_templates_dir()
+    for n_ in ("A4_hoch_ISO7200_DE", "A3_quer_ISO7200_DE", "A4_Portrait_ISO7200_EN", "A3_Landscape_ISO7200_EN"):
+        f3 = os.path.join(own_dir, n_ + "_M3.svg")
+        if not os.path.isfile(f3):
+            print("  FEHLER: Vorlage für Methode 3 fehlt", f3)
+            return False
+        t3 = open(f3, encoding="utf-8").read()
+        _md2.parseString(t3.encode("utf-8"))
+        m_tr = re.search(r'id="third_angle_trapezoid" d="m ([\d.]+),', t3)
+        m_ci = re.search(r'id="third_angle_outer circle" cx="([\d.]+)"', t3)
+        # Methode 3: Kreise links (rechter Rand cx+5 vor der schmalen Seite wide-10), Kegelstumpf rechts
+        if "first_angle" in t3 or not (m_tr and m_ci) or not float(m_ci.group(1)) + 5 < float(m_tr.group(1)) - 10:
+            print("  FEHLER: Symbol Methode 3 falsch", n_)
+            return False
+    cat_own = [os.path.basename(p_) for _n, p_ in sp.template_catalog(own_dir)]
+    if any("_M3" in c_ for c_ in cat_own) or len(cat_own) != 4:
+        print("  FEHLER: Methode-3-Vorlagen erscheinen in der Vorlagenliste", cat_own)
+        return False
+    de_own = os.path.join(own_dir, "A4_hoch_ISO7200_DE.svg")
+
+    class PGroup2:
+        TypeId = "TechDraw::DrawProjGroup"
+
+        def __init__(self):
+            self.ProjectionType, self.X, self.Y = "First angle", 100.0, 150.0
+
+    tpl_m = Tpl()
+    tpl_m._t, tpl_m.Width, tpl_m.Height = de_own, 210.0, 297.0
+    grp_m = PGroup2()
+    pg_m = types.SimpleNamespace(TypeId="TechDraw::DrawPage", Template=tpl_m, Views=[grp_m], Document=zdoc2,
+                                 InList=[], ProjectionType="First angle")
+    sp.apply_sheet(pg_m, de_own, {"title": "Welle"}, sp.THIRD)
+    to3 = (os.path.basename(tpl_m.Template), grp_m.ProjectionType, pg_m.ProjectionType, sp.page_method(pg_m))
+    sp.apply_sheet(pg_m, sp.base_template(tpl_m.Template), {"title": "Welle"}, sp.FIRST)
+    to1 = (os.path.basename(tpl_m.Template), grp_m.ProjectionType, pg_m.ProjectionType, sp.page_method(pg_m))
+    foreign = sp.template_for_method("/t/A3_Landscape_ISO5457_advanced.svg", sp.THIRD)
+    if (to3 != ("A4_hoch_ISO7200_DE_M3.svg", "Third angle", "Third angle", "Third angle")
+            or to1 != ("A4_hoch_ISO7200_DE.svg", "First angle", "First angle", "First angle")
+            or foreign != "/t/A3_Landscape_ISO5457_advanced.svg"):
+        print("  FEHLER: Projektionsmethode umstellen (Vorlage/Ansichten)", to3, to1, foreign)
+        return False
+    # Englische Oberflaeche: Vorgabe Methode 3, neue Zeichnung mit Draufsicht oben + Seitenansicht rechts
+    i18_m = sys.modules["swui.i18n"]
+    par_m = sys.modules["FreeCAD"].ParamGet(i18_m.PARAMS)
+    par_m.SetString(i18_m.KEY, "en")
+    had_td = "TechDraw" in sys.modules
+    sys.modules.setdefault("TechDraw", types.ModuleType("TechDraw"))
+    try:
+        dflt_en = sp.default_projection()
+        auto_en = sp.auto_values(pg, today=__import__("datetime").date(2026, 10, 17))
+        mdoc = TDDoc("M")
+        page_en, grp_en = nd.build(mdoc, [welle_body], "A4 hoch")
+        tpl_en = [o for o in mdoc.Objects if o.TypeId == "TechDraw::DrawSVGTemplate"][0].Template
+    finally:
+        par_m.RemString(i18_m.KEY)
+        if not had_td:
+            del sys.modules["TechDraw"]
+    dflt_de = sp.default_projection()
+    if dflt_en != "Third angle" or dflt_de != "First angle":
+        print("  FEHLER: Vorgabe der Projektionsmethode nach Sprache", dflt_en, dflt_de)
+        return False
+    if (grp_en.ProjectionType, page_en.ProjectionType, grp_en.projections, os.path.basename(tpl_en)) != (
+            "Third angle", "Third angle", ["Front", "Top", "Right"], "A4_Portrait_ISO7200_EN_M3.svg"):
+        print("  FEHLER: neue englische Zeichnung (Methode 3)", grp_en.ProjectionType, grp_en.projections, tpl_en)
+        return False
+    if (auto_en.get("language_code"), auto_en.get("date_of_issue")) != ("EN", "2026-10-17"):
+        print("  FEHLER: englisches Schriftfeld (Sprache EN, Datum ISO)", auto_en.get("language_code"), auto_en.get("date_of_issue"))
+        return False
+    print("  Methode  : wählbar in Blatteigenschaften, Vorlage mit passendem Symbol, Englisch = Methode 3 (Vorne/Oben/Rechts)")
+
     # --- Bild einfuegen ---------------------------------------------------
     ii = sys.modules.get("swui.insert_image")
     if ii is None or "SWUI_InsertImage" not in commands:
@@ -2945,6 +3018,7 @@ def run(split_namespace):
         print("  FEHLER: surface_finish nicht geladen (Befehl SWUI_SurfaceFinish)")
         return False
     import re as _re
+    import re
     import xml.dom.minidom as _md2
     svg_s = sf.build_svg("required", True, {"a": "Rz 16", "b": "Ra 0,8", "c": "geschliffen", "d": "⊥", "e": "0,5"})
     dom_s = _md2.parseString(svg_s.encode("utf-8"))

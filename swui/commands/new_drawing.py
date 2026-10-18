@@ -15,7 +15,9 @@ Ablauf (Schritt 9a, Entscheidungen von Dominik am 17.10.):
   4. Blatt mit ISO-Vorlage (Schriftfeld nach DIN EN ISO 7200) und
      Standard-Dreiansicht nach Projektionsmethode 1 (DIN/ISO):
      Vorderansicht, Draufsicht (darunter), Seitenansicht von links (rechts
-     daneben). Massstab automatisch.
+     daneben). Massstab automatisch. Englische Oberflaeche (Schritt 4b2):
+     Methode 3 - Draufsicht oben, Seitenansicht von rechts rechts daneben,
+     Vorlage mit Methode-3-Symbol. Umstellbar in den Blatteigenschaften.
 
 Geprueft gegen FreeCAD 1.1.4 (src/Mod/TechDraw): DrawProjGroup.XSource,
 ProjectionType "First angle", Vorlagen unter Templates/ISO/.
@@ -49,6 +51,9 @@ FORMAT_ORDER = (N_("A4 hoch"), N_("A3 quer"))  # intern deutsch, Anzeige mit tr(
 A3_FROM_MM = 150.0  # groesste Teilabmessung, ab der A3 vorgeschlagen wird
 VIEWS = ("Front", "Top", "Left")  # Methode 1: Draufsicht unten, Seitenansicht links -> rechts daneben
 PROJECTION = "First angle"
+# Methode 3 (wie SW-Standard-Dreiansicht in englischer Oberflaeche): Vorder-, Draufsicht (oben),
+# Seitenansicht von rechts (rechts daneben)
+VIEWS_BY_METHOD = {"First angle": VIEWS, "Third angle": ("Front", "Top", "Right")}
 
 
 class NewDrawing:
@@ -115,7 +120,7 @@ def own_templates_dir():
     return os.path.join(paths.RESOURCES_DIR, "templates")
 
 
-def template_path(fmt):
+def template_path(fmt, method=None):
     """
     Pfad der Vorlage: eigene in der eingestellten Sprache > eigene deutsche
     > FreeCADs ISO-Vorlage > Standardvorlage. Weitere Sprachen ohne eigene
@@ -132,6 +137,10 @@ def template_path(fmt):
             continue
         own = os.path.join(own_templates_dir(), table.get(fmt, table["A4 hoch"]))
         if os.path.isfile(own):
+            if method:
+                from swui.sheet_properties import template_for_method
+
+                return template_for_method(own, method)
             return own
     name = FORMATS.get(fmt, FORMATS["A4 hoch"])
     base = os.path.join(FreeCAD.getResourceDir(), "Mod", "TechDraw", "Templates")
@@ -147,28 +156,33 @@ def template_path(fmt):
     return os.path.join(base, "Default_Template_A4_Landscape.svg")
 
 
-def build(doc, objs, fmt):
-    """Blatt mit Vorlage und Standard-Dreiansicht in 'doc' anlegen."""
+def build(doc, objs, fmt, method=None):
+    """
+    Blatt mit Vorlage und Standard-Dreiansicht in 'doc' anlegen.
+    method: Projektionsmethode; ohne Angabe nach Sprache (Englisch Methode 3).
+    """
     import TechDraw  # noqa: F401 - meldet die TechDraw-Objekttypen an
+    from swui.sheet_properties import default_projection
 
+    method = method or default_projection()
     template = doc.addObject("TechDraw::DrawSVGTemplate", "Template")
-    template.Template = template_path(fmt)
+    template.Template = template_path(fmt, method)
     page = doc.addObject("TechDraw::DrawPage", "Page")
     page.Template = template
     page.Label = tree("Blatt") + "1"
     try:
-        page.ProjectionType = PROJECTION
+        page.ProjectionType = method
     except Exception:
         pass
     group = doc.addObject("TechDraw::DrawProjGroup", "ProjGroup")
     page.addView(group)
-    group.ProjectionType = PROJECTION
+    group.ProjectionType = method
     group.XSource = list(objs)
     try:
         group.ScaleType = "Automatic"
     except Exception:
         pass
-    for view in VIEWS:
+    for view in VIEWS_BY_METHOD.get(method, VIEWS):
         group.addProjection(view)
     group.Label = tree("Standard-Dreiansicht")
     return page, group

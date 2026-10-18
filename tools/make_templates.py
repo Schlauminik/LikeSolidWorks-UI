@@ -14,6 +14,10 @@ erlaubt). Geaendert wird:
   - Beispieltexte geleert, Sprache "DE"
 Englische Vorlagen (Sprache, Schritt 4b): gleicher Aufbau, ISO-7200-
 Beschriftung auf Englisch, Feld "Unit:" (Vorgabe "mm"), Sprache "EN".
+Jede Vorlage zusaetzlich als "..._M3.svg" mit dem Symbol fuer
+Projektionsmethode 3 (ISO 5456-2: Kreise links, Kegelstumpf rechts,
+schmale Seite zu den Kreisen). Die Blatteigenschaften wechseln beim
+Umstellen der Methode automatisch auf die passende Datei.
 
 Aufruf (im Repo):  python3 tools/make_templates.py
 Ergebnis:          resources/templates/*.svg  - NICHT von Hand aendern.
@@ -128,6 +132,35 @@ def _num(v):
     return ("%.1f" % v).rstrip("0").rstrip(".")
 
 
+def third_angle(svg):
+    """
+    Symbol Methode 1 -> Methode 3. Methode 1 (FreeCAD-Vorlage): Kegelstumpf
+    links (schmal links), Kreise rechts. Methode 3: Kreise nach links, der
+    Kegelstumpf nach rechts - schmale Seite zeigt weiter zu den Kreisen.
+    """
+    m_t = re.search(r'<path id="first_angle_trapezoid" d="m ([\d.]+),([\d.]+) -10,', svg)
+    m_c = re.search(r'<circle id="first_angle_inner circle" cx="([\d.]+)"', svg)
+    if not (m_t and m_c):
+        raise ValueError("Symbol der Projektionsmethode nicht gefunden")
+    wide, cx = float(m_t.group(1)), float(m_c.group(1))
+    narrow = wide - 10.0
+    new_cx = narrow + 5.0           # Kreise nehmen den Platz des Kegelstumpfs ein
+    new_wide = cx + 5.0             # Kegelstumpf: schmal bei cx-5, breit bei cx+5
+    svg = svg.replace('<path id="first_angle_trapezoid" d="m %s,' % m_t.group(1),
+                      '<path id="third_angle_trapezoid" d="m %s,' % _num(new_wide), 1)
+    for kind in ("inner", "outer"):
+        svg, n = re.subn(r'<circle id="first_angle_%s circle" cx="[\d.]+"' % kind,
+                         '<circle id="third_angle_%s circle" cx="%s"' % (kind, _num(new_cx)), svg)
+        if n != 1:
+            raise ValueError("Kreis %s nicht gefunden" % kind)
+    svg, n = re.subn(r'<path id="first_angle_vertical" d="m [\d.]+,',
+                     '<path id="third_angle_vertical" d="m %s,' % _num(new_cx), svg)
+    if n != 1:
+        raise ValueError("Mittellinie des Symbols nicht gefunden")
+    svg = svg.replace('<path id="first_angle_horizontal"', '<path id="third_angle_horizontal"', 1)
+    return svg.replace("Nicht von Hand ändern. -->", "Projektionsmethode 3. Nicht von Hand ändern. -->", 1)
+
+
 def convert(svg, lang="DE"):
     labels, defaults, unit_label, what = LANGS[lang]
     f = frame_x(svg)
@@ -161,10 +194,11 @@ def build(target=TARGET):
     for src, dst, lang in TEMPLATES:
         with open(os.path.join(SRC, src), encoding="utf-8") as fh:
             svg = convert(fh.read(), lang)
-        path = os.path.join(target, dst)
-        with open(path, "w", encoding="utf-8") as fh:
-            fh.write(svg)
-        out.append(path)
+        for name, content in ((dst, svg), (dst[:-4] + "_M3.svg", third_angle(svg))):
+            path = os.path.join(target, name)
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(content)
+            out.append(path)
     return out
 
 

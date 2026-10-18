@@ -68,6 +68,7 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | L3 | Sprache: SW-Begriffe in FreeCADs eigenen Dialogen auch auf Englisch (Direction 1, End Condition, Blind, Through All, Mid Plane, Projected Views, Balloon …) | **fertig** |
 | L4a | Sprache: Namen im Baum für neue Objekte auf Englisch wie in SW (Sketch1, Boss-Extrude1, Top Plane, Mates, Coincident1, Sheet1, Standard 3 View, Section View A-A …), vorhandene Namen bleiben; Export je Blatt `…_Sheet2.pdf`; Reiter Evaluieren ganz links (Knopf Language sofort sichtbar), Start weiter auf Features | **fertig** |
 | L4b1 | Sprache: englische Zeichnungsvorlagen A4 hoch / A3 quer (ISO 7200, Feld „Unit“, Sprache EN); neue Zeichnung nimmt die Vorlage der eingestellten Sprache | **fertig** |
+| L4b2 | Projektionsmethode je Zeichnung wählbar (Blatteigenschaften): Methode 1 (DIN/ISO) oder 3, Symbol im Schriftfeld wechselt mit (ISO 5456-2); neue Zeichnung auf Englisch mit Methode 3 (Vorder-, Draufsicht oben, Seitenansicht rechts), sonst Methode 1; englisches Schriftfeld mit Sprache EN und Datum JJJJ-MM-TT | **fertig** |
 
 Später: 3D-Skizzen.
 

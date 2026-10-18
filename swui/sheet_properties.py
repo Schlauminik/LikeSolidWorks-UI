@@ -15,6 +15,11 @@ Ein Panel im Aufgaben-Bereich mit
     erhalten, soweit die neue Vorlage das Feld auch hat.
   - "Aus Teil übernehmen": Benennung, Zeichnungsnr., Werkstoff, Massstab,
     Ersteller und Datum aus Teil/Zeichnung vorbelegen.
+  - Projektionsmethode (Sprache, Schritt 4b2): Methode 1 (DIN/ISO) oder
+    Methode 3. Stellt das Blatt und alle Standard-Dreiansichten darauf um
+    und wechselt bei den eigenen Vorlagen auf die Datei mit dem passenden
+    Symbol im Schriftfeld (..._M3.svg). Vorgabe fuer neue Zeichnungen:
+    Englisch Methode 3, sonst Methode 1 (default_projection()).
 
 Dominiks Wunsch vom 17.10.: leicht zwischen Formaten/Vorlagen wechseln,
 Schriftfeld sehr leicht anpassen.
@@ -77,6 +82,14 @@ _VARIANTS = {
     "TD": N_("TechDraw"),
 }
 
+# Projektionsmethode: TechDraw-Wert -> Anzeige
+METHODS = (
+    ("First angle", N_("Methode 1 (DIN/ISO)")),
+    ("Third angle", N_("Methode 3 (amerikanisch)")),
+)
+FIRST, THIRD = METHODS[0][0], METHODS[1][0]
+M3_SUFFIX = "_M3"  # eigene Vorlage mit Symbol fuer Methode 3 (tools/make_templates.py)
+
 _panel = None
 
 
@@ -127,9 +140,67 @@ def template_catalog(folder=None):
     files = []
     for d in folders:
         files += sorted(glob.glob(os.path.join(d, "*.svg")))
+    files = [f for f in files if not is_m3(f)]  # Methode-3-Varianten waehlt man ueber die Projektionsmethode
     fav = [f for name in FAVORITES for f in files if os.path.basename(f) == name]
     rest = [f for f in files if f not in fav]
     return [(display_name(f), f) for f in fav + rest]
+
+
+def is_m3(path):
+    return os.path.splitext(os.path.basename(path or ""))[0].endswith(M3_SUFFIX)
+
+
+def base_template(path):
+    """'.../A4_hoch_ISO7200_DE_M3.svg' -> '.../A4_hoch_ISO7200_DE.svg' (sonst unveraendert)."""
+    if not is_m3(path):
+        return path
+    stem, ext = os.path.splitext(path)
+    return stem[: -len(M3_SUFFIX)] + ext
+
+
+def template_for_method(path, method):
+    """
+    Passende Datei zur Projektionsmethode: zu einer Vorlage mit
+    Methode-3-Variante (..._M3.svg daneben) die richtige Datei, sonst die
+    Vorlage selbst (fremde Vorlagen haben ein festes Symbol).
+    """
+    if not path:
+        return path
+    base = base_template(path)
+    if method == THIRD:
+        stem, ext = os.path.splitext(base)
+        m3 = stem + M3_SUFFIX + ext
+        return m3 if os.path.isfile(m3) else path
+    return base if os.path.isfile(base) else path
+
+
+def default_projection():
+    """Vorgabe fuer neue Zeichnungen: Englisch Methode 3, sonst Methode 1 (Dominik, 18.10.)."""
+    from swui import i18n
+
+    return THIRD if i18n.current() == "en" else FIRST
+
+
+def page_method(page):
+    """Projektionsmethode eines Blatts (erste Standard-Dreiansicht, sonst das Blatt)."""
+    for v in getattr(page, "Views", []) or []:
+        if getattr(v, "TypeId", "") == "TechDraw::DrawProjGroup":
+            return THIRD if getattr(v, "ProjectionType", "") == THIRD else FIRST
+    return THIRD if getattr(page, "ProjectionType", "") == THIRD else FIRST
+
+
+def apply_method(page, method):
+    """Blatt und alle Standard-Dreiansichten darauf auf die Methode umstellen."""
+    try:
+        page.ProjectionType = method
+    except Exception:
+        pass
+    for v in getattr(page, "Views", []) or []:
+        if getattr(v, "TypeId", "") == "TechDraw::DrawProjGroup" and getattr(v, "ProjectionType", None) != method:
+            try:
+                v.ProjectionType = method
+            except Exception:
+                pass
 
 
 def merge_values(old, new_keys):
@@ -210,8 +281,12 @@ def auto_values(page, today=None):
     author = author_name()
     if author:
         out["creator"] = author
-    out["date_of_issue"] = (today or datetime.date.today()).strftime("%d.%m.%Y")
-    out["language_code"] = "DE"
+    from swui import i18n
+
+    lang = i18n.current()
+    # Datum: deutsch TT.MM.JJJJ, sonst ISO 8601 (JJJJ-MM-TT) wie in FreeCADs ISO-Vorlage
+    out["date_of_issue"] = (today or datetime.date.today()).strftime("%d.%m.%Y" if lang == "de" else "%Y-%m-%d")
+    out["language_code"] = lang.upper()
     out["unit"] = UNIT_DEFAULT
     return out
 
@@ -225,13 +300,18 @@ def fill_empty(values, auto):
     return out
 
 
-def apply_sheet(page, template_file, values):
+def apply_sheet(page, template_file, values, method=None):
     """
     Vorlage wechseln (falls anders) und Schriftfeld setzen.
     Lage der Ansichten wird auf das neue Blatt umgerechnet.
+    method: "First angle"/"Third angle" -> Blatt/Dreiansichten umstellen und
+    die Vorlage mit dem passenden Symbol nehmen.
     """
     tpl = page.Template
     doc = page.Document
+    if method:
+        template_file = template_for_method(template_file or tpl.Template, method)
+        apply_method(page, method)
     if template_file and os.path.normpath(template_file) != os.path.normpath(tpl.Template or ""):
         old_w, old_h = float(tpl.Width or 0), float(tpl.Height or 0)
         keep = dict(tpl.EditableTexts or {})
@@ -341,6 +421,15 @@ class _TaskPanel:
         self._fill_combo()
         self.combo.currentIndexChanged.connect(self._combo_changed)
 
+        box.addWidget(_heading(tr("Projektionsmethode")))
+        self.method = QtWidgets.QComboBox()
+        for value, text in METHODS:
+            self.method.addItem(tr(text), value)
+        self.method.setCurrentIndex(1 if page_method(page) == THIRD else 0)
+        self.method.setToolTip(tr("Methode 1 (DIN/ISO, europäisch) oder Methode 3 (amerikanisch); "
+                                  "das Symbol im Schriftfeld wird mit umgestellt"))
+        box.addWidget(self.method)
+
         box.addWidget(_heading(tr("Schriftfeld")))
         take = QtWidgets.QPushButton(tr("Aus Teil übernehmen"))
         take.setToolTip(tr("Benennung, Zeichnungsnummer, Werkstoff, Maßstab, Ersteller und Datum vorbelegen"))
@@ -359,7 +448,7 @@ class _TaskPanel:
         self.combo.blockSignals(True)
         self.combo.clear()
         paths = [p for _n, p in self.catalog]
-        current = self.template_file or ""
+        current = base_template(self.template_file or "")  # Methode-3-Datei unter ihrem Grundnamen zeigen
         if current and os.path.normpath(current) not in [os.path.normpath(p) for p in paths]:
             self.catalog.insert(0, ("Eigene: %s" % os.path.basename(current), current))
         for name, path in self.catalog:
@@ -392,6 +481,9 @@ class _TaskPanel:
     def values(self):
         return {k: e.text() for k, e in self.edits.items()}
 
+    def chosen_method(self):
+        return METHODS[self.method.currentIndex()][0] if 0 <= self.method.currentIndex() < len(METHODS) else None
+
     def _take_from_part(self, *_args):
         for k, v in auto_values(self.page).items():
             if k in self.edits:
@@ -403,7 +495,7 @@ class _TaskPanel:
         doc = self.page.Document
         doc.openTransaction(tr("Blatteigenschaften"))
         try:
-            apply_sheet(self.page, self.template_file, self.values())
+            apply_sheet(self.page, self.template_file, self.values(), self.chosen_method())
         except Exception:
             FreeCAD.Console.PrintError(tr("[SWUI] Blatteigenschaften: %s\n") % traceback.format_exc())
         finally:

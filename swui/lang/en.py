@@ -556,6 +556,8 @@ TEXTS = {
     "Abstand Y": "Spacing Y",
     "Methode 1 (DIN/ISO)": "First angle (ISO)",
     "Methode 3 (amerikanisch)": "Third angle",
+    "Methode 1 (DIN/ISO, europäisch) oder Methode 3 (amerikanisch); das Symbol im Schriftfeld wird mit umgestellt":
+        "First angle (ISO, European) or third angle (American); the symbol in the title block changes accordingly",
     "Wie Blatt": "Same as sheet",
     "Isometrie links oben": "Isometric top left",
     "Draufsicht": "Top view",

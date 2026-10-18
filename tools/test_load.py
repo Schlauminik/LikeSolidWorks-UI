@@ -4343,6 +4343,23 @@ def check_manifest():
     if not repo or not (repo[0].text or "").startswith("https://") or not repo[0].get("branch"):
         print("  FEHLER: <url type=\"repository\" branch=\"…\"> fehlt oder unvollständig")
         ok = False
+    # Freigabe ueber den Zweig "release" (tools/freigabe.sh); README-Link zeigt auf denselben Zweig
+    readme_u = [u for u in root.findall(ns + "url") if u.get("type") == "readme"]
+    if repo and (repo[0].get("branch") != "release" or not readme_u or "/blob/release/" not in (readme_u[0].text or "")):
+        print("  FEHLER: Nutzer sollen den Zweig release bekommen (repository branch / readme-Link)")
+        ok = False
+    changelog = os.path.join(ADDON, "CHANGELOG.md")
+    log_txt = open(changelog, encoding="utf-8").read() if os.path.isfile(changelog) else ""
+    if not re.search(r"^## %s [—-] %s$" % (re.escape(pkg_ver), re.escape(pkg_date)), log_txt, re.M):
+        print("  FEHLER: CHANGELOG.md ohne Eintrag '## %s — %s'" % (pkg_ver, pkg_date))
+        ok = False
+    script = os.path.join(ADDON, "tools", "freigabe.sh")
+    sh = open(script, encoding="utf-8").read() if os.path.isfile(script) else ""
+    order = [sh.find(s) for s in ('= "master" ]', "git status --porcelain", 'grep -q "^## $version " CHANGELOG.md',
+                                  "refs/tags/v$version", "python3 tools/test_load.py", "git push -u origin release")]
+    if not sh.startswith("#!/usr/bin/env bash") or "set -euo pipefail" not in sh or -1 in order or order != sorted(order):
+        print("  FEHLER: tools/freigabe.sh fehlt oder prüft nicht alles vor dem Hochladen", order)
+        ok = False
     for lic in root.findall(ns + "license"):
         f = lic.get("file")
         if not f or not os.path.isfile(os.path.join(ADDON, f)):
@@ -4377,6 +4394,7 @@ def check_manifest():
         print("  Manifest : <classname> %s passt, Lizenzdateien vorhanden" % cls)
         print("  Lizenz   : SPDX-Kopfzeile in allen Quelldateien")
         print("  Version  : %s vom %s (package.xml = version.py)" % (pkg_ver, pkg_date))
+        print("  Freigabe : Zweig release, CHANGELOG %s, freigabe.sh prüft master/gesichert/CHANGELOG/Tag/Test" % pkg_ver)
         print("  Manifest : Addon-Manager zeigt '%s', Suche nach '%s' findet es" % (shown, wb_name))
     return ok
 

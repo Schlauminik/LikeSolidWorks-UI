@@ -18,7 +18,7 @@
     Systemes; dieses Projekt ist nicht mit Dassault Systemes verbunden.
     Not affiliated with Dassault Systemes.
   </description>
-  <version>0.9.0</version>
+  <version>0.10.0</version>
   <date>2026-10-18</date>
 
   <maintainer email="ladewig_dominik@web.de">Dominik Ladewig</maintainer>
@@ -30,11 +30,11 @@
   <license file="LICENSE-Code">LGPL-2.1-or-later</license>
   <license file="LICENSE-Assets">CC-BY-SA-4.0</license>
 
-  <!-- Pflicht fuer den Addon-Index. "branch" muss der Zweig sein, auf
-       dem diese Datei liegt (bei uns "master"). Spaeter mit Release-
-       Zweig: hier dessen Namen eintragen. -->
-  <url type="repository" branch="master">https://github.com/Schlauminik/LikeSolidWorks-UI</url>
-  <url type="readme">https://github.com/Schlauminik/LikeSolidWorks-UI/blob/master/README.md</url>
+  <!-- Pflicht fuer den Addon-Index. Nutzer bekommen den Zweig "release"
+       (nur gepruefte Freigaben, tools/freigabe.sh); entwickelt wird auf
+       "master". Diese Datei steht in beiden Zweigen gleich. -->
+  <url type="repository" branch="release">https://github.com/Schlauminik/LikeSolidWorks-UI</url>
+  <url type="readme">https://github.com/Schlauminik/LikeSolidWorks-UI/blob/release/README.md</url>
 
   <freecadmin>1.0</freecadmin>
 

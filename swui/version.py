@@ -6,9 +6,11 @@
 # Bei JEDER Freigabe hochzaehlen - zusammen mit <version> und <date> in
 # package.xml (der Test prueft, dass beide gleich sind). Daran erkennt der
 # Addon-Manager "Update verfuegbar".
-#   0.9.x  veroeffentlicht, noch nicht im offiziellen Index
+#   0.9.0  erste Veroeffentlichung (18.10.2026)
+#   0.10.0 erste Freigabe ueber den Zweig "release" (18.10.2026)
 #   1.0.0  Aufnahme in den offiziellen Index
-__version__ = "0.9.0"
+# Aenderungen je Version: CHANGELOG.md. Freigeben: tools/freigabe.sh
+__version__ = "0.10.0"
 
 # Kleinste FreeCAD-Version, gegen die wir entwickeln.
 MIN_FREECAD = (1, 0)

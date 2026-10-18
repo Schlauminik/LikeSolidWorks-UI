@@ -116,14 +116,14 @@ matching title block template.
 **Addon Manager.** Inclusion in the official FreeCAD add-on index is
 planned. Until then, add the repository by hand: *Edit → Preferences
 → Addon Manager → Custom repositories*, URL
-`https://github.com/Schlauminik/LikeSolidWorks-UI`, branch `master`.
+`https://github.com/Schlauminik/LikeSolidWorks-UI`, branch `release`.
 Then search for **LikeSolid** in the Addon Manager and install it.
 
 **By hand.** Clone the repository into the `Mod` folder of FreeCAD's
 user data directory and restart FreeCAD:
 
 ```bash
-git clone https://github.com/Schlauminik/LikeSolidWorks-UI.git <user data directory>/Mod/LikeSolidWorks-UI
+git clone -b release https://github.com/Schlauminik/LikeSolidWorks-UI.git <user data directory>/Mod/LikeSolidWorks-UI
 ```
 
 FreeCAD 1.1 uses a separate user data directory per version. The

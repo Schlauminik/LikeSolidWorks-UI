@@ -90,7 +90,26 @@ Später: 3D-Skizzen.
 | Python | ab 3.8 |
 | Windows, macOS, andere Linux-Pakete | nicht getestet; keine festen Pfade, sollte laufen – Rückmeldungen willkommen |
 
-## Installation (Entwicklungs-Setup)
+## Installation
+
+**Addon-Manager.** Die Aufnahme in den offiziellen FreeCAD-Index ist
+geplant. Bis dahin das Repository von Hand eintragen: *Bearbeiten →
+Einstellungen → Addon-Manager → Benutzerdefinierte Repositories*, URL
+`https://github.com/Schlauminik/LikeSolidWorks-UI`, Zweig `release`.
+Danach im Addon-Manager nach **LikeSolid** suchen und installieren.
+
+**Von Hand.** In den Ordner `Mod` des FreeCAD-Benutzerordners klonen und
+FreeCAD neu starten (den richtigen Ordner zeigt die Python-Konsole mit
+`FreeCAD.getUserAppDataDir()`):
+
+```bash
+git clone -b release https://github.com/Schlauminik/LikeSolidWorks-UI.git <Benutzerordner>/Mod/LikeSolidWorks-UI
+```
+
+Nicht beide Wege gleichzeitig nutzen – FreeCAD würde zwei Kopien laden.
+Was sich je Version geändert hat, steht in `CHANGELOG.md`.
+
+## Entwicklungs-Setup
 
 FreeCAD 1.1 liegt hier als Flatpak und nutzt **versionierte**
 Benutzerordner. Der richtige Mod-Ordner ist:
@@ -100,6 +119,21 @@ Benutzerordner. Der richtige Mod-Ordner ist:
 (Nicht `…/data/FreeCAD/Mod/` – der stammt aus einer älteren Version
 und wird von 1.1 ignoriert.) Die Dateien liegen dort als Kopie, kein
 Symlink. Danach FreeCAD neu starten.
+
+## Freigabe einer neuen Version
+
+Entwickelt wird auf `master`, Nutzer bekommen den Zweig `release`.
+Für eine Freigabe: Version in `package.xml` und `swui/version.py`
+hochzählen, Datum setzen, Eintrag in `CHANGELOG.md`, committen, dann
+
+```bash
+bash tools/freigabe.sh
+```
+
+Das Skript prüft (auf `master`, nichts ungesichert, Version im
+CHANGELOG, noch nicht freigegeben, Test grün) und bringt den Stand nach
+`release` mit Tag `vX.Y.Z`. Der Addon-Manager meldet den Nutzern dann ein
+Update.
 
 ## Test vor jeder Auslieferung
 

@@ -2,6 +2,8 @@
 
 *Eine SOLIDWORKS-ähnliche Oberfläche für FreeCAD. Nicht verbunden mit Dassault Systèmes.*
 
+[English version: README_EN.md](README_EN.md)
+
 Im FreeCAD-Addon-Manager erscheint das Paket als **LikeSolid**; die Werkbank selbst heißt **LikeSolidWorks UI**. Die Suche findet es unter beiden Namen.
 
 SOLIDWORKS-ähnliche Benutzeroberfläche und Werkzeuge für FreeCAD.
@@ -69,6 +71,7 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | L4a | Sprache: Namen im Baum für neue Objekte auf Englisch wie in SW (Sketch1, Boss-Extrude1, Top Plane, Mates, Coincident1, Sheet1, Standard 3 View, Section View A-A …), vorhandene Namen bleiben; Export je Blatt `…_Sheet2.pdf`; Reiter Evaluieren ganz links (Knopf Language sofort sichtbar), Start weiter auf Features | **fertig** |
 | L4b1 | Sprache: englische Zeichnungsvorlagen A4 hoch / A3 quer (ISO 7200, Feld „Unit“, Sprache EN); neue Zeichnung nimmt die Vorlage der eingestellten Sprache | **fertig** |
 | L4b2 | Projektionsmethode je Zeichnung wählbar (Blatteigenschaften): Methode 1 (DIN/ISO) oder 3, Symbol im Schriftfeld wechselt mit (ISO 5456-2); neue Zeichnung auf Englisch mit Methode 3 (Vorder-, Draufsicht oben, Seitenansicht rechts), sonst Methode 1; englisches Schriftfeld mit Sprache EN und Datum JJJJ-MM-TT | **fertig** |
+| L5 | Englische README (`README_EN.md`) mit Funktionsübersicht und Installationsanleitung für andere Nutzer; Beschreibung im Addon-Manager zweisprachig | **fertig** |
 
 Später: 3D-Skizzen.
 
@@ -199,8 +202,8 @@ von FreeCADs gemeinfreien ISO-Vorlagen (deutsche Beschriftung, Feld
 „Maßeinheit“) — siehe Abschnitt Lizenz.
 
 **Normen.** Das Add-on setzt den technischen Inhalt von DIN EN ISO
-7200 (Schriftfeld), 1302 (Oberflächenangaben) und 2553
-(Schweißsymbole) um. Die Normtexte selbst sind urheberrechtlich
+7200 (Schriftfeld), 1302 (Oberflächenangaben), 2553
+(Schweißsymbole) und ISO 5456-2 (Symbol der Projektionsmethode) um. Die Normtexte selbst sind urheberrechtlich
 geschützt und werden hier weder mitgeliefert noch zitiert — verwendet
 wird nur das Fachwissen, so wie es jedes CAD-Programm tut.
 

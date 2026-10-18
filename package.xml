@@ -7,12 +7,16 @@
        Suche nach dem Werkbank-Namen das Paket findet. -->
   <name>LikeSolid</name>
   <description>
-    LikeSolidWorks UI: SOLIDWORKS-aehnliche Benutzeroberflaeche und
+    LikeSolidWorks UI: a SOLIDWORKS-like user interface for FreeCAD -
+    CommandManager-style ribbon, SOLIDWORKS names and terms for parts,
+    assemblies and drawings. Interface in English and German.
+    SOLIDWORKS-aehnliche Benutzeroberflaeche und
     Werkzeuge fuer FreeCAD.
     Modernes Ribbon-Layout, Feature-Manager und ein Skizzier-Workflow,
     der sich an SOLIDWORKS orientiert. Entwickelt und getestet unter
     Linux Mint mit FreeCAD 1.1. SOLIDWORKS ist eine Marke von Dassault
     Systemes; dieses Projekt ist nicht mit Dassault Systemes verbunden.
+    Not affiliated with Dassault Systemes.
   </description>
   <version>0.9.0</version>
   <date>2026-10-18</date>
@@ -39,6 +43,7 @@
   <tag>Ribbon</tag>
   <tag>TechDraw</tag>
   <tag>Deutsch</tag>
+  <tag>English</tag>
 
   <content>
     <workbench>

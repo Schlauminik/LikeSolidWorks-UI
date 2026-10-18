@@ -3907,7 +3907,16 @@ def check_manifest():
     if missing:
         print("  FEHLER: SPDX-Kopfzeile '%s' fehlt in: %s" % (want, ", ".join(sorted(missing))))
         ok = False
+    # README deutsch + englisch: verweisen aufeinander, Markenhinweis in beiden
+    for name_, other_, mark_ in (("README.md", "README_EN.md", "eingetragene Marke von Dassault"),
+                                 ("README_EN.md", "README.md", "registered trademark of Dassault")):
+        path_ = os.path.join(ADDON, name_)
+        txt_ = open(path_, encoding="utf-8").read() if os.path.isfile(path_) else ""
+        if "(%s)" % other_ not in txt_ or mark_ not in txt_:
+            print("  FEHLER: %s fehlt, verweist nicht auf %s oder ohne Markenhinweis" % (name_, other_))
+            ok = False
     if ok:
+        print("  README   : deutsch und englisch, verweisen aufeinander, Markenhinweis")
         print("  Manifest : <classname> %s passt, Lizenzdateien vorhanden" % cls)
         print("  Lizenz   : SPDX-Kopfzeile in allen Quelldateien")
         print("  Version  : %s vom %s (package.xml = version.py)" % (pkg_ver, pkg_date))

@@ -1993,6 +1993,87 @@ def run(split_namespace):
         return False
     print("  Skizz-Sym: „Skizze erstellen“ nur bei einer ebenen Fläche im Teil, blasst weg, Klick legt Skizze an")
 
+    # --- Linieneigenschaften (Wunschliste 3) -----------------------------
+    lf = sys.modules.get("swui.line_format")
+    lf_cmd = commands.get("SWUI_LineFormat")
+    if lf is None or lf_cmd is None:
+        print("  FEHLER: Befehl SWUI_LineFormat nicht angemeldet")
+        return False
+    view_l = types.SimpleNamespace(TypeId="TechDraw::DrawProjGroupItem")
+    page_l = types.SimpleNamespace(TypeId="TechDraw::DrawPage")
+    sel_ok = [types.SimpleNamespace(Object=view_l, SubElementNames=["Edge3", "Vertex1", "Edge7"])]
+    sel_bad = [types.SimpleNamespace(Object=view_l, SubElementNames=["Vertex1"]),
+               types.SimpleNamespace(Object=page_l, SubElementNames=["Edge1"])]
+    if lf.selected_edges(sel_ok) != [(view_l, ["Edge3", "Edge7"])] or lf.selected_edges(sel_bad) != []:
+        print("  FEHLER: Linien-Auswahl erkannt", lf.selected_edges(sel_ok), lf.selected_edges(sel_bad))
+        return False
+    gui._ran.clear()
+    gui._sel = sel_bad
+    lf_cmd.Activated()
+    ran_none = list(gui._ran)
+    gui._sel = sel_ok
+    lf_cmd.Activated()
+    ran_some = list(gui._ran)
+    gui._sel = []
+    if ran_none or ran_some != [("TechDraw_DecorateLine",)]:
+        print("  FEHLER: Linieneigenschaften – Dialog ohne/mit Auswahl", ran_none, ran_some)
+        return False
+    i18_lf = sys.modules["swui.i18n"]
+    par_lf = sys.modules["FreeCAD"].ParamGet(i18_lf.PARAMS)
+    w_de = (lf.width_text(0.35), lf.width_text(1.0), lf.width_text(0.13))
+    par_lf.SetString(i18_lf.KEY, "en")
+    try:
+        w_en = lf.width_text(0.35)
+    finally:
+        par_lf.RemString(i18_lf.KEY)
+    if w_de != ("0,35 mm", "1 mm", "0,13 mm") or w_en != "0.35 mm" or (lf.nearest_index(0.5), lf.nearest_index(0.42)) != (5, 0):
+        print("  FEHLER: Normstärken-Texte", w_de, w_en, lf.nearest_index(0.5))
+        return False
+
+    class LSpin:
+        def __init__(self):
+            self.props = {"rawValue": 0.25}
+
+        def setProperty(self, k, v):
+            self.props[k] = v
+
+        def property(self, k):
+            return self.props.get(k)
+
+    spin_l = LSpin()
+    lf._apply_preset(spin_l, 4)
+    after_4 = spin_l.props["rawValue"]
+    lf._apply_preset(spin_l, 0)  # Eintrag "–" aendert nichts
+    if after_4 != 0.35 or spin_l.props["rawValue"] != 0.35:
+        print("  FEHLER: Normstärke setzt das Zahlenfeld nicht", after_4, spin_l.props)
+        return False
+
+    class LRoot:
+        def __init__(self):
+            self.inserted = []
+            lay = types.SimpleNamespace(insertWidget=lambda i, w: self.inserted.append((i, w)))
+            self.layout = lambda: lay
+
+        def findChild(self, _cls, name):
+            if name == lf.WEIGHT_SPIN:
+                return spin_l
+            if name == lf.PRESET_NAME and self.inserted:
+                return types.SimpleNamespace(findChild=lambda _c: types.SimpleNamespace(
+                    text=lambda: sys.modules["swui.i18n"].tr(lf.PRESET_LABEL), setText=lambda _t: None))
+            return None
+
+    root_l = LRoot()
+    first_l = lf.add_presets(root_l)
+    second_l = lf.add_presets(root_l)
+    if first_l != 1 or second_l != 0 or len(root_l.inserted) != 1 or root_l.inserted[0][0] != 1:
+        print("  FEHLER: Schnellauswahl Normstärke im Dialog (genau einmal, unter den Feldern)", first_l, second_l, root_l.inserted)
+        return False
+    ft_l = sys.modules["swui.feature_terms"]
+    if ft_l.LINE_DECOR not in ft_l.SPECS or ft_l.LINE_DECOR["root"] != "TechDrawGui::TaskLineDecor":
+        print("  FEHLER: SW-Begriffe für den Liniendialog fehlen")
+        return False
+    print("  Linien   : Linieneigenschaften nur mit gewählten Linien, SW-Begriffe, Normstärken ISO 128 setzen den Wert")
+
     # --- Verknuepfungs-Panel (Baugruppe, 8e) -----------------------------
     mt = sys.modules.get("swui.assembly_mates")
     if mt is None or not mt.is_installed():

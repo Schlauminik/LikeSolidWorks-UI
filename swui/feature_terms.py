@@ -385,8 +385,29 @@ SURFACE = {
     "combos": {},
 }
 
+# Linieneigenschaften (TechDraw_DecorateLine, ueber SWUI_LineFormat) - line_format.py
+def _line_presets(root):
+    from swui import line_format
+
+    return line_format.add_presets(root)
+
+
+LINE_DECOR = {
+    "root": "TechDrawGui::TaskLineDecor",
+    "labels": {
+        "label_4": "Ansicht",
+        "label_10": "Linien",
+        "label_6": "Linienart",
+        "label_15": "Strichstärke",
+        "label_14": "Farbe",
+        "label": "Sichtbar",
+    },
+    "combos": {"cb_Visible": ["Nein", "Ja"]},
+    "after": _line_presets,
+}
+
 SPECS = (PAD_POCKET, REVOLUTION, JOINT, INSERT, PROJ_GROUP, SECTION_VIEW, DETAIL_VIEW, COMPLEX_SECTION,
-         DIMENSION, BALLOON, NOTE, LEADER, HATCH, CENTER_LINE, WELD, SURFACE)
+         DIMENSION, BALLOON, NOTE, LEADER, HATCH, CENTER_LINE, WELD, SURFACE, LINE_DECOR)
 
 _timer = None
 _installed = False

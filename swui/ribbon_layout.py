@@ -398,6 +398,8 @@ ZEICHNUNGEN = (
                 ("SWUI_WeldSymbol", "Schweißsymbol", {"svg": "sketch/d_weld"}),
                 ("TechDraw_LeaderLine", "Hinweislinie", {"svg": "sketch/d_leader"}),
             ], "style": "text"},
+            # Linienart, Strichstaerke, Farbe der gewaehlten Linien (line_format.py, Dominik 18.10.)
+            ("SWUI_LineFormat", "Linien-\neigenschaften", {"svg": "sketch/d_line_format"}),
         ],
         [
             # Ausgabe (Dominik: PDF und DXF)

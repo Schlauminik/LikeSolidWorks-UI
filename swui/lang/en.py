@@ -673,6 +673,16 @@ TEXTS = {
     "Skizze erstellen": "Sketch",
     "[SWUI] Skizze konnte nicht erstellt werden:\n%s\n": "[SWUI] Could not create the sketch:\n%s\n",
     "[SWUI] Symbol „Skizze erstellen“ nicht verfügbar:\n%s\n": "[SWUI] Context symbol \"Sketch\" not available:\n%s\n",
+    # === Linieneigenschaften (line_format.py) ===========================
+    'Erst Linien in einer Ansicht wählen, dann „Linieneigenschaften“ klicken.': 'Select lines in a view first, then click "Line Format".',
+    'Ja': 'Yes',
+    'Nein': 'No',
+    'Linien': 'Lines',
+    'Linien-\neigenschaften': 'Line\nFormat',
+    'Linienart, Strichstärke und Farbe der gewählten Linien ändern (erst Linien in einer Ansicht wählen).': 'Change line style, thickness and color of the selected lines (select lines in a view first).',
+    'Normstärke (ISO 128)': 'Standard thickness (ISO 128)',
+    'Strichstärke': 'Line thickness',
+    'Sichtbar': 'Visible',
     # === Schritt 4: Namen im Baum (i18n.tree, Vorsatz "Baum|") ======
     # Wie im englischen SOLIDWORKS-FeatureManager: Boss-Extrude1, Top Plane ...
     "Baum|Skizze": "Sketch",

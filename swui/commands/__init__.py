@@ -59,6 +59,10 @@ def register_all():
 
     FreeCADGui.addCommand("SWUI_WeldSymbol", weld_symbol.WeldSymbol())
 
+    from swui import line_format
+
+    FreeCADGui.addCommand("SWUI_LineFormat", line_format.LineFormat())
+
     from swui import drawing_export
 
     FreeCADGui.addCommand("SWUI_ExportPDF", drawing_export.ExportPdf())

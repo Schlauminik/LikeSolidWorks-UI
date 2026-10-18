@@ -1235,6 +1235,15 @@ def _():
             '<path d="M42 26 V14 L54 26 Z" fill="%s" stroke="%s" stroke-width="2" stroke-linejoin="round"/>' % (NEW, OUTLINE)]
 
 
+@icon("d_line_format", "Linieneigenschaften")
+def _():
+    # drei Linien: dick durchgezogen (weiss), mittel gestrichelt (grau), duenn Strich-Punkt (blau)
+    return ['<path d="M8 16 H56" stroke="%s" stroke-width="10" stroke-linecap="round"/>' % OUTLINE,
+            '<path d="M8 16 H56" stroke="%s" stroke-width="7" stroke-linecap="round"/>' % GEO,
+            '<path d="M8 33 H56" stroke="%s" stroke-width="5" stroke-dasharray="9 5"/>' % OLD,
+            centre("M6 50 H58", NEW, 3)]
+
+
 @icon("d_leader", "Hinweislinie")
 def _():
     return [part("M4 40 H30 V60 H4 Z"),

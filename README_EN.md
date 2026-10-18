@@ -88,6 +88,8 @@ matching title block template.
   (SOLIDWORKS-style: click the arrow tip, place the symbol, the arrow
   follows)
 - Insert images (SVG, PNG, JPG)
+- *Line Format*: change line style (e.g. dashed), thickness and colour of
+  the selected lines, with a quick choice of ISO 128 line thicknesses
 - *Save as PDF* writes all sheets into one PDF; *Export DXF* writes
   one file per sheet
 - Lines get thinner on screen when zooming in; saved files, PDF,

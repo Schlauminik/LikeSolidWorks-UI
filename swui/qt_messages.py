@@ -36,6 +36,7 @@ import traceback
 import FreeCAD
 
 from swui.compat import QtCore
+from swui.i18n import N_, tr  # noqa: F401
 
 FILTERED = ("render glyph failed",)
 OWN_PARAMS = "User parameter:BaseApp/Preferences/Mod/SWUI"
@@ -136,9 +137,9 @@ def install():
         except Exception as exc:
             errors.append("%s: %s" % (getattr(qc, "__name__", qc), exc))
     if not _installed:
-        FreeCAD.Console.PrintWarning("[SWUI] Qt-Meldungsfilter nicht aktiv: %s\n" % "; ".join(errors))
+        FreeCAD.Console.PrintWarning(tr("[SWUI] Qt-Meldungsfilter nicht aktiv: %s\n") % "; ".join(errors))
         return False
-    FreeCAD.Console.PrintMessage("[SWUI] Qt-Meldungsfilter aktiv (%s).\n" % self_test())
+    FreeCAD.Console.PrintMessage(tr("[SWUI] Qt-Meldungsfilter aktiv (%s).\n") % self_test())
     return True
 
 
@@ -160,4 +161,4 @@ def self_test():
     ok = _suppressed > before
     _active = was_active
     _suppressed = before  # Probe nicht mitzaehlen (Hinweis im Protokoll kommt beim ersten echten Fall)
-    return "Selbsttest ok" if ok else "Selbsttest: Probe kam nicht an"
+    return tr("Selbsttest ok") if ok else tr("Selbsttest: Probe kam nicht an")

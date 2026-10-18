@@ -26,6 +26,7 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtCore, QtWidgets
+from swui.i18n import tr  # noqa: E402
 
 DRAG_START_PX = 5
 ITEM_TYPE = "TechDraw::DrawProjGroupItem"
@@ -212,7 +213,7 @@ def handle_event(state, gview, event):
                     return False
                 state.active = True
                 state.doc = state.view.Document
-                state.doc.openTransaction("Ansicht verschieben")
+                state.doc.openTransaction(tr("Ansicht verschieben"))
             rez = _rez()
             dx = (pos[0] - state.last[0]) / rez
             dy = -(pos[1] - state.last[1]) / rez

@@ -18,6 +18,7 @@ import sys
 import FreeCAD
 
 from swui.version import MIN_FREECAD, __version__
+from swui.i18n import N_, tr  # noqa: F401
 
 # --- Qt-Import ---------------------------------------------------------
 
@@ -111,12 +112,12 @@ def report_environment_to_console():
 
     if is_supported():
         FreeCAD.Console.PrintMessage(
-            "[SWUI] v%s geladen - FreeCAD %s, %s\n"
+            tr("[SWUI] v%s geladen - FreeCAD %s, %s\n")
             % (__version__, version_text, QT_BINDING)
         )
     else:
         FreeCAD.Console.PrintWarning(
-            "[SWUI] Achtung: FreeCAD %s ist aelter als %s. "
-            "Das Add-on ist dafuer nicht getestet.\n"
+            tr("[SWUI] Achtung: FreeCAD %s ist aelter als %s. "
+            "Das Add-on ist dafuer nicht getestet.\n")
             % (version_text, ".".join(str(p) for p in MIN_FREECAD))
         )

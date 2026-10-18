@@ -13,6 +13,7 @@ import FreeCAD
 
 from swui import paths
 from swui.compat import QtWidgets, collect_environment
+from swui.i18n import N_, tr  # noqa: F401
 
 
 class Diagnostics:
@@ -51,7 +52,7 @@ def _format_rows(rows):
 def _show_dialog(text):
     """Einfaches Fenster mit Textfeld und Kopier-Knopf."""
     dialog = QtWidgets.QDialog()
-    dialog.setWindowTitle("SWUI Diagnose")
+    dialog.setWindowTitle(tr("SWUI Diagnose"))
     dialog.resize(640, 460)
 
     layout = QtWidgets.QVBoxLayout(dialog)
@@ -65,8 +66,8 @@ def _show_dialog(text):
     layout.addWidget(field)
 
     buttons = QtWidgets.QHBoxLayout()
-    copy_button = QtWidgets.QPushButton("In die Zwischenablage")
-    close_button = QtWidgets.QPushButton("Schliessen")
+    copy_button = QtWidgets.QPushButton(tr("In die Zwischenablage"))
+    close_button = QtWidgets.QPushButton(tr("Schliessen"))
     buttons.addWidget(copy_button)
     buttons.addStretch(1)
     buttons.addWidget(close_button)
@@ -74,7 +75,7 @@ def _show_dialog(text):
 
     def do_copy():
         QtWidgets.QApplication.clipboard().setText(text)
-        copy_button.setText("Kopiert")
+        copy_button.setText(tr("Kopiert"))
 
     copy_button.clicked.connect(do_copy)
     close_button.clicked.connect(dialog.accept)

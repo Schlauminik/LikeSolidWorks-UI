@@ -6,7 +6,8 @@ Hilfswerkzeug fuer die Uebersetzung (Sprache, Schritt 2) - nur im Repo.
 
 Umschliesst sichtbare Texte in Qt-Aufrufen mit tr(...): Fenstertitel,
 Beschriftungen, Kontrollkaestchen, Tooltips, Statuszeile, Dateidialoge ...
-Meldungen im Ausgabefenster (FreeCAD.Console.Print...) bleiben unberuehrt.
+Seit Schritt 2b auch Meldungen im Ausgabefenster (PrintMessage, PrintWarning,
+PrintError). PrintLog-Zeilen (nur fuer die Fehlersuche) bleiben deutsch.
 
 Aufruf:   python3 tools/wrap_tr.py swui/datei.py [...]          (nur anzeigen)
           python3 tools/wrap_tr.py --write swui/datei.py [...]  (aendern)
@@ -28,7 +29,9 @@ UI_CALLS = {
     "getSaveFileName": (1,), "getOpenFileName": (1,), "getExistingDirectory": (1,),
     "getItem": (1, 2), "getText": (1, 2), "getDouble": (1, 2), "getInt": (1, 2),
     "addItem": (0,), "setStatusTip": (0,), "addAction": (0,), "setText": (0,),
-    "_report": (0,), "QAction": (0,), "addTab": (1,),
+    "_report": (0,), "QAction": (0,), "addTab": (1,), "_info": (0,),
+    # Meldungen im Ausgabefenster - PrintLog (Fehlersuche) bleibt deutsch
+    "PrintMessage": (0,), "PrintWarning": (0,), "PrintError": (0,),
 }
 LETTER = re.compile(r"[A-Za-zÄÖÜäöüß]{2,}")
 

@@ -20,6 +20,7 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtCore
+from swui.i18n import N_, tr  # noqa: F401
 
 # Features, die eine Skizze als Profil nehmen (FreeCAD 1.1.4 geprueft)
 PROFILE_FEATURES = (
@@ -51,7 +52,7 @@ def handle(command):
     try:
         FreeCADGui.runCommand("Sketcher_LeaveSketch")
     except Exception as exc:
-        FreeCAD.Console.PrintWarning("[SWUI] Skizze beenden fehlgeschlagen: %s\n" % exc)
+        FreeCAD.Console.PrintWarning(tr("[SWUI] Skizze beenden fehlgeschlagen: %s\n") % exc)
         return False
     _later(lambda: _start(command, sketch))
     return True
@@ -64,11 +65,11 @@ def _start(command, sketch):
         sel.clearSelection()
         sel.addSelection(sketch)
     except Exception as exc:
-        FreeCAD.Console.PrintWarning("[SWUI] Skizze nicht auswaehlbar: %s\n" % exc)
+        FreeCAD.Console.PrintWarning(tr("[SWUI] Skizze nicht auswaehlbar: %s\n") % exc)
     try:
         FreeCADGui.runCommand(command)
     except Exception as exc:
-        FreeCAD.Console.PrintError("[SWUI] Befehl %s fehlgeschlagen: %s\n" % (command, exc))
+        FreeCAD.Console.PrintError(tr("[SWUI] Befehl %s fehlgeschlagen: %s\n") % (command, exc))
 
 
 def _later(fn):

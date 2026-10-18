@@ -928,6 +928,14 @@ def run(split_namespace):
 
     # --- Reiter Baugruppe -------------------------------------------------
     titles = list(ribbon._tab_titles)
+    # Evaluieren ganz links (Knopf "Language" sofort sichtbar), Start trotzdem auf Features
+    if titles[:2] != ["Evaluieren", "Features"]:
+        print("  FEHLER: Evaluieren steht nicht ganz links vor Features", titles)
+        return False
+    start_calls = [c_[0][0] for c_ in ribbon._tabs.setCurrentIndex.call_args_list]
+    if not start_calls or start_calls[0] != titles.index("Features"):
+        print("  FEHLER: beim Start ist nicht Features aufgeschlagen", start_calls[:3])
+        return False
     if titles[-3:] != ["Ansicht", "Baugruppe", "Zeichnungen"]:
         print("  FEHLER: Reiter Baugruppe/Zeichnungen nicht rechts neben Ansicht", titles)
         return False
@@ -1344,6 +1352,30 @@ def run(split_namespace):
         return False
     if ft.apply(pad, ft.PAD_POCKET) != 0:
         print("  FEHLER: zweiter Durchlauf ändert erneut (unnötiges Neuzeichnen)")
+        return False
+    # Englische Oberflaeche: dieselben Felder bekommen die englischen SW-Begriffe
+    i18_ft = sys.modules["swui.i18n"]
+    par_ft = sys.modules["FreeCAD"].ParamGet(i18_ft.PARAMS)
+    par_ft.SetString(i18_ft.KEY, "en")
+    try:
+        pad_en = FRoot({
+            "side1Label": FLabel("Seite 1"), "textLabel1": FLabel("Typ"), "labelLength": FLabel("Länge"),
+            "groupBox": FGroup("Richtung"),
+            "changeMode": FCombo(["Bemaßung", "Bis zum letzten", "Bis zum ersten", "Bis zur Fläche", "Bis zur Form"]),
+            "sidesMode": FCombo(["Einseitig", "Zweiseitig", "Symmetrisch"]),
+        })
+        ft.apply(pad_en, ft.PAD_POCKET)
+        en_again = ft.apply(pad_en, ft.PAD_POCKET)
+    finally:
+        par_ft.RemString(i18_ft.KEY)
+    ke = pad_en.kids
+    if ((ke["side1Label"].t, ke["textLabel1"].t, ke["labelLength"].t, ke["groupBox"].t)
+            != ("Direction 1", "End Condition", "Depth", "Direction of Extrusion")
+            or ke["changeMode"].items[:2] != ["Blind", "Through All"] or ke["sidesMode"].items[2] != "Mid Plane"):
+        print("  FEHLER: SW-Begriffe in englischer Oberfläche", ke["side1Label"].t, ke["changeMode"].items)
+        return False
+    if en_again != 0:
+        print("  FEHLER: englischer zweiter Durchlauf ändert erneut")
         return False
     rev = FRoot({"checkBoxMidplane": FLabel("Symmetrisch zur Ebene"),
                  "changeMode": FCombo(["Winkel", "Durch alles", "Bis zum ersten", "Bis zur Fläche", "Zwei Winkel"])})
@@ -1770,6 +1802,17 @@ def run(split_namespace):
     if ex != [(0, "Horizontal"), (1, "Deckungsgleich")]:
         print("  FEHLER: vorhandene Beziehungen der Linie (ohne Bemaßung)", ex)
         return False
+    # Dieselben Namen auf Englisch (Sprache Schritt 2b)
+    fcp = sys.modules["FreeCAD"].ParamGet("User parameter:BaseApp/Preferences/Mod/SWUI")
+    fcp.SetString("Language", "en")
+    try:
+        labels_en = [e.label for e in rel.classify(rsk, ["Edge1", "Edge3", "Vertex4", "RootPoint", "H_Axis", "ExternalEdge1"])]
+        ex_en = rel.existing(rsk, rel.classify(rsk, ["Edge1"]))
+    finally:
+        fcp.RemString("Language")
+    if labels_en != ["Line1", "Circle3", "Point4", "Origin", "Horizontal axis", "Converted1"] or ex_en != [(0, "Horizontal"), (1, "Coincident")]:
+        print("  FEHLER: Elementnamen/Beziehungen auf Englisch", labels_en, ex_en)
+        return False
     if rel.existing(rsk, rel.classify(rsk, ["Vertex2"])) != [(1, "Deckungsgleich")] or rel.existing(
         rsk, rel.classify(rsk, ["Vertex1"])
     ):
@@ -2016,6 +2059,23 @@ def run(split_namespace):
         still_free = fr.blocking_reason(rasm, ca)
         rdoc.Objects += [gnd]
         grounded_ = fr.blocking_reason(rasm, ca)
+        # Sprache: Gruende und Verknuepfungs-Hinweise auf Englisch
+        fcp_r = sys.modules["FreeCAD"].ParamGet("User parameter:BaseApp/Preferences/Mod/SWUI")
+        fcp_r.SetString("Language", "en")
+        try:
+            grounded_en = fr.blocking_reason(rasm, ca)
+            none_en = fr.blocking_reason(rasm, None)
+            mt_en = sys.modules["swui.assembly_mates"]
+            hint_en = mt_en.hint_for([mt_en.Element("plane", "Welle")], [])
+            label_en = mt_en.Element("cylinder", "Welle").label
+        finally:
+            fcp_r.RemString("Language")
+        if (not grounded_en.endswith("is fixed – free rotation only for floating parts.")
+                or none_en != "Please select exactly one part of the active assembly."
+                or hint_en != "Select a second entity on another component."
+                or label_en != "Cylindrical face – Welle"):
+            print("  FEHLER: Freie Drehung/Verknüpfungen auf Englisch", grounded_en, none_en, hint_en, label_en)
+            return False
         rdoc.Objects.remove(jnt)
         rdoc.Objects.remove(gnd)
         # Knopf grau/aktiv je nach Auswahl
@@ -3056,6 +3116,76 @@ def run(split_namespace):
     if nm.refresh_drawing(old_doc) != 0:
         print("  FEHLER: Umbenennen in bestehender Zeichnung wiederholt sich")
         return False
+
+    # --- Baumnamen auf Englisch (Sprache, Schritt 4a) ---
+    i18_n = sys.modules["swui.i18n"]
+    vl_n = sys.modules["swui.view_labels"]
+    de_n = sys.modules["swui.drawing_export"]
+    na_n = sys.modules["swui.commands.new_assembly"]
+    par_n = sys.modules["FreeCAD"].ParamGet(i18_n.PARAMS)
+    par_n.SetString(i18_n.KEY, "en")
+    try:
+        edoc = types.SimpleNamespace(Objects=[])
+
+        def eadd(o):
+            o.Document = edoc
+            edoc.Objects.append(o)
+            return o
+
+        eadd(NObj("Sketcher::SketchObject", "Skizze1"))  # vorhanden, noch deutsch
+        e_sk = eadd(NObj("Sketcher::SketchObject", "Sketch"))
+        e_pad = eadd(NObj("PartDesign::Pad", "Pad"))
+        e_pl = eadd(NObj("App::Plane", "XY_Plane", Role="XY_Plane"))
+        e_grp = eadd(NObj("TechDraw::DrawProjGroup", "ProjGroup"))
+        e_left = eadd(NObj("TechDraw::DrawProjGroupItem", "Left", Type="Left"))
+        e_weld = eadd(NObj("TechDraw::DrawViewSymbol", "Weld", SWUI_Kind="weld"))
+        e_jg = eadd(NObj("Assembly::JointGroup", "Joints"))
+        got_e = tuple(nm.sw_label_for(o) for o in (e_sk, e_pad, e_pl, e_grp, e_left, e_weld, e_jg))
+        # Verknuepfungen: vorhandenes "Deckungsgleich1" bleibt, neues heisst "Coincident1"
+        j_old = eadd(NObj("App::FeaturePython", "Deckungsgleich1", JointType="Distance", Distance=0.0, InList=[e_jg]))
+        j_new = eadd(NObj("App::FeaturePython", "Joint", JointType="Distance", Distance=0.0, InList=[e_jg]))
+        j_dis = eadd(NObj("App::FeaturePython", "Joint001", JointType="Distance", Distance=5.0, InList=[e_jg]))
+        nm.refresh_joints(edoc)
+        joints_e = (j_old.Label, j_new.Label, j_dis.Label)
+        # bestehende Zeichnung: deutsche SW-Namen bleiben, FreeCAD-Namen werden englisch
+        odoc = types.SimpleNamespace(Objects=[])
+        for o in (NObj("TechDraw::DrawProjGroupItem", "Vorderansicht", Type="Front"),
+                  NObj("TechDraw::DrawProjGroupItem", "Links", Type="Left"),
+                  NObj("TechDraw::DrawSVGTemplate", "Template")):
+            o.Document = odoc
+            odoc.Objects.append(o)
+        nm.refresh_drawing(odoc)
+        drawing_e = [o.Label for o in odoc.Objects]
+        again_e = nm.refresh_drawing(odoc)
+        # Schnittansicht: neu englisch, vorhandene deutsche bleibt deutsch
+        sec_t = sorted(vl_n.SECTION_TYPES)[0]
+        s_new = NObj(sec_t, "Section", SectionSymbol="")
+        vl_n.set_letter(s_new, "A")
+        s_old = NObj(sec_t, "Schnittansicht B-B", SectionSymbol="B")
+        vl_n.set_letter(s_old, "C")
+        secs_e = (s_new.Label, s_old.Label)
+        pg_a, pg_b = NObj("TechDraw::DrawPage", "Sheet1"), NObj("TechDraw::DrawPage", "Sheet2")
+        pg_c = NObj("TechDraw::DrawPage", "Mein Blatt")
+        paths_e = de_n.sheet_paths("/o/T.pdf", [pg_a, pg_b], ".pdf") + de_n.sheet_paths("/o/T.dxf", [pg_c, pg_a], ".dxf")
+        asm_e = na_n.next_name(["Assembly1"])
+    finally:
+        par_n.RemString(i18_n.KEY)
+    if got_e != ("Sketch1", "Boss-Extrude1", "Top Plane", "Standard 3 View", "Left View", "Weld Symbol1", "Mates"):
+        print("  FEHLER: englische Baumnamen", got_e)
+        return False
+    if joints_e != ("Deckungsgleich1", "Coincident1", "Distance1"):
+        print("  FEHLER: englische Verknüpfungsnamen / vorhandene bleiben", joints_e)
+        return False
+    if drawing_e != ["Vorderansicht", "Left View", "Sheet Format1"] or again_e != 0:
+        print("  FEHLER: bestehende Zeichnung auf Englisch", drawing_e, again_e)
+        return False
+    if secs_e != ("Section View A-A", "Schnittansicht C-C"):
+        print("  FEHLER: Schnittansicht englisch / vorhandene deutsch", secs_e)
+        return False
+    if paths_e != ["/o/T_Sheet1.pdf", "/o/T_Sheet2.pdf", "/o/T_Sheet1.dxf", "/o/T_Sheet2.dxf"] or asm_e != "Assembly2":
+        print("  FEHLER: englische Dateinamen je Blatt / Baugruppe", paths_e, asm_e)
+        return False
+    print("  Baum EN  : Sketch1, Boss-Extrude1, Top Plane, Standard 3 View, Coincident1, Section View A-A, _Sheet2.pdf; vorhandene deutsche Namen bleiben")
     # geloeschtes Objekt in der Warteschlange (Vorschau-Bemassung) darf _flush nicht abbrechen
     class Gone:
         @property
@@ -3174,6 +3304,21 @@ def run(split_namespace):
                 if (isinstance(n_, ast_l.Call) and getattr(n_.func, "id", None) in ("tr", "N_") and n_.args
                         and isinstance(n_.args[0], ast_l.Constant) and isinstance(n_.args[0].value, str)):
                     keys_l.append(n_.args[0].value)
+                # Baumnamen: tree("...") / tree_like("...") -> Schluessel "Baum|..."
+                if (isinstance(n_, ast_l.Call) and getattr(n_.func, "id", None) in ("tree", "tree_like", "tree_variants")
+                        and n_.args and isinstance(n_.args[0], ast_l.Constant) and isinstance(n_.args[0].value, str)):
+                    keys_l.append(i18.TREE + n_.args[0].value)
+    # SW-Begriffe in FreeCAD-Dialogen (feature_terms.SPECS): alle Beschriftungen,
+    # Listeneintraege und Tooltips
+    __import__("swui.feature_terms")
+    for spec_ in sys.modules["swui.feature_terms"].SPECS:
+        keys_l.extend(spec_["labels"].values())
+        for items_ in spec_["combos"].values():
+            keys_l.extend(items_)
+        keys_l.extend(spec_.get("tooltips", {}).values())
+    # Baumnamen aus den Listen von naming.py und proj_views.TYPE_NAMES
+    keys_l.extend(i18.TREE + n_ for n_ in sys.modules["swui.naming"].tree_terms())
+    keys_l.extend(i18.TREE + n_ for n_ in sys.modules["swui.proj_views"].TYPE_NAMES.values())
     # Sprachdateien: kein Schluessel doppelt (Python wuerde still ueberschreiben)
     lang_dir = os.path.join(swui_dir, "lang")
     for f_ in sorted(os.listdir(lang_dir)):
@@ -3194,6 +3339,16 @@ def run(split_namespace):
         if miss_:
             print("  FEHLER: Sprache %s - %d Text(e) ohne Übersetzung: %s" % (code_, len(miss_), miss_[:5]))
             return False
+    # Platzhalter (%s, %d, %.1f ...) muessen in jeder Uebersetzung gleich sein,
+    # sonst stuerzt die Meldung zur Laufzeit ab ("not all arguments converted")
+    import re as re_l
+    ph_re = re_l.compile(r"%[-+ #0]*\d*(?:\.\d+)?[sdifgrx%]")
+    for code_, _name in i18.choices():
+        table_ = getattr(i18.languages().get(code_), "TEXTS", {})
+        for k_, v_ in table_.items():
+            if ph_re.findall(k_) != ph_re.findall(v_):
+                print("  FEHLER: Sprache %s - Platzhalter verschieden: %r -> %r" % (code_, k_, v_))
+                return False
     if i18.tr("Fase", "en") != "Chamfer" or i18.tr("Fase", "de") != "Fase" or i18.tr("Gibt es nicht", "en") != "Gibt es nicht":
         print("  FEHLER: tr() übersetzt falsch")
         return False
@@ -3252,7 +3407,7 @@ def run(split_namespace):
         return False
     lang_btn = "Language" if "Language" in texts_en and "Language" in texts_de else texts_en[:3]
     fly_tip = next((x_ for x_ in tips_en if "variants" in x_), "")
-    if tabs_en[:6] != ["Features", "Sketch", "Evaluate", "View", "Assembly", "Drawing"] or titles_en[1] != "Skizze":
+    if tabs_en[:6] != ["Evaluate", "Features", "Sketch", "View", "Assembly", "Drawing"] or titles_en[2] != "Skizze":
         print("  FEHLER: Reiter auf Englisch / interne Namen", tabs_en, titles_en)
         return False
     if [k for _c, _x, k in menu_en] != [False, False, True] or menu_en[0][1] != "Automatic (Deutsch)" or lang_btn != "Language":

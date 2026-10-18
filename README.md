@@ -64,6 +64,9 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | Fix | Nach dem Reinziehen ließen sich die Teile manchmal nicht bewegen: Die Baugruppe war nur als aktiv markiert, nicht im Bearbeitungsmodus. Drag & Drop aktiviert sie jetzt vor und nach dem Einfügen (`swui/assembly_drop.py`) | **fertig** |
 | L1 | Sprache: Knopf **Language** mit Ausklappmenü im Reiter Evaluieren (Automatisch wie FreeCAD / Deutsch / English), Ribbon schaltet sofort um; neue Sprache = neue Datei in `swui/lang/` (`swui/i18n.py`) | **fertig** |
 | L2a | Sprache: Fenster der Zeichnungswerkzeuge zweisprachig (Oberflächenangabe, Schweißsymbol, Blatteigenschaften, Bild einfügen, Maßstab, Export, Zeichnung erstellen, projizierte Ansicht), auch Rückgängig-Einträge; Hilfswerkzeug `tools/wrap_tr.py` | **fertig** |
+| L2b | Sprache: Beziehungs- und Verknüpfungs-Panel, freie Drehung (auch Sperrgründe im Tooltip), Diagnose, Drag & Drop und alle Meldungen im Ausgabefenster zweisprachig; Test prüft Platzhalter (%s, %d) jeder Übersetzung | **fertig** |
+| L3 | Sprache: SW-Begriffe in FreeCADs eigenen Dialogen auch auf Englisch (Direction 1, End Condition, Blind, Through All, Mid Plane, Projected Views, Balloon …) | **fertig** |
+| L4a | Sprache: Namen im Baum für neue Objekte auf Englisch wie in SW (Sketch1, Boss-Extrude1, Top Plane, Mates, Coincident1, Sheet1, Standard 3 View, Section View A-A …), vorhandene Namen bleiben; Export je Blatt `…_Sheet2.pdf`; Reiter Evaluieren ganz links (Knopf Language sofort sichtbar), Start weiter auf Features | **fertig** |
 
 Später: 3D-Skizzen.
 

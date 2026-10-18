@@ -36,6 +36,7 @@ import FreeCADGui
 
 from swui import paths
 from swui.compat import QtCore, QtWidgets
+from swui.i18n import N_, tr  # noqa: F401
 
 LINE_COMMAND = "Sketcher_CreateLine"
 LINE_TYPE = "Part::GeomLineSegment"
@@ -144,7 +145,7 @@ def _tick():
         # anschliessen, sonst eine eigene oeffnen.
         own_tx = not getattr(doc, "HasPendingTransaction", False)
         if own_tx:
-            doc.openTransaction("Mittellinie")
+            doc.openTransaction(tr("Mittellinie (symmetrisch)"))
         try:
             for i in todo:
                 _add_mirror(i)
@@ -156,7 +157,7 @@ def _tick():
         except Exception:
             pass
     except Exception as exc:
-        FreeCAD.Console.PrintWarning("[SWUI] Mittellinie: %s\n" % exc)
+        FreeCAD.Console.PrintWarning(tr("[SWUI] Mittellinie: %s\n") % exc)
         _end_without_tick()
 
 

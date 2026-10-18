@@ -18,6 +18,7 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtCore
+from swui.i18n import N_, tr, tree  # noqa: F401
 
 CREATE_COMMAND = "Assembly_CreateAssembly"
 
@@ -41,12 +42,13 @@ class NewAssembly:
 
 
 def next_name(existing):
-    """Erster freier Name Baugruppe1, Baugruppe2, ... (Labels und Namen)."""
+    """Erster freier Name Baugruppe1, Baugruppe2, ... (Labels und Namen; englisch Assembly1 ...)."""
     taken = set(existing)
+    base = tree("Baugruppe")
     n = 1
-    while "Baugruppe%d" % n in taken:
+    while "%s%d" % (base, n) in taken:
         n += 1
-    return "Baugruppe%d" % n
+    return "%s%d" % (base, n)
 
 
 def create():
@@ -63,7 +65,7 @@ def create():
             pass
         FreeCAD.setActiveDocument(doc.Name)
     except Exception as exc:
-        FreeCAD.Console.PrintError("[SWUI] Neue Baugruppe: Dokument nicht anlegbar: %s\n" % exc)
+        FreeCAD.Console.PrintError(tr("[SWUI] Neue Baugruppe: Dokument nicht anlegbar: %s\n") % exc)
         return None
     # Kurz warten, bis FreeCAD die 3D-Ansicht des neuen Dokuments fertig hat.
     _later(lambda: _create_in(doc))
@@ -79,7 +81,7 @@ def _create_in(doc):
             pass
         FreeCADGui.runCommand(CREATE_COMMAND)
     except Exception as exc:
-        FreeCAD.Console.PrintError("[SWUI] Neue Baugruppe: %s\n" % exc)
+        FreeCAD.Console.PrintError(tr("[SWUI] Neue Baugruppe: %s\n") % exc)
 
 
 def _later(fn):

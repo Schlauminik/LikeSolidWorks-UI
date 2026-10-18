@@ -10,7 +10,8 @@ Zeichnung ausgeben - PDF (alle Blaetter) und DXF (9g, Dominik: PDF und DXF).
       Rahmen/Punkte) und danach zusammengefuegt (pdf_merge.py). Klappt das
       Zusammenfuegen nicht, liegen die Blaetter als einzelne PDFs daneben.
   "Als DXF exportieren": TechDraw.writeDXFPage. DXF kennt keine Blaetter -
-      bei mehreren Blaettern entsteht je Blatt eine Datei (…_Blatt2.dxf).
+      bei mehreren Blaettern entsteht je Blatt eine Datei (…_Blatt2.dxf,
+      englisch …_Sheet2.dxf).
 
 Dateiname-Vorschlag: Zeichnungsnummer aus dem Schriftfeld, sonst der Name
 der Zeichnungsdatei; Ordner der Zeichnung.
@@ -29,7 +30,7 @@ import FreeCADGui
 
 from swui import pdf_merge
 from swui.compat import QtWidgets
-from swui.i18n import N_, tr  # noqa: F401
+from swui.i18n import N_, tr, tree, tree_variants  # noqa: F401
 
 PAGE_TYPE = "TechDraw::DrawPage"
 PAGE_VIEW_CLASS = "TechDrawGui::MDIViewPage"
@@ -70,14 +71,24 @@ def with_ext(path, ext):
 
 
 def sheet_paths(path, pages, ext):
-    """Ein Blatt -> [path]; mehrere -> [stamm_Blatt1.ext, stamm_Blatt2.ext ...]."""
+    """
+    Ein Blatt -> [path]; mehrere -> [stamm_Blatt1.ext, stamm_Blatt2.ext ...].
+    Englische Blaetter (Sheet1, Sheet2) -> stamm_Sheet1.ext ...
+    """
     if len(pages) <= 1:
         return [path]
     stem = path[: -len(ext)] if path.lower().endswith(ext) else path
-    out = []
+    out, used = [], set()
     for i, p in enumerate(pages, 1):
         label = safe_name(getattr(p, "Label", "") or "")
-        name = label if re.match(r"^Blatt\d+$", label) else "Blatt%d" % i
+        sheet_words = [safe_name(v) for v in tree_variants("Blatt")]
+        named = any(re.match("^%s\\d+$" % re.escape(w), label) for w in sheet_words)
+        name = label if named else "%s%d" % (safe_name(tree("Blatt")), i)
+        k = 1
+        while name in used:  # "Mein Blatt" (-> Blatt1) und "Blatt1": sonst ueberschreibt eine Datei die andere
+            k += 1
+            name = "%s%d" % (safe_name(tree("Blatt")), k)
+        used.add(name)
         out.append("%s_%s%s" % (stem, name, ext))
     return out
 
@@ -101,7 +112,7 @@ def export_pdf(pages, path, export_page, merge):
             merge(parts, path)
             return [path], True
         except Exception as exc:
-            FreeCAD.Console.PrintWarning("[SWUI] PDF-Blätter nicht zusammengefügt (%s) - einzelne Dateien.\n" % exc)
+            FreeCAD.Console.PrintWarning(tr("[SWUI] PDF-Blätter nicht zusammengefügt (%s) - einzelne Dateien.\n") % exc)
             singles = sheet_paths(path, pages, ".pdf")
             for src, dst in zip(parts, singles):
                 shutil.copyfile(src, dst)
@@ -177,7 +188,7 @@ class ExportPdf(_ExportBase):
             else:
                 _report(tr("PDF als einzelne Dateien gespeichert: %s") % ", ".join(os.path.basename(f) for f in files))
         except Exception:
-            FreeCAD.Console.PrintError("[SWUI] PDF-Ausgabe: %s\n" % traceback.format_exc())
+            FreeCAD.Console.PrintError(tr("[SWUI] PDF-Ausgabe: %s\n") % traceback.format_exc())
 
 
 class ExportDxf(_ExportBase):
@@ -207,7 +218,7 @@ class ExportDxf(_ExportBase):
             files = export_dxf(pages, path, TechDraw.writeDXFPage)
             _report(tr("DXF gespeichert: %s") % ", ".join(os.path.basename(f) for f in files))
         except Exception:
-            FreeCAD.Console.PrintError("[SWUI] DXF-Ausgabe: %s\n" % traceback.format_exc())
+            FreeCAD.Console.PrintError(tr("[SWUI] DXF-Ausgabe: %s\n") % traceback.format_exc())
 
 
 def _prepare(pages):
@@ -250,7 +261,7 @@ def _ensure_page_views(pages):
 
 
 def _report(text):
-    FreeCAD.Console.PrintMessage("[SWUI] %s\n" % text)
+    FreeCAD.Console.PrintMessage(tr("[SWUI] %s\n") % text)
     try:
         FreeCADGui.getMainWindow().statusBar().showMessage(text, 8000)
     except Exception:

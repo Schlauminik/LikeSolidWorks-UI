@@ -34,7 +34,7 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtWidgets
-from swui.i18n import N_, tr  # noqa: F401
+from swui.i18n import N_, tr, tree  # noqa: F401
 
 KIND_PROP = "SWUI_Kind"
 KIND = "surface"
@@ -173,7 +173,7 @@ def add_symbol(page, x, y):
 
     doc = page.Document
     obj = doc.addObject("TechDraw::DrawViewSymbol", "Oberflaeche")
-    obj.Label = "Oberflächenangabe"
+    obj.Label = tree("Oberflächenangabe")
     _ensure_props(obj)
     write_state(obj, DEFAULT_TYPE, False, {"a": DEFAULT_VALUE})
     try:
@@ -243,7 +243,7 @@ class SurfaceFinish:
             doc.recompute()
         except Exception:
             doc.abortTransaction()
-            FreeCAD.Console.PrintError("[SWUI] Oberflächenangabe: %s\n" % traceback.format_exc())
+            FreeCAD.Console.PrintError(tr("[SWUI] Oberflächenangabe: %s\n") % traceback.format_exc())
             return
         open_panel(obj, created=True)
 
@@ -259,7 +259,7 @@ def open_panel(obj, created):
         FreeCADGui.Control.showDialog(_panel)
         return True
     except Exception:
-        FreeCAD.Console.PrintError("[SWUI] Oberflächen-Panel: %s\n" % traceback.format_exc())
+        FreeCAD.Console.PrintError(tr("[SWUI] Oberflächen-Panel: %s\n") % traceback.format_exc())
         return False
 
 

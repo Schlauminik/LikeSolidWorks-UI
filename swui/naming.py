@@ -26,6 +26,15 @@ Abstand-Gelenk mit 0 mm = "Deckungsgleich", sonst "Abstand". Der Name
 folgt der Art, solange man sie im Dialog umstellt. Selbst vergebene
 Namen werden nie ueberschrieben - nur FreeCADs Standardnamen.
 
+Sprache (Schritt 4): Neue Objekte bekommen die Namen der eingestellten
+Sprache - auf Englisch wie im englischen SOLIDWORKS (Sketch1,
+Boss-Extrude1, Cut-Extrude1, Fillet1, Top Plane, Assembly1, Mates,
+(f) Shaft<1>, Coincident1, Sheet1, Standard 3 View ...). Die Listen unten
+bleiben deutsch; uebersetzt wird mit i18n.tree() ("Baum|..." in
+swui/lang/en.py). Vorhandene Namen bleiben in ihrer Sprache: wird eine
+Verknuepfung nachgefuehrt, gilt "Deckungsgleich1" wie "Coincident1"
+als schon passend.
+
 Der Name ist die Beschriftung (Label) - sie wird in der Datei
 gespeichert und erscheint deshalb auch in Part Design so. Der interne
 Name (Pad, Sketch001 ...) bleibt unveraendert; FreeCAD verweist intern
@@ -49,6 +58,7 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtCore
+from swui.i18n import tree, tree_variants
 
 WB_NAME = "LikeSolidWorksUIWorkbench"
 
@@ -177,9 +187,10 @@ def sw_label_for(obj):
     """Der SOLIDWORKS-Name fuer ein Objekt - oder None, wenn keiner passt."""
     type_id = getattr(obj, "TypeId", "")
     if type_id == "App::Plane":
-        return PLANE_NAMES.get(getattr(obj, "Role", ""))
+        name = PLANE_NAMES.get(getattr(obj, "Role", ""))
+        return tree(name) if name else None
     if type_id in GROUP_NAMES:
-        return GROUP_NAMES[type_id]
+        return tree(GROUP_NAMES[type_id])
     if type_id in COMPONENT_TYPES:
         return component_label(obj)
     if type_id == PROJ_ITEM_TYPE:
@@ -189,6 +200,7 @@ def sw_label_for(obj):
         base = SYMBOL_KINDS.get(getattr(obj, "SWUI_Kind", ""), base)
     if base is None:
         return None
+    base = tree(base)
     n = _next_number(obj.Document, base, obj)
     if type_id in UNNUMBERED_FIRST:
         if n == 1 and not _base_used(obj.Document, base, obj):
@@ -204,7 +216,8 @@ def proj_item_label(item):
         from swui.proj_views import TYPE_NAMES
     except Exception:
         return None
-    return TYPE_NAMES.get(getattr(item, "Type", ""), None)
+    name = TYPE_NAMES.get(getattr(item, "Type", ""), None)
+    return tree(name) if name else None
 
 
 def refresh_drawing(doc):
@@ -218,17 +231,42 @@ def refresh_drawing(doc):
         t = getattr(obj, "TypeId", "")
         label = getattr(obj, "Label", "") or ""
         new = None
+        keep = []  # Namen, die schon passen (in irgendeiner Sprache)
         if t == PROJ_ITEM_TYPE and _DEFAULT_ITEM_RE.match(label):
             new = proj_item_label(obj)
-        elif t == "TechDraw::DrawSVGTemplate" and _DEFAULT_TEMPLATE_RE.match(label) and not re.match("^Blattformat\\d+$", label):
-            new = "Blattformat%d" % _next_number(doc, "Blattformat", obj)
-        if new and not label.startswith(new):  # "Isometrie001": FreeCAD haengt bei gleichen Namen Ziffern an
+            german = _proj_item_base(obj)
+            keep = tree_variants(german) if german else []
+        elif t == "TechDraw::DrawSVGTemplate" and _DEFAULT_TEMPLATE_RE.match(label) and not _numbered(label, "Blattformat"):
+            base = tree("Blattformat")
+            new = "%s%d" % (base, _next_number(doc, base, obj))
+        # "Isometrie001": FreeCAD haengt bei gleichen Namen Ziffern an
+        if new and not any(label.startswith(k) for k in keep + [new]):
             try:
                 obj.Label = new
                 n += 1
             except Exception:
                 pass
     return n
+
+
+def _proj_item_base(item):
+    try:
+        from swui.proj_views import TYPE_NAMES
+    except Exception:
+        return None
+    return TYPE_NAMES.get(getattr(item, "Type", ""), None)
+
+
+def _numbered(label, german):
+    """'Blattformat2' / 'Sheet Format2' - Name mit Nummer in irgendeiner Sprache?"""
+    return any(re.match("^%s\\d+$" % re.escape(v), label or "") for v in tree_variants(german))
+
+
+def tree_terms():
+    """Alle deutschen Baumnamen dieses Moduls (fuer den Test: jede Sprache kennt sie)."""
+    out = set(FEATURE_NAMES.values()) | set(SYMBOL_KINDS.values()) | set(GROUP_NAMES.values())
+    out |= set(JOINT_NAMES.values()) | set(PLANE_NAMES.values()) | {COINCIDENT, "Deckungsgleich / Abstand"}
+    return sorted(out)
 
 
 def _base_used(doc, base, exclude):
@@ -299,7 +337,9 @@ def joint_base(joint):
 
 def _default_joint_names():
     """Namen, die FreeCAD (oder wir) automatisch vergeben - nur die werden ersetzt."""
-    names = set(JOINT_NAMES) | set(JOINT_NAMES.values()) | {COINCIDENT, "Joint", "Deckungsgleich / Abstand"}
+    names = set(JOINT_NAMES) | {"Joint"}
+    for german in list(JOINT_NAMES.values()) + [COINCIDENT, "Deckungsgleich / Abstand"]:
+        names |= set(tree_variants(german))  # auch "Coincident" usw.
     try:
         import JointObject
 
@@ -328,12 +368,13 @@ def refresh_joints(doc):
     for o in objects:
         if hasattr(o, "ObjectToGround") or not _in_joint_group(o):
             continue
-        base = joint_base(o)
-        if base is None:
+        german = joint_base(o)
+        if german is None:
             continue
         label = o.Label or ""
-        if re.match("^%s[1-9]\\d*$" % re.escape(base), label):
-            continue  # passt schon (SW-Zaehlung ohne fuehrende Nullen)
+        if any(re.match("^%s[1-9]\\d*$" % re.escape(v), label) for v in tree_variants(german)):
+            continue  # passt schon (SW-Zaehlung ohne fuehrende Nullen) - auch in der anderen Sprache
+        base = tree(german)
         if defaults is None:
             defaults = _default_joint_names()
         stem = re.sub(r"\d+$", "", label)

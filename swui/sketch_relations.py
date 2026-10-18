@@ -32,6 +32,7 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtCore, QtWidgets
+from swui.i18n import N_, tr  # noqa: F401
 
 PANEL_NAME = "SWUI_RelationsPanel"
 TASK_PANEL_CLASS = "Gui::TaskView::TaskPanel"
@@ -53,31 +54,31 @@ _KINDS = {
 }
 
 _KIND_NAMES = {
-    "line": "Linie",
-    "circle": "Kreis",
-    "arc": "Bogen",
-    "ellipse": "Ellipse",
-    "arc_ellipse": "Teilellipse",
-    "spline": "Spline",
-    "edge": "Kante",
+    "line": N_("Linie"),
+    "circle": N_("Kreis"),
+    "arc": N_("Bogen"),
+    "ellipse": N_("Ellipse"),
+    "arc_ellipse": N_("Teilellipse"),
+    "spline": N_("Spline"),
+    "edge": N_("Kante"),
 }
 
 # Beziehungen: Schluessel -> (FreeCAD-Befehl, Beschriftung wie in SW)
 RELATIONS = {
-    "horizontal": ("Sketcher_ConstrainHorizontal", "Horizontal"),
-    "vertical": ("Sketcher_ConstrainVertical", "Vertikal"),
-    "collinear": ("Sketcher_ConstrainTangent", "Kollinear"),
-    "parallel": ("Sketcher_ConstrainParallel", "Parallel"),
-    "perpendicular": ("Sketcher_ConstrainPerpendicular", "Senkrecht"),
-    "tangent": ("Sketcher_ConstrainTangent", "Tangential"),
-    "concentric": ("Sketcher_ConstrainCoincident", "Konzentrisch"),
-    "coincident": ("Sketcher_ConstrainCoincident", "Deckungsgleich"),
-    "on_object": ("Sketcher_ConstrainPointOnObject", "Auf Element"),
-    "midpoint": ("Sketcher_ConstrainSymmetric", "Mittelpunkt"),
-    "symmetric": ("Sketcher_ConstrainSymmetric", "Symmetrisch"),
-    "equal": ("Sketcher_ConstrainEqual", "Gleich"),
-    "lock": ("Sketcher_ConstrainLock", "Fixieren"),
-    "block": ("Sketcher_ConstrainBlock", "Blockieren"),
+    "horizontal": ("Sketcher_ConstrainHorizontal", N_("Horizontal")),
+    "vertical": ("Sketcher_ConstrainVertical", N_("Vertikal")),
+    "collinear": ("Sketcher_ConstrainTangent", N_("Kollinear")),
+    "parallel": ("Sketcher_ConstrainParallel", N_("Parallel")),
+    "perpendicular": ("Sketcher_ConstrainPerpendicular", N_("Senkrecht")),
+    "tangent": ("Sketcher_ConstrainTangent", N_("Tangential")),
+    "concentric": ("Sketcher_ConstrainCoincident", N_("Konzentrisch")),
+    "coincident": ("Sketcher_ConstrainCoincident", N_("Deckungsgleich")),
+    "on_object": ("Sketcher_ConstrainPointOnObject", N_("Auf Element")),
+    "midpoint": ("Sketcher_ConstrainSymmetric", N_("Mittelpunkt")),
+    "symmetric": ("Sketcher_ConstrainSymmetric", N_("Symmetrisch")),
+    "equal": ("Sketcher_ConstrainEqual", N_("Gleich")),
+    "lock": ("Sketcher_ConstrainLock", N_("Fixieren")),
+    "block": ("Sketcher_ConstrainBlock", N_("Blockieren")),
 }
 
 # Eigene Symbole (resources/icons/sketch/, erzeugt von tools/make_icons.py)
@@ -101,17 +102,17 @@ RELATION_ICONS = {
 # Vorhandene Beziehungen: FreeCAD-Typ -> deutscher Name. Bemassungen
 # (Distance, Radius, Angle ...) fehlen absichtlich - wie in SW.
 _CONSTRAINT_NAMES = {
-    "Coincident": "Deckungsgleich",
-    "PointOnObject": "Auf Element",
-    "Horizontal": "Horizontal",
-    "Vertical": "Vertikal",
-    "Parallel": "Parallel",
-    "Perpendicular": "Senkrecht",
-    "Tangent": "Tangential",
-    "Equal": "Gleich",
-    "Symmetric": "Symmetrisch",
-    "Block": "Blockiert",
-    "InternalAlignment": "Interne Ausrichtung",
+    "Coincident": N_("Deckungsgleich"),
+    "PointOnObject": N_("Auf Element"),
+    "Horizontal": N_("Horizontal"),
+    "Vertical": N_("Vertikal"),
+    "Parallel": N_("Parallel"),
+    "Perpendicular": N_("Senkrecht"),
+    "Tangent": N_("Tangential"),
+    "Equal": N_("Gleich"),
+    "Symmetric": N_("Symmetrisch"),
+    "Block": N_("Blockiert"),
+    "InternalAlignment": N_("Interne Ausrichtung"),
 }
 
 _installed = False
@@ -167,31 +168,31 @@ def classify(sketch, names):
     for name in names:
         try:
             if name == "RootPoint":
-                out.append(Element("root", ROOT, 1, "Ursprung"))
+                out.append(Element("root", ROOT, 1, tr("Ursprung")))
             elif name == "H_Axis":
-                out.append(Element("axis", H_AXIS, 0, "Horizontale Achse"))
+                out.append(Element("axis", H_AXIS, 0, tr("Horizontale Achse")))
             elif name == "V_Axis":
-                out.append(Element("axis", V_AXIS, 0, "Vertikale Achse"))
+                out.append(Element("axis", V_AXIS, 0, tr("Vertikale Achse")))
             elif name.startswith("ExternalEdge"):
                 n = int(name[12:])
                 geo = -2 - n
                 kind = _kind_of(_geometry(sketch, geo))
-                out.append(Element(kind, geo, 0, "Übernommen%d" % n, external=True))
+                out.append(Element(kind, geo, 0, tr("Übernommen%d") % n, external=True))
             elif name.startswith("Edge"):
                 geo = int(name[4:]) - 1
                 kind = _kind_of(_geometry(sketch, geo))
                 if kind == "point":  # Skizzenpunkt als "Kante" gewaehlt
-                    out.append(Element("point", geo, 1, "Punkt%d" % (geo + 1)))
+                    out.append(Element("point", geo, 1, tr("Punkt%d") % (geo + 1)))
                 else:
-                    out.append(Element(kind, geo, 0, "%s%d" % (_KIND_NAMES[kind], geo + 1)))
+                    out.append(Element(kind, geo, 0, "%s%d" % (tr(_KIND_NAMES[kind]), geo + 1)))
             elif name.startswith("Vertex"):
                 vertex = int(name[6:]) - 1
                 geo, pos = sketch.getGeoVertexIndex(vertex)
                 if geo == ROOT and pos == 1:
-                    out.append(Element("root", ROOT, 1, "Ursprung"))
+                    out.append(Element("root", ROOT, 1, tr("Ursprung")))
                 else:
                     out.append(
-                        Element("point", geo, pos, "Punkt%d" % (vertex + 1), external=geo < -2)
+                        Element("point", geo, pos, tr("Punkt%d") % (vertex + 1), external=geo < -2)
                     )
         except Exception:
             continue
@@ -285,6 +286,7 @@ def existing(sketch, elements):
         name = _CONSTRAINT_NAMES.get(getattr(c, "Type", ""))
         if name is None:
             continue
+        name = tr(name)
         refs = [
             (getattr(c, "First", -2000), getattr(c, "FirstPos", 0)),
             (getattr(c, "Second", -2000), getattr(c, "SecondPos", 0)),
@@ -320,7 +322,7 @@ def install():
         _installed = True
     except Exception:
         FreeCAD.Console.PrintWarning(
-            "[SWUI] Beziehungs-Panel nicht verfügbar:\n%s\n" % traceback.format_exc()
+            tr("[SWUI] Beziehungs-Panel nicht verfügbar:\n%s\n") % traceback.format_exc()
         )
 
 
@@ -400,7 +402,7 @@ def refresh():
         panel.widget.show()
     except Exception:
         FreeCAD.Console.PrintWarning(
-            "[SWUI] Beziehungs-Panel: %s\n" % traceback.format_exc()
+            tr("[SWUI] Beziehungs-Panel: %s\n") % traceback.format_exc()
         )
 
 
@@ -423,7 +425,7 @@ def run_relation(key):
     try:
         FreeCADGui.runCommand(command)
     except Exception as exc:
-        FreeCAD.Console.PrintError("[SWUI] Beziehung %s fehlgeschlagen: %s\n" % (command, exc))
+        FreeCAD.Console.PrintError(tr("[SWUI] Beziehung %s fehlgeschlagen: %s\n") % (command, exc))
 
 
 def delete_relations(sketch, indices):
@@ -433,7 +435,7 @@ def delete_relations(sketch, indices):
     doc = sketch.Document
     own = not getattr(doc, "HasPendingTransaction", False)
     if own:
-        doc.openTransaction("Beziehungen löschen")
+        doc.openTransaction(tr("Beziehungen löschen"))
     try:
         # Von hinten loeschen, sonst verschieben sich die Nummern.
         for idx in sorted(set(indices), reverse=True):
@@ -539,34 +541,34 @@ class _Panel:
         box.setContentsMargins(6, 6, 6, 6)
         box.setSpacing(4)
 
-        title = QtWidgets.QLabel("Beziehungen hinzufügen")
+        title = QtWidgets.QLabel(tr("Beziehungen hinzufügen"))
         title.setObjectName("SWUI_RelationsTitle")
         box.addWidget(title)
 
-        box.addWidget(self._heading("Ausgewählte Elemente"))
+        box.addWidget(self._heading(tr("Ausgewählte Elemente")))
         self.selected = QtWidgets.QListWidget()
         self.selected.setObjectName("SWUI_RelationsList")
         box.addWidget(self.selected)
 
-        box.addWidget(self._heading("Vorhandene Beziehungen"))
+        box.addWidget(self._heading(tr("Vorhandene Beziehungen")))
         self.existing = QtWidgets.QListWidget()
         self.existing.setObjectName("SWUI_RelationsList")
         self.existing.setSelectionMode(
             QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection
         )
         box.addWidget(self.existing)
-        self.delete = QtWidgets.QPushButton("Löschen")
-        self.delete.setToolTip("Markierte vorhandene Beziehungen löschen")
+        self.delete = QtWidgets.QPushButton(tr("Löschen"))
+        self.delete.setToolTip(tr("Markierte vorhandene Beziehungen löschen"))
         self.delete.clicked.connect(self._on_delete)
         box.addWidget(self.delete)
 
-        box.addWidget(self._heading("Beziehungen hinzufügen"))
+        box.addWidget(self._heading(tr("Beziehungen hinzufügen")))
         self.buttons_host = QtWidgets.QWidget()
         self.buttons = QtWidgets.QVBoxLayout(self.buttons_host)
         self.buttons.setContentsMargins(0, 0, 0, 0)
         self.buttons.setSpacing(1)
         box.addWidget(self.buttons_host)
-        self.none_label = QtWidgets.QLabel("Keine passende Beziehung für diese Auswahl.")
+        self.none_label = QtWidgets.QLabel(tr("Keine passende Beziehung für diese Auswahl."))
         self.none_label.setWordWrap(True)
         box.addWidget(self.none_label)
 
@@ -592,7 +594,7 @@ class _Panel:
         self.existing.clear()
         self.existing_ids = [idx for idx, _name in existing_list]
         for idx, name in existing_list:
-            self.existing.addItem("%s  (Nr. %d)" % (name, idx + 1))
+            self.existing.addItem(tr("%s  (Nr. %d)") % (name, idx + 1))
         _fit(self.existing, len(existing_list))
         self.delete.setEnabled(bool(existing_list))
 
@@ -614,7 +616,7 @@ class _Panel:
     def _button(self, key):
         command, text = RELATIONS[key]
         b = QtWidgets.QToolButton()
-        b.setText(text)
+        b.setText(tr(text))
         b.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         b.setSizePolicy(
             QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed
@@ -625,7 +627,7 @@ class _Panel:
 
             info = FreeCADGui.Command.get(command).getInfo()
             b.setIcon(ribbon._command_icon(command, info, {"svg": RELATION_ICONS.get(key)}))
-            b.setToolTip(info.get("toolTip", text))
+            b.setToolTip(info.get("toolTip", tr(text)))
         except Exception:
             pass
         b.clicked.connect(lambda *_a, k=key: run_relation(k))
@@ -639,7 +641,7 @@ class _Panel:
             delete_relations(self.sketch, [self.existing_ids[r] for r in rows])
         except Exception:
             FreeCAD.Console.PrintWarning(
-                "[SWUI] Beziehungen löschen: %s\n" % traceback.format_exc()
+                tr("[SWUI] Beziehungen löschen: %s\n") % traceback.format_exc()
             )
 
 

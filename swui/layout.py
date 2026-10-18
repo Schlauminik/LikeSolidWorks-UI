@@ -30,6 +30,7 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtCore, QtWidgets
+from swui.i18n import N_, tr  # noqa: F401
 
 # Interne (englische) Namen der FreeCAD-Leisten, die sichtbar bleiben.
 # Alles andere wird im SOLIDWORKS-Layout ausgeblendet.
@@ -121,7 +122,7 @@ def _apply_overlay(mw):
 
         overlay_panels.apply(mw)
     except Exception as exc:
-        FreeCAD.Console.PrintWarning("[SWUI] Panel-Überlagerung nicht anwendbar: %s\n" % exc)
+        FreeCAD.Console.PrintWarning(tr("[SWUI] Panel-Überlagerung nicht anwendbar: %s\n") % exc)
 
 
 def _remove_overlay():
@@ -130,7 +131,7 @@ def _remove_overlay():
 
         overlay_panels.restore()
     except Exception as exc:
-        FreeCAD.Console.PrintWarning("[SWUI] Panel-Überlagerung nicht zurücksetzbar: %s\n" % exc)
+        FreeCAD.Console.PrintWarning(tr("[SWUI] Panel-Überlagerung nicht zurücksetzbar: %s\n") % exc)
 
 
 def _apply_theme(mw):
@@ -140,13 +141,13 @@ def _apply_theme(mw):
 
         theme.apply(mw)
     except Exception as exc:
-        FreeCAD.Console.PrintWarning("[SWUI] Farbschema nicht anwendbar: %s\n" % exc)
+        FreeCAD.Console.PrintWarning(tr("[SWUI] Farbschema nicht anwendbar: %s\n") % exc)
     try:
         from swui import view_background
 
         view_background.apply()
     except Exception as exc:
-        FreeCAD.Console.PrintWarning("[SWUI] 3D-Hintergrund nicht anwendbar: %s\n" % exc)
+        FreeCAD.Console.PrintWarning(tr("[SWUI] 3D-Hintergrund nicht anwendbar: %s\n") % exc)
 
 
 def _remove_theme(mw):
@@ -155,13 +156,13 @@ def _remove_theme(mw):
 
         theme.remove(mw)
     except Exception as exc:
-        FreeCAD.Console.PrintWarning("[SWUI] Farbschema nicht entfernbar: %s\n" % exc)
+        FreeCAD.Console.PrintWarning(tr("[SWUI] Farbschema nicht entfernbar: %s\n") % exc)
     try:
         from swui import view_background
 
         view_background.restore()
     except Exception as exc:
-        FreeCAD.Console.PrintWarning("[SWUI] 3D-Hintergrund nicht zurücksetzbar: %s\n" % exc)
+        FreeCAD.Console.PrintWarning(tr("[SWUI] 3D-Hintergrund nicht zurücksetzbar: %s\n") % exc)
 
 
 def is_active():
@@ -222,7 +223,7 @@ def _dock_right(mw):
     docks = {d.objectName(): d for d in mw.findChildren(QtWidgets.QDockWidget)}
     tasks, report = docks.get(TASK_NAME), docks.get(REPORT_NAME)
     if tasks is None:
-        FreeCAD.Console.PrintWarning("[SWUI] Layout: Aufgaben-Panel nicht gefunden. Docks: %s\n" % _dock_names(mw))
+        FreeCAD.Console.PrintWarning(tr("[SWUI] Layout: Aufgaben-Panel nicht gefunden. Docks: %s\n") % _dock_names(mw))
         return
     right = QtCore.Qt.DockWidgetArea.RightDockWidgetArea
     _unfloat(tasks)

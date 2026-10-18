@@ -12,6 +12,12 @@ Woran die Felder erkannt werden: an ihren festen Objektnamen aus FreeCADs
 .ui-Dateien (FreeCAD 1.1.4, src/Mod/PartDesign/Gui/TaskPadPocketParameters.ui
 und TaskRevolutionParameters.ui). Das ist unabhaengig von der Sprache.
 
+Sprache (Schritt 3, 18.10.): Die Texte unten sind deutsch und zugleich die
+Schluessel fuer swui/lang/*.py - apply() setzt sie mit tr() in der
+eingestellten Sprache ein (englisch: Begriffe wie im englischen SOLIDWORKS,
+Direction 1, End Condition, Blind, Through All ...). Ein Sprachwechsel wirkt
+beim naechsten Takt auch in einem schon offenen Dialog.
+
 Sicherheitsregel: Eine Auswahlliste wird nur umbenannt, wenn sie GENAU so
 viele Eintraege hat wie in 1.1.4. Aendert eine kuenftige FreeCAD-Version
 die Liste, bleiben FreeCADs eigene Texte stehen - lieber unveraendert als
@@ -24,6 +30,7 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtCore, QtWidgets
+from swui.i18n import tr
 
 POLL_MS = 400
 
@@ -343,8 +350,9 @@ CENTER_LINE = {
         "label_4": "Ausgangsansicht",
         "label_2": "Elemente",
         "gbOrientation": "Ausrichtung",
-        "rbVertical": "Senkrecht",
-        "rbHorizontal": "Waagerecht",
+        # eindeutig: "Senkrecht" heisst bei Beziehungen "rechtwinklig"
+        "rbVertical": "Vertikal",
+        "rbHorizontal": "Horizontal",
         "rbAligned": "Ausgerichtet",
         "label": "Farbe",
         "label_5": "Linienstärke",
@@ -398,7 +406,7 @@ def install():
         _installed = True
     except Exception:
         FreeCAD.Console.PrintWarning(
-            "[SWUI] SW-Begriffe in Dialogen nicht verfügbar:\n%s\n" % traceback.format_exc()
+            tr("[SWUI] SW-Begriffe in Dialogen nicht verfügbar:\n%s\n") % traceback.format_exc()
         )
 
 
@@ -434,6 +442,7 @@ def apply(root, spec):
     """
     changed = 0
     for name, text in spec["labels"].items():
+        text = tr(text)
         w = root.findChild(QtWidgets.QWidget, name)
         if w is None:
             continue
@@ -455,12 +464,14 @@ def apply(root, spec):
             if box.count() != len(items):
                 continue  # andere FreeCAD-Version: nicht anfassen
             for i, text in enumerate(items):
+                text = tr(text)
                 if box.itemText(i) != text:
                     box.setItemText(i, text)
                     changed += 1
         except Exception:
             continue
     for name, tip in spec.get("tooltips", {}).items():
+        tip = tr(tip)
         w = root.findChild(QtWidgets.QWidget, name)
         try:
             if w is not None and w.toolTip() != tip:

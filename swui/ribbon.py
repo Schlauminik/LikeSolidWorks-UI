@@ -35,6 +35,7 @@ import FreeCADGui
 
 from swui import ribbon_layout
 from swui.compat import QtCore, QtGui, QtWidgets
+from swui.i18n import N_, tr  # noqa: F401
 
 DOCK_NAME = "SWUI_Ribbon"
 ICON_SIZE = 32  # grosse Knoepfe (Text darunter)
@@ -57,6 +58,7 @@ _in_sketch = False  # wird gerade eine Skizze bearbeitet?
 _tab_before_sketch = None  # Reiter vor dem Betreten der Skizze
 _on_drawing = False  # ist gerade ein Zeichenblatt das aktive Fenster?
 
+START_TAB = "Features"  # beim Start aufgeschlagen, auch wenn links davon Evaluieren steht
 SKETCH_TAB = "Skizze"
 DRAWING_TAB = "Zeichnungen"
 DRAWING_VIEW_CLASS = "TechDrawGui::MDIViewPage"  # Fenster eines Zeichenblatts (1.1.4)
@@ -166,7 +168,7 @@ def _build():
 
     dock = QtWidgets.QDockWidget(main_window)
     dock.setObjectName(DOCK_NAME)
-    dock.setWindowTitle("SolidWorks Ribbon")
+    dock.setWindowTitle(tr("SolidWorks Ribbon"))
     # Leeres Widget als Titelleiste = keine sichtbare Titelleiste.
     dock.setTitleBarWidget(QtWidgets.QWidget(dock))
     dock.setFeatures(QtWidgets.QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
@@ -183,6 +185,8 @@ def _build():
         page = _build_page(tabs, groups, available)
         tabs.addTab(page, _tr(tab_title))
         _tab_titles.append(tab_title)  # intern immer der deutsche Name (Logik)
+    if START_TAB in _tab_titles:
+        tabs.setCurrentIndex(_tab_titles.index(START_TAB))
 
     dock.setWidget(tabs)
     main_window.addDockWidget(QtCore.Qt.DockWidgetArea.TopDockWidgetArea, dock)
@@ -204,11 +208,11 @@ def _build():
 
     if _skipped:
         FreeCAD.Console.PrintWarning(
-            "[SWUI] Ribbon: %d Befehl(e) in dieser FreeCAD-Version nicht "
-            "gefunden und ausgelassen: %s\n" % (len(_skipped), ", ".join(_skipped))
+            tr("[SWUI] Ribbon: %d Befehl(e) in dieser FreeCAD-Version nicht "
+            "gefunden und ausgelassen: %s\n") % (len(_skipped), ", ".join(_skipped))
         )
     FreeCAD.Console.PrintMessage(
-        "[SWUI] Ribbon aufgebaut: %d Knöpfe und %d Ausklappknöpfe in %d Reitern.\n"
+        tr("[SWUI] Ribbon aufgebaut: %d Knöpfe und %d Ausklappknöpfe in %d Reitern.\n")
         % (len(_buttons), len(_flyouts), len(ribbon_layout.TABS))
     )
     return dock
@@ -571,7 +575,7 @@ def _pick_language(code, *_args):
 
         i18n.set_setting(code)
     except Exception:
-        FreeCAD.Console.PrintError("[SWUI] Sprache: %s\n" % traceback.format_exc())
+        FreeCAD.Console.PrintError(tr("[SWUI] Sprache: %s\n") % traceback.format_exc())
 
 
 def _on_language(_before, _after):
@@ -649,7 +653,7 @@ def _load_gui_modules():
             __import__(name)
         except Exception as exc:
             FreeCAD.Console.PrintWarning(
-                "[SWUI] Modul %s nicht ladbar: %s\n" % (name, exc)
+                tr("[SWUI] Modul %s nicht ladbar: %s\n") % (name, exc)
             )
     # Baugruppen-Befehle (Python-Module der Assembly-Werkbank). Fehlt die
     # Werkbank, fehlen nur diese Knoepfe - Meldung im Ausgabefenster.
@@ -812,7 +816,7 @@ def _run(command, index=None, *_args):
             if from_sketch.handle(command):
                 return
         except Exception as exc:
-            FreeCAD.Console.PrintWarning("[SWUI] Austragen aus Skizze: %s\n" % exc)
+            FreeCAD.Console.PrintWarning(tr("[SWUI] Austragen aus Skizze: %s\n") % exc)
     try:
         if index is None:
             FreeCADGui.runCommand(command)
@@ -820,7 +824,7 @@ def _run(command, index=None, *_args):
             FreeCADGui.runCommand(command, index)
     except Exception as exc:
         FreeCAD.Console.PrintError(
-            "[SWUI] Befehl %s fehlgeschlagen: %s\n" % (command, exc)
+            tr("[SWUI] Befehl %s fehlgeschlagen: %s\n") % (command, exc)
         )
 
 

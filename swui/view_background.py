@@ -30,6 +30,7 @@ findet recover() beim naechsten Start die Sicherung und raeumt auf.
 import json
 
 import FreeCAD
+from swui.i18n import N_, tr  # noqa: F401
 
 VIEW_PARAMS = "User parameter:BaseApp/Preferences/View"
 OWN_PARAMS = "User parameter:BaseApp/Preferences/Mod/SWUI"
@@ -112,10 +113,10 @@ def recover():
         if own.GetString(BACKUP_KEY, ""):
             _restore_from_backup()
             FreeCAD.Console.PrintMessage(
-                "[SWUI] 3D-Hintergrund nach unsauberem Beenden zurückgesetzt.\n"
+                tr("[SWUI] 3D-Hintergrund nach unsauberem Beenden zurückgesetzt.\n")
             )
     except Exception as exc:
-        FreeCAD.Console.PrintWarning("[SWUI] Hintergrund-Wiederherstellung: %s\n" % exc)
+        FreeCAD.Console.PrintWarning(tr("[SWUI] Hintergrund-Wiederherstellung: %s\n") % exc)
 
 
 def is_applied():

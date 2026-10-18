@@ -24,35 +24,36 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtCore, QtWidgets
+from swui.i18n import N_, tr  # noqa: F401
 
 PANEL_NAME = "SWUI_RelationsPanel"  # gleiches Aussehen wie das Beziehungs-Panel
 
 # Schluessel -> (FreeCAD-Befehl, SW-Begriff, eigenes Symbol)
 # Zuordnung wie im Reiter Baugruppe (ribbon_layout.py).
 MATES = {
-    "coincident": ("Assembly_CreateJointDistance", "Deckungsgleich", "sketch/m_coincident"),
-    "parallel": ("Assembly_CreateJointParallel", "Parallel", "sketch/m_parallel"),
-    "perpendicular": ("Assembly_CreateJointPerpendicular", "Senkrecht", "sketch/m_perpendicular"),
-    "concentric": ("Assembly_CreateJointCylindrical", "Konzentrisch", "sketch/m_concentric"),
-    "distance": ("Assembly_CreateJointDistance", "Abstand (Wert im Dialog)", "sketch/dimension"),
-    "angle": ("Assembly_CreateJointAngle", "Winkel", "sketch/m_angle"),
-    "revolute": ("Assembly_CreateJointRevolute", "Drehgelenk", "sketch/m_revolute"),
-    "slider": ("Assembly_CreateJointSlider", "Linear (Schieber)", "sketch/m_slider"),
-    "ball": ("Assembly_CreateJointBall", "Kugelgelenk", "sketch/m_ball"),
+    "coincident": ("Assembly_CreateJointDistance", N_("Deckungsgleich"), "sketch/m_coincident"),
+    "parallel": ("Assembly_CreateJointParallel", N_("Parallel"), "sketch/m_parallel"),
+    "perpendicular": ("Assembly_CreateJointPerpendicular", N_("Senkrecht"), "sketch/m_perpendicular"),
+    "concentric": ("Assembly_CreateJointCylindrical", N_("Konzentrisch"), "sketch/m_concentric"),
+    "distance": ("Assembly_CreateJointDistance", N_("Abstand (Wert im Dialog)"), "sketch/dimension"),
+    "angle": ("Assembly_CreateJointAngle", N_("Winkel"), "sketch/m_angle"),
+    "revolute": ("Assembly_CreateJointRevolute", N_("Drehgelenk"), "sketch/m_revolute"),
+    "slider": ("Assembly_CreateJointSlider", N_("Linear (Schieber)"), "sketch/m_slider"),
+    "ball": ("Assembly_CreateJointBall", N_("Kugelgelenk"), "sketch/m_ball"),
 }
 
 # Geometrie-Art -> Anzeigename
 KIND_NAMES = {
-    "plane": "Ebene Fläche",
-    "cylinder": "Zylinderfläche",
-    "cone": "Kegelfläche",
-    "sphere": "Kugelfläche",
-    "face": "Fläche",
-    "line": "Gerade Kante",
-    "circle": "Kreiskante",
-    "edge": "Kante",
-    "point": "Punkt",
-    "part": "Bauteil",
+    "plane": N_("Ebene Fläche"),
+    "cylinder": N_("Zylinderfläche"),
+    "cone": N_("Kegelfläche"),
+    "sphere": N_("Kugelfläche"),
+    "face": N_("Fläche"),
+    "line": N_("Gerade Kante"),
+    "circle": N_("Kreiskante"),
+    "edge": N_("Kante"),
+    "point": N_("Punkt"),
+    "part": N_("Bauteil"),
 }
 
 AXIS_KINDS = ("cylinder", "cone", "circle")  # haben eine Achse -> Konzentrisch
@@ -72,7 +73,7 @@ class Element:
 
     @property
     def label(self):
-        name = KIND_NAMES.get(self.kind, self.kind)
+        name = tr(KIND_NAMES.get(self.kind, self.kind))
         return "%s – %s" % (name, self.component) if self.component else name
 
     def __repr__(self):
@@ -195,7 +196,7 @@ def install():
         _installed = True
     except Exception:
         FreeCAD.Console.PrintWarning(
-            "[SWUI] Verknüpfungs-Panel nicht verfügbar:\n%s\n" % traceback.format_exc()
+            tr("[SWUI] Verknüpfungs-Panel nicht verfügbar:\n%s\n") % traceback.format_exc()
         )
 
 
@@ -269,19 +270,19 @@ def refresh():
         panel.fill(elements, keys)
         panel.widget.show()
     except Exception:
-        FreeCAD.Console.PrintWarning("[SWUI] Verknüpfungs-Panel: %s\n" % traceback.format_exc())
+        FreeCAD.Console.PrintWarning(tr("[SWUI] Verknüpfungs-Panel: %s\n") % traceback.format_exc())
 
 
 def hint_for(elements, keys):
     """Hinweistext unter den Knoepfen (oder "")."""
     if len(elements) == 1:
-        return "Zweites Element an einem anderen Bauteil wählen."
+        return tr("Zweites Element an einem anderen Bauteil wählen.")
     if len(elements) > 2:
-        return "Bitte genau zwei Elemente wählen."
+        return tr("Bitte genau zwei Elemente wählen.")
     if same_component(elements):
-        return "Beide Elemente liegen am selben Bauteil – bitte ein Element an einem anderen Bauteil wählen."
+        return tr("Beide Elemente liegen am selben Bauteil – bitte ein Element an einem anderen Bauteil wählen.")
     if not keys:
-        return "Keine passende Verknüpfung für diese Auswahl."
+        return tr("Keine passende Verknüpfung für diese Auswahl.")
     return ""
 
 
@@ -291,7 +292,7 @@ def run_mate(key):
     try:
         FreeCADGui.runCommand(command)
     except Exception as exc:
-        FreeCAD.Console.PrintError("[SWUI] Verknüpfung %s fehlgeschlagen: %s\n" % (command, exc))
+        FreeCAD.Console.PrintError(tr("[SWUI] Verknüpfung %s fehlgeschlagen: %s\n") % (command, exc))
 
 
 # --- Qt-Teil ---------------------------------------------------------
@@ -335,16 +336,16 @@ class _Panel:
         box.setContentsMargins(6, 6, 6, 6)
         box.setSpacing(4)
 
-        title = QtWidgets.QLabel("Verknüpfung hinzufügen")
+        title = QtWidgets.QLabel(tr("Verknüpfung hinzufügen"))
         title.setObjectName("SWUI_RelationsTitle")
         box.addWidget(title)
 
-        box.addWidget(self._heading("Ausgewählte Elemente"))
+        box.addWidget(self._heading(tr("Ausgewählte Elemente")))
         self.selected = QtWidgets.QListWidget()
         self.selected.setObjectName("SWUI_RelationsList")
         box.addWidget(self.selected)
 
-        box.addWidget(self._heading("Verknüpfungen"))
+        box.addWidget(self._heading(tr("Verknüpfungen")))
         self.buttons_host = QtWidgets.QWidget()
         self.buttons = QtWidgets.QVBoxLayout(self.buttons_host)
         self.buttons.setContentsMargins(0, 0, 0, 0)
@@ -390,6 +391,7 @@ class _Panel:
 
     def _button(self, key):
         command, text, svg = MATES[key]
+        text = tr(text)
         b = QtWidgets.QToolButton()
         b.setText(text)
         b.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon)

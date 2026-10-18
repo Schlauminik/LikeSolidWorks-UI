@@ -27,6 +27,7 @@ auch das Verhalten in Part Design.
 
 import FreeCAD
 import FreeCADGui
+from swui.i18n import N_, tr  # noqa: F401
 
 WB_NAME = "LikeSolidWorksUIWorkbench"
 
@@ -37,7 +38,7 @@ def install():
         from Show import mTempoVis
     except Exception as exc:
         FreeCAD.Console.PrintWarning(
-            "[SWUI] Skizzen-Workbenchwechsel nicht abfangbar (Show-Modul fehlt): %s\n" % exc
+            tr("[SWUI] Skizzen-Workbenchwechsel nicht abfangbar (Show-Modul fehlt): %s\n") % exc
         )
         return False
 

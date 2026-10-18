@@ -31,6 +31,7 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtCore, QtWidgets
+from swui.i18n import N_, tr  # noqa: F401
 
 EXTENSIONS = (".fcstd",)
 
@@ -67,7 +68,7 @@ def install():
         _installed = True
     except Exception:
         FreeCAD.Console.PrintWarning(
-            "[SWUI] Drag & Drop in Baugruppen nicht verfügbar:\n%s\n" % traceback.format_exc()
+            tr("[SWUI] Drag & Drop in Baugruppen nicht verfügbar:\n%s\n") % traceback.format_exc()
         )
 
 
@@ -92,7 +93,7 @@ def keep_workbench():
             own.SetString(BACKUP_KEY, "1" if asm.GetBool(SWITCH_KEY, True) else "0")
         asm.SetBool(SWITCH_KEY, False)
     except Exception as exc:
-        FreeCAD.Console.PrintWarning("[SWUI] Baugruppen-Einstellung nicht änderbar: %s\n" % exc)
+        FreeCAD.Console.PrintWarning(tr("[SWUI] Baugruppen-Einstellung nicht änderbar: %s\n") % exc)
 
 
 def restore_workbench_setting():
@@ -104,7 +105,7 @@ def restore_workbench_setting():
             asm.SetBool(SWITCH_KEY, saved == "1")
             own.SetString(BACKUP_KEY, "")
     except Exception as exc:
-        FreeCAD.Console.PrintWarning("[SWUI] Baugruppen-Einstellung nicht wiederhergestellt: %s\n" % exc)
+        FreeCAD.Console.PrintWarning(tr("[SWUI] Baugruppen-Einstellung nicht wiederhergestellt: %s\n") % exc)
 
 
 # --- Logik (ohne Qt pruefbar) ----------------------------------------
@@ -195,9 +196,9 @@ def ask_save(doc, near_path):
         parent = None
     path, _flt = QtWidgets.QFileDialog.getSaveFileName(
         parent,
-        "Baugruppe zuerst speichern (Verknüpfungen brauchen einen Speicherort)",
+        tr("Baugruppe zuerst speichern (Verknüpfungen brauchen einen Speicherort)"),
         suggested_path(doc, near_path),
-        "FreeCAD-Datei (*.FCStd)",
+        tr("FreeCAD-Datei (*.FCStd)"),
     )
     if not path:
         return False
@@ -215,14 +216,14 @@ def insert_files(assembly, paths):
     # Komponente nur in der aktiven Baugruppe. Ausserhalb der Transaktion,
     # damit Rueckgaengig nur das Einfuegen zuruecknimmt.
     _ensure_active(assembly)
-    doc.openTransaction("Komponente einfügen")
+    doc.openTransaction(tr("Komponente einfügen"))
     try:
         for path in paths:
             if "/run/user/" in path and "/doc/" in path:
                 FreeCAD.Console.PrintWarning(
-                    "[SWUI] %s kommt über einen Flatpak-Zwischenpfad. Die Verknüpfung "
+                    tr("[SWUI] %s kommt über einen Flatpak-Zwischenpfad. Die Verknüpfung "
                     "könnte nach einem Neustart fehlen - Datei besser über "
-                    "\"Komponente einfügen\" wählen.\n" % path
+                    "\"Komponente einfügen\" wählen.\n") % path
                 )
             was_open = _find_open(path)
             src = was_open or _open_hidden(path, doc)
@@ -231,7 +232,7 @@ def insert_files(assembly, paths):
             objs = pick_objects(src)
             if not objs:
                 FreeCAD.Console.PrintWarning(
-                    "[SWUI] In %s wurde kein Teil gefunden.\n" % os.path.basename(path)
+                    tr("[SWUI] In %s wurde kein Teil gefunden.\n") % os.path.basename(path)
                 )
                 continue
             ok = 0
@@ -241,7 +242,7 @@ def insert_files(assembly, paths):
                     ok += 1
                 except Exception as exc:
                     FreeCAD.Console.PrintError(
-                        "[SWUI] %s nicht eingefügt: %s\n" % (obj.Label, exc)
+                        tr("[SWUI] %s nicht eingefügt: %s\n") % (obj.Label, exc)
                     )
             if not ok and was_open is None:
                 _close(src, doc)  # nichts verknuepft: Datei nicht im Baum stehen lassen
@@ -290,7 +291,7 @@ def _add_component(assembly, obj):
 
             CommandCreateJoint.createGroundedJoint(link)
         except Exception as exc:
-            FreeCAD.Console.PrintWarning("[SWUI] Erste Komponente nicht fixiert: %s\n" % exc)
+            FreeCAD.Console.PrintWarning(tr("[SWUI] Erste Komponente nicht fixiert: %s\n") % exc)
     return link
 
 
@@ -336,8 +337,8 @@ def _ensure_active(assembly):
         if FreeCADGui.Control.activeDialog():
             # Ein offener Dialog (z. B. Verknuepfung) wuerde dabei geschlossen
             FreeCAD.Console.PrintMessage(
-                "[SWUI] Baugruppe nicht aktiviert (Dialog offen) - zum Bewegen der "
-                "Teile Doppelklick auf die Baugruppe.\n")
+                tr("[SWUI] Baugruppe nicht aktiviert (Dialog offen) - zum Bewegen der "
+                "Teile Doppelklick auf die Baugruppe.\n"))
             return False
         FreeCADGui.getDocument(assembly.Document.Name).setEdit(assembly)
     except Exception:
@@ -373,7 +374,7 @@ def _open_hidden(path, current_doc):
         FreeCAD.setActiveDocument(current_doc.Name)
         return d
     except Exception as exc:
-        FreeCAD.Console.PrintError("[SWUI] %s nicht ladbar: %s\n" % (path, exc))
+        FreeCAD.Console.PrintError(tr("[SWUI] %s nicht ladbar: %s\n") % (path, exc))
         return None
 
 
@@ -425,14 +426,14 @@ def handle_drag_event(event):
         if asm is None:
             if kind == T.Drop:
                 FreeCAD.Console.PrintMessage(
-                    "[SWUI] Drop: keine eindeutige Baugruppe im aktiven Dokument - "
-                    "FreeCAD fügt die Datei normal ein.\n"
+                    tr("[SWUI] Drop: keine eindeutige Baugruppe im aktiven Dokument - "
+                    "FreeCAD fügt die Datei normal ein.\n")
                 )
             return False  # keine Baugruppe: FreeCAD oeffnet die Datei wie immer
         event.acceptProposedAction()
         if kind == T.Drop:
             FreeCAD.Console.PrintMessage(
-                "[SWUI] Drop: %d Datei(en) -> Baugruppe \"%s\"\n" % (len(paths), asm.Label)
+                tr("[SWUI] Drop: %d Datei(en) -> Baugruppe \"%s\"\n") % (len(paths), asm.Label)
             )
             # Nach dem Drop ausfuehren, nicht mitten in Qts Drag-Verarbeitung
             QtCore.QTimer.singleShot(0, lambda: _safe_insert(asm, paths))
@@ -453,14 +454,14 @@ def _safe_insert(asm, paths):
         if needs_save(asm.Document):
             if not ask_save(asm.Document, paths[0]):
                 FreeCAD.Console.PrintWarning(
-                    "[SWUI] Nicht eingefügt: Die Baugruppe muss zuerst gespeichert werden.\n"
+                    tr("[SWUI] Nicht eingefügt: Die Baugruppe muss zuerst gespeichert werden.\n")
                 )
                 return
         added = insert_files(asm, paths)
         if added:
             FreeCAD.Console.PrintMessage(
-                "[SWUI] %d Komponente(n) eingefügt: %s\n"
+                tr("[SWUI] %d Komponente(n) eingefügt: %s\n")
                 % (len(added), ", ".join(a.Label for a in added))
             )
     except Exception:
-        FreeCAD.Console.PrintError("[SWUI] Einfügen fehlgeschlagen:\n%s\n" % traceback.format_exc())
+        FreeCAD.Console.PrintError(tr("[SWUI] Einfügen fehlgeschlagen:\n%s\n") % traceback.format_exc())

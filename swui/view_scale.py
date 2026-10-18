@@ -159,12 +159,12 @@ class ViewScale:
             return
         mode, value = choice
         doc = target.Document
-        doc.openTransaction("Maßstab")
+        doc.openTransaction(tr("Maßstab"))
         try:
             new = apply_scale(target, value, mode)
-            FreeCAD.Console.PrintMessage("[SWUI] Maßstab %s: %s\n" % (target.Label, scale_text(new)))
+            FreeCAD.Console.PrintMessage(tr("[SWUI] Maßstab %s: %s\n") % (target.Label, scale_text(new)))
         except Exception:
-            FreeCAD.Console.PrintError("[SWUI] Maßstab: %s\n" % traceback.format_exc())
+            FreeCAD.Console.PrintError(tr("[SWUI] Maßstab: %s\n") % traceback.format_exc())
         finally:
             doc.commitTransaction()
 

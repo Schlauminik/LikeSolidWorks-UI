@@ -29,6 +29,7 @@ import FreeCADGui
 
 from swui import paths
 from swui.compat import QtCore, QtWidgets
+from swui.i18n import N_, tr  # noqa: F401
 
 LINE_COMMAND = "Sketcher_CreateLine"
 LINE_TYPE = "Part::GeomLineSegment"
@@ -133,7 +134,7 @@ def _tick():
         # zurueckgenommen, holt der naechste Takt sie nach.
         own = not getattr(doc, "HasPendingTransaction", False)
         if own:
-            doc.openTransaction("Mittellinie")
+            doc.openTransaction(tr("Konstruktionslinie"))
         try:
             for i in todo:
                 _sketch.setConstruction(i, True)
@@ -141,7 +142,7 @@ def _tick():
             if own:
                 doc.commitTransaction()
     except Exception as exc:
-        FreeCAD.Console.PrintWarning("[SWUI] Mittellinie: %s\n" % exc)
+        FreeCAD.Console.PrintWarning(tr("[SWUI] Mittellinie: %s\n") % exc)
         _end_without_tick()
 
 

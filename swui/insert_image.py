@@ -261,7 +261,7 @@ class InsertImage:
             doc.recompute()
         except Exception:
             doc.abortTransaction()
-            FreeCAD.Console.PrintError("[SWUI] Bild einfügen: %s\n" % traceback.format_exc())
+            FreeCAD.Console.PrintError(tr("[SWUI] Bild einfügen: %s\n") % traceback.format_exc())
             return
         open_panel(obj, created=True)
 
@@ -274,7 +274,7 @@ def open_panel(obj, created):
         _panel = _TaskPanel(obj)
         FreeCADGui.Control.showDialog(_panel)
     except Exception:
-        FreeCAD.Console.PrintError("[SWUI] Bild-Panel: %s\n" % traceback.format_exc())
+        FreeCAD.Console.PrintError(tr("[SWUI] Bild-Panel: %s\n") % traceback.format_exc())
 
 
 # --- Qt-Teil ---------------------------------------------------------

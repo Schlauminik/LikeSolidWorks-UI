@@ -28,7 +28,7 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtWidgets
-from swui.i18n import N_, tr  # noqa: F401
+from swui.i18n import N_, tr, tree  # noqa: F401
 
 FORMATS = {
     # Anzeige -> Vorlagendatei in <FreeCAD>/Mod/TechDraw/Templates/ISO/ (Rueckfall)
@@ -138,7 +138,7 @@ def build(doc, objs, fmt):
     template.Template = template_path(fmt)
     page = doc.addObject("TechDraw::DrawPage", "Page")
     page.Template = template
-    page.Label = "Blatt1"
+    page.Label = tree("Blatt") + "1"
     try:
         page.ProjectionType = PROJECTION
     except Exception:
@@ -153,7 +153,7 @@ def build(doc, objs, fmt):
         pass
     for view in VIEWS:
         group.addProjection(view)
-    group.Label = "Standard-Dreiansicht"
+    group.Label = tree("Standard-Dreiansicht")
     return page, group
 
 
@@ -218,10 +218,10 @@ def create():
         doc.save()
         FreeCAD.setActiveDocument(doc.Name)
         _show_page(page)
-        FreeCAD.Console.PrintMessage("[SWUI] Zeichnung erstellt: %s (%s)\n" % (path, fmt))
+        FreeCAD.Console.PrintMessage(tr("[SWUI] Zeichnung erstellt: %s (%s)\n") % (path, fmt))
         return doc
     except Exception:
-        FreeCAD.Console.PrintError("[SWUI] Zeichnung nicht erstellt:\n%s\n" % traceback.format_exc())
+        FreeCAD.Console.PrintError(tr("[SWUI] Zeichnung nicht erstellt:\n%s\n") % traceback.format_exc())
         return None
 
 
@@ -271,4 +271,4 @@ def _info(text):
     try:
         QtWidgets.QMessageBox.information(_main_window(), tr("Zeichnung erstellen"), text)
     except Exception:
-        FreeCAD.Console.PrintWarning("[SWUI] %s\n" % text)
+        FreeCAD.Console.PrintWarning(tr("[SWUI] %s\n") % text)

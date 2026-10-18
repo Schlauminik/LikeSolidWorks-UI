@@ -42,7 +42,7 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtCore, QtWidgets
-from swui.i18n import N_, tr  # noqa: F401
+from swui.i18n import N_, tr, tree  # noqa: F401
 
 KIND_PROP = "SWUI_Kind"
 KIND = "weld"
@@ -341,7 +341,7 @@ def add_symbol(page, tip_xy, knee_xy=None):
 
     doc = page.Document
     obj = doc.addObject("TechDraw::DrawViewSymbol", "Schweissen")
-    obj.Label = "Schweißsymbol"
+    obj.Label = tree("Schweißsymbol")
     _ensure_props(obj)
     try:
         obj.ScaleType = "Custom"
@@ -460,7 +460,7 @@ class WeldSymbol:
             doc.recompute()
         except Exception:
             doc.abortTransaction()
-            FreeCAD.Console.PrintError("[SWUI] Schweißsymbol: %s\n" % traceback.format_exc())
+            FreeCAD.Console.PrintError(tr("[SWUI] Schweißsymbol: %s\n") % traceback.format_exc())
             return
         if open_panel(obj, created=True):
             start_picking(obj)
@@ -477,7 +477,7 @@ def open_panel(obj, created):
         FreeCADGui.Control.showDialog(_panel)
         return True
     except Exception:
-        FreeCAD.Console.PrintError("[SWUI] Schweiß-Panel: %s\n" % traceback.format_exc())
+        FreeCAD.Console.PrintError(tr("[SWUI] Schweiß-Panel: %s\n") % traceback.format_exc())
         return False
 
 
@@ -575,7 +575,7 @@ def handle_pick_event(picker, event):
             _status(tr("Schweißsymbol: Klicken, wo das Symbol stehen soll (Esc = so lassen)."))
         return True
     except Exception:
-        FreeCAD.Console.PrintError("[SWUI] Schweißsymbol: %s\n" % traceback.format_exc())
+        FreeCAD.Console.PrintError(tr("[SWUI] Schweißsymbol: %s\n") % traceback.format_exc())
         return False
 
 

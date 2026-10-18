@@ -186,6 +186,52 @@ def tr(text, lang=None):
     return text
 
 
+TREE = "Baum|"  # Vorsatz fuer Baumnamen in den Sprachdateien ("Baum|Rotieren": "Revolve")
+
+
+def tree(text, lang=None):
+    """
+    Name im Baum (Sprache, Schritt 4). Eigene Schluessel "Baum|<deutsch>",
+    weil der Baum oft anders heisst als der Ribbon-Knopf: Knopf "Rotieren"
+    = "Revolved Boss/Base", im Baum aber "Revolve1" (wie in SOLIDWORKS).
+    Rueckfall: Sprache -> Englisch -> deutscher Name.
+    """
+    if not text:
+        return text
+    code = lang or current()
+    if code == SOURCE:
+        return text
+    langs = languages()
+    for c in (code, FALLBACK):
+        mod = langs.get(c)
+        if mod is not None and TREE + text in mod.TEXTS:
+            return mod.TEXTS[TREE + text]
+    return text
+
+
+def tree_variants(text):
+    """Ein Baumname in allen Sprachen - zum Wiedererkennen vorhandener Namen."""
+    out = [text]
+    for code, _name in choices():
+        t = tree(text, code)
+        if t not in out:
+            out.append(t)
+    return out
+
+
+def tree_like(text, existing):
+    """
+    Baumname in der Sprache, in der 'existing' schon heisst. So bleibt z. B.
+    "Detailansicht Z (2:1)" beim Aendern des Massstabs deutsch, auch wenn
+    inzwischen Englisch eingestellt ist (vorhandene Namen bleiben).
+    """
+    existing = existing or ""
+    for t in sorted(tree_variants(text), key=len, reverse=True):
+        if existing.startswith(t):
+            return t
+    return tree(text)
+
+
 def missing(keys, lang):
     """Welche der Schluessel fehlen in einer Sprache? (fuer den Test)"""
     if lang == SOURCE:

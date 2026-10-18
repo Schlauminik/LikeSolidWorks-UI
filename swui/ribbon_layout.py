@@ -408,7 +408,10 @@ ZEICHNUNGEN = (
     ],
 )
 
-TABS = [FEATURES, SKIZZE, EVALUIEREN, ANSICHT, BAUGRUPPE, ZEICHNUNGEN]
+# Evaluieren ganz links (Dominik, 18.10.): neue Nutzer sehen sofort den
+# Knopf "Language". Beim Start ist trotzdem "Features" aufgeschlagen
+# (ribbon.START_TAB).
+TABS = [EVALUIEREN, FEATURES, SKIZZE, ANSICHT, BAUGRUPPE, ZEICHNUNGEN]
 
 # FreeCAD-Module, die die obigen Befehle bereitstellen. Sie werden vor
 # dem Aufbau geladen, sonst existieren die Befehle noch nicht, solange

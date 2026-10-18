@@ -33,6 +33,7 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtWidgets
+from swui.i18n import N_, tr  # noqa: F401
 
 DOCK_PARAMS = "User parameter:BaseApp/MainWindow/DockWindows/"
 OWN_PARAMS = "User parameter:BaseApp/Preferences/Mod/SWUI"
@@ -95,9 +96,9 @@ def recover():
     try:
         if FreeCAD.ParamGet(OWN_PARAMS).GetString(BACKUP_KEY, ""):
             _restore_from_backup()
-            FreeCAD.Console.PrintMessage("[SWUI] Panel-Überlagerung nach unsauberem Beenden zurückgesetzt.\n")
+            FreeCAD.Console.PrintMessage(tr("[SWUI] Panel-Überlagerung nach unsauberem Beenden zurückgesetzt.\n"))
     except Exception as exc:
-        FreeCAD.Console.PrintWarning("[SWUI] Panel-Wiederherstellung: %s\n" % exc)
+        FreeCAD.Console.PrintWarning(tr("[SWUI] Panel-Wiederherstellung: %s\n") % exc)
 
 
 def is_applied():
@@ -141,7 +142,7 @@ def _restore_from_backup():
             else:
                 getattr(_grp(group), "Rem" + kind)(name)
         except Exception as exc:
-            FreeCAD.Console.PrintWarning("[SWUI] %s nicht zurückgesetzt: %s\n" % (key, exc))
+            FreeCAD.Console.PrintWarning(tr("[SWUI] %s nicht zurückgesetzt: %s\n") % (key, exc))
     own.SetString(BACKUP_KEY, "")
 
 
@@ -160,7 +161,7 @@ def _style_tree(main_window):
             _tree_saved.append((tree, tree.styleSheet()))
             tree.setStyleSheet(TREE_QSS)
     except Exception as exc:
-        FreeCAD.Console.PrintWarning("[SWUI] Baum-Schrift nicht änderbar: %s\n" % exc)
+        FreeCAD.Console.PrintWarning(tr("[SWUI] Baum-Schrift nicht änderbar: %s\n") % exc)
 
 
 def _unstyle_tree():

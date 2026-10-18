@@ -309,7 +309,7 @@ def open_panel(page):
         _panel = _TaskPanel(page)
         FreeCADGui.Control.showDialog(_panel)
     except Exception:
-        FreeCAD.Console.PrintError("[SWUI] Blatteigenschaften: %s\n" % traceback.format_exc())
+        FreeCAD.Console.PrintError(tr("[SWUI] Blatteigenschaften: %s\n") % traceback.format_exc())
 
 
 # --- Qt-Teil ---------------------------------------------------------
@@ -399,11 +399,11 @@ class _TaskPanel:
 
     def accept(self):
         doc = self.page.Document
-        doc.openTransaction("Blatteigenschaften")
+        doc.openTransaction(tr("Blatteigenschaften"))
         try:
             apply_sheet(self.page, self.template_file, self.values())
         except Exception:
-            FreeCAD.Console.PrintError("[SWUI] Blatteigenschaften: %s\n" % traceback.format_exc())
+            FreeCAD.Console.PrintError(tr("[SWUI] Blatteigenschaften: %s\n") % traceback.format_exc())
         finally:
             doc.commitTransaction()
         FreeCADGui.Control.closeDialog()

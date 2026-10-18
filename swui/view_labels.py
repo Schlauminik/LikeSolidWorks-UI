@@ -32,6 +32,7 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtCore
+from swui.i18n import tree, tree_like
 
 SECTION_TYPES = ("TechDraw::DrawViewSection", "TechDraw::DrawComplexSection")
 DETAIL_TYPE = "TechDraw::DrawViewDetail"
@@ -75,11 +76,11 @@ def set_letter(view, letter):
     if is_section(view):
         if view.SectionSymbol != letter:
             view.SectionSymbol = letter
-        _set_label(view, "Schnittansicht %s-%s" % (letter, letter))  # wie im SW-Baum
+        _set_label(view, "%s %s-%s" % (tree_like("Schnittansicht", view.Label), letter, letter))  # wie im SW-Baum
     elif is_detail(view):
         if view.Reference != letter:
             view.Reference = letter
-        _set_label(view, "Detailansicht %s" % label_text(view))  # "Detailansicht Z (2:1)"
+        _set_label(view, "%s %s" % (tree_like("Detailansicht", view.Label), label_text(view)))  # "Detailansicht Z (2:1)"
 
 
 def _set_label(obj, text):
@@ -200,7 +201,7 @@ def ensure_label(view, doc):
     page.addView(ann)
     ann.X = float(view.X)
     ann.Y = float(view.Y) - label_offset(view)
-    ann.Label = "Benennung %s" % text
+    ann.Label = "%s %s" % (tree("Benennung"), text)
     _last_pos[view.Name] = (float(view.X), float(view.Y))
     return ann
 
@@ -229,7 +230,7 @@ def on_label_text_changed(ann):
     letter = letter_from_text(text_of(ann))
     if letter and letter != letter_of(view):
         set_letter(view, letter)
-    _set_label(ann, "Benennung %s" % text_of(ann).split("\n")[0])
+    _set_label(ann, "%s %s" % (tree_like("Benennung", ann.Label), text_of(ann).split("\n")[0]))
 
 
 def on_view_changed(view, prop):
@@ -239,7 +240,7 @@ def on_view_changed(view, prop):
     if ann is None:
         return
     if prop == "Scale" and is_detail(view) and re.match("^Detail(?:ansicht)? ", getattr(view, "Label", "") or ""):
-        _set_label(view, "Detailansicht %s" % label_text(view))  # Massstab im Baumnamen nachfuehren
+        _set_label(view, "%s %s" % (tree_like("Detailansicht", view.Label), label_text(view)))  # Massstab nachfuehren
     if prop in ("SectionSymbol", "Reference", "Scale"):
         if looks_auto(text_of(ann)):
             new = label_text(view)

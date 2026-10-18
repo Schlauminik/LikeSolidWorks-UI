@@ -35,12 +35,13 @@ import traceback
 
 import FreeCAD
 import FreeCADGui
+from swui.i18n import N_, tr  # noqa: F401
 
 COMMAND = "SWUI_FreeRotate"
 DEG_PER_PIXEL = 0.5  # Mausweg -> Drehwinkel
-TOOLTIP = ("Freie Drehung: gewähltes Teil mit gedrückter linker Maustaste frei drehen.\n"
+TOOLTIP = N_("Freie Drehung: gewähltes Teil mit gedrückter linker Maustaste frei drehen.\n"
            "Nur für Teile ohne Verknüpfung und ohne Fixierung.")
-HELP = "Freie Drehung: linke Maustaste ziehen  ·  Esc oder Rechtsklick beendet"
+HELP = N_("Freie Drehung: linke Maustaste ziehen  ·  Esc oder Rechtsklick beendet")
 MARKER_TRANSPARENCY = 0.45
 # Achsenfarben wie FreeCADs Achsenkreuz: X rot, Y gruen, Z blau
 MARKER_COLORS = ((0.88, 0.15, 0.10), (0.20, 0.65, 0.25), (0.24, 0.55, 1.0))
@@ -117,7 +118,7 @@ def _ref_mentions(ref, comp):
 def blocking_reason(assembly, comp):
     """Warum das Teil nicht frei drehbar ist - oder None, wenn es geht."""
     if comp is None:
-        return "Bitte genau ein Teil der aktiven Baugruppe wählen."
+        return tr("Bitte genau ein Teil der aktiven Baugruppe wählen.")
     try:
         objects = list(assembly.Document.Objects)
     except Exception:
@@ -125,13 +126,13 @@ def blocking_reason(assembly, comp):
     label = getattr(comp, "Label", "") or getattr(comp, "Name", "")
     for o in objects:
         if getattr(o, "ObjectToGround", None) is comp:
-            return "„%s“ ist fixiert – freie Drehung nur für lose Teile." % label
+            return tr("„%s“ ist fixiert – freie Drehung nur für lose Teile.") % label
     for o in objects:
         if not hasattr(o, "JointType") or hasattr(o, "ObjectToGround"):
             continue
         for prop in ("Reference1", "Reference2"):
             if _ref_mentions(getattr(o, prop, None), comp):
-                return "„%s“ hat die Verknüpfung „%s“ – freie Drehung nur für Teile ohne Verknüpfung." % (
+                return tr("„%s“ hat die Verknüpfung „%s“ – freie Drehung nur für Teile ohne Verknüpfung.") % (
                     label, getattr(o, "Label", o.Name))
     return None
 
@@ -173,11 +174,11 @@ class FreeRotate:
         try:
             asm = active_assembly()
             if asm is None:
-                _set_ribbon_tooltip(TOOLTIP + "\n\nZuerst eine Baugruppe aktivieren.")
+                _set_ribbon_tooltip(tr(TOOLTIP) + "\n\n" + tr("Zuerst eine Baugruppe aktivieren."))
                 return False
             comp = selected_component(asm, FreeCADGui.Selection.getSelectionEx("*", 0))
             reason = blocking_reason(asm, comp)
-            _set_ribbon_tooltip(TOOLTIP + ("\n\n" + reason if reason else ""))
+            _set_ribbon_tooltip(tr(TOOLTIP) + ("\n\n" + reason if reason else ""))
             return reason is None
         except Exception:
             return False
@@ -200,11 +201,11 @@ def start(comp):
     global _tool
     try:
         _tool = _Tool(comp, active_assembly())
-        _status(HELP)
-        FreeCAD.Console.PrintMessage("[SWUI] Freie Drehung: %s\n" % comp.Label)
+        _status(tr(HELP))
+        FreeCAD.Console.PrintMessage(tr("[SWUI] Freie Drehung: %s\n") % comp.Label)
     except Exception:
         _tool = None
-        FreeCAD.Console.PrintError("[SWUI] Freie Drehung nicht gestartet:\n%s\n" % traceback.format_exc())
+        FreeCAD.Console.PrintError(tr("[SWUI] Freie Drehung nicht gestartet:\n%s\n") % traceback.format_exc())
 
 
 def stop():
@@ -367,7 +368,7 @@ class _Tool:
     def begin_drag(self, pos):
         self.dragging = True
         self.last = pos
-        self.doc.openTransaction("Freie Drehung")
+        self.doc.openTransaction(tr("Freie Drehung"))
 
     def end_drag(self):
         if not self.dragging:

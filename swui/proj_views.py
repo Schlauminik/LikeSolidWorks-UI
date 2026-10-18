@@ -38,7 +38,7 @@ import FreeCAD
 import FreeCADGui
 
 from swui.compat import QtCore, QtWidgets
-from swui.i18n import N_, tr  # noqa: F401
+from swui.i18n import N_, tr, tree  # noqa: F401
 
 GROUP_TYPE = "TechDraw::DrawProjGroup"
 ITEM_TYPE = "TechDraw::DrawProjGroupItem"
@@ -221,7 +221,7 @@ def freeze_doc(doc):
                 freeze(o)
                 n += 1
     if n:
-        FreeCAD.Console.PrintMessage("[SWUI] %d Ansichtsgruppe(n) verschiebbar gemacht (Achse bleibt verbunden).\n" % n)
+        FreeCAD.Console.PrintMessage(tr("[SWUI] %d Ansichtsgruppe(n) verschiebbar gemacht (Achse bleibt verbunden).\n") % n)
     return n
 
 
@@ -238,7 +238,7 @@ def add_projection(group, from_type, direction, at=None):
     view = group.addProjection(type_name)
     view.X, view.Y = float(x), float(y)
     try:
-        view.Label = TYPE_NAMES.get(type_name, type_name)
+        view.Label = tree(TYPE_NAMES.get(type_name, type_name))
     except Exception:
         pass
     return view, True
@@ -309,9 +309,9 @@ def create_at(view, page_xy):
         doc.commitTransaction()
     doc.recompute()
     if new is None:
-        FreeCAD.Console.PrintWarning("[SWUI] In dieser Richtung gibt es keine Projektion.\n")
+        FreeCAD.Console.PrintWarning(tr("[SWUI] In dieser Richtung gibt es keine Projektion.\n"))
     elif not created:
-        FreeCAD.Console.PrintMessage("[SWUI] %s ist schon vorhanden.\n" % new.Label)
+        FreeCAD.Console.PrintMessage(tr("[SWUI] %s ist schon vorhanden.\n") % new.Label)
     return new, created
 
 
@@ -320,7 +320,7 @@ def start_picking(view):
     global _picker
     gview = _page_graphics_view()
     if gview is None:
-        FreeCAD.Console.PrintWarning("[SWUI] Projizierte Ansicht: Zeichenblatt-Fenster nicht gefunden.\n")
+        FreeCAD.Console.PrintWarning(tr("[SWUI] Projizierte Ansicht: Zeichenblatt-Fenster nicht gefunden.\n"))
         return
     _picker = _Picker(view, gview)
     _status(tr("Projizierte Ansicht: neben die Ansicht klicken (rechts, links, oben, unten, schräg) · Esc bricht ab"))
@@ -399,7 +399,7 @@ def handle_pick_event(picker, event):
         QtCore.QTimer.singleShot(0, lambda: _safe_create(view, page_xy))
         return True
     except Exception:
-        FreeCAD.Console.PrintError("[SWUI] Projizierte Ansicht: %s\n" % traceback.format_exc())
+        FreeCAD.Console.PrintError(tr("[SWUI] Projizierte Ansicht: %s\n") % traceback.format_exc())
         return False
 
 
@@ -407,7 +407,7 @@ def _safe_create(view, page_xy):
     try:
         create_at(view, page_xy)
     except Exception:
-        FreeCAD.Console.PrintError("[SWUI] Projizierte Ansicht: %s\n" % traceback.format_exc())
+        FreeCAD.Console.PrintError(tr("[SWUI] Projizierte Ansicht: %s\n") % traceback.format_exc())
 
 
 def _status(text):

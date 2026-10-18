@@ -12,7 +12,7 @@ ist genau das, was bei Problemen in den Chat gehoert.
 import FreeCAD
 
 from swui import paths
-from swui.compat import QtWidgets, collect_environment
+from swui.compat import QtWidgets, collect_environment, exec_dialog
 from swui.i18n import N_, tr  # noqa: F401
 
 
@@ -80,4 +80,4 @@ def _show_dialog(text):
     copy_button.clicked.connect(do_copy)
     close_button.clicked.connect(dialog.accept)
 
-    dialog.exec()
+    exec_dialog(dialog)

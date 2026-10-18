@@ -142,7 +142,7 @@ def _tick():
             if own:
                 doc.commitTransaction()
     except Exception as exc:
-        FreeCAD.Console.PrintWarning(tr("[SWUI] Mittellinie: %s\n") % exc)
+        FreeCAD.Console.PrintWarning(tr("[SWUI] Konstruktionslinie: %s\n") % exc)
         _end_without_tick()
 
 

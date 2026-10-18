@@ -79,6 +79,17 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 
 Später: 3D-Skizzen.
 
+## Kompatibilität
+
+| | Stand |
+|---|---|
+| FreeCAD 1.1.x | getestet (1.1.4, Linux Mint, Flatpak) |
+| FreeCAD 1.0.x | Quelltext geprüft: alle Funktionen vorhanden außer drei Baugruppen-Knöpfen (Baugruppe aktivieren, Neues Teil einfügen, Bewegungsstudie) und „Schnittkurve“ – diese Knöpfe fehlen dann einfach im Ribbon |
+| FreeCAD-Entwicklungsstand | Quelltext geprüft (18.10.2026): alles vorhanden |
+| Qt6/PySide6 und Qt5/PySide2 | beide berücksichtigt (Import über FreeCADs `PySide`-Schicht) |
+| Python | ab 3.8 |
+| Windows, macOS, andere Linux-Pakete | nicht getestet; keine festen Pfade, sollte laufen – Rückmeldungen willkommen |
+
 ## Installation (Entwicklungs-Setup)
 
 FreeCAD 1.1 liegt hier als Flatpak und nutzt **versionierte**

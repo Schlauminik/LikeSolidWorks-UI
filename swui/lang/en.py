@@ -702,6 +702,7 @@ TEXTS = {
     '[SWUI] Text: %s\n': '[SWUI] Text: %s\n',
     "Schriftgröße:": "Font size:",
     "Normhöhe (ISO 3098):": "Standard height (ISO 3098):",
+    "[SWUI] Konstruktionslinie: %s\n": "[SWUI] Construction line: %s\n",
     # === Schritt 4: Namen im Baum (i18n.tree, Vorsatz "Baum|") ======
     # Wie im englischen SOLIDWORKS-FeatureManager: Boss-Extrude1, Top Plane ...
     "Baum|Skizze": "Sketch",

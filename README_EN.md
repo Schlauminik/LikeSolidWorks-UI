@@ -100,6 +100,17 @@ matching title block template.
 - Lines get thinner on screen when zooming in; saved files, PDF,
   print and export keep the standard line widths
 
+## Compatibility
+
+| | Status |
+|---|---|
+| FreeCAD 1.1.x | tested (1.1.4, Linux Mint, Flatpak) |
+| FreeCAD 1.0.x | source checked: everything available except three assembly buttons (activate assembly, insert new part, motion study) and "Intersection" — these buttons are simply left out of the ribbon |
+| FreeCAD development version | source checked (2026-10-18): everything available |
+| Qt6/PySide6 and Qt5/PySide2 | both supported (imports via FreeCAD's `PySide` layer) |
+| Python | 3.8 or newer |
+| Windows, macOS, other Linux packages | not tested; no hard-coded paths, should work — feedback welcome |
+
 ## Installation
 
 **Addon Manager.** Inclusion in the official FreeCAD add-on index is

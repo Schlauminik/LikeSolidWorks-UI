@@ -37,6 +37,17 @@ except ImportError:
         QT_BINDING = "PySide2 (direkt)"
 
 
+def exec_dialog(dialog):
+    """
+    Modales Fenster zeigen: PySide6 heisst es exec(), PySide2 (Qt5, aeltere
+    FreeCAD-Versionen) nur exec_(). Gibt das Ergebnis von exec zurueck.
+    """
+    run = getattr(dialog, "exec", None)
+    if run is None:
+        run = dialog.exec_
+    return run()
+
+
 # --- Umgebungspruefung -------------------------------------------------
 
 def freecad_version():

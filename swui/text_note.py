@@ -165,7 +165,9 @@ def _run_dialog(text, size_mm, unit):
     buttons.rejected.connect(dlg.reject)
     form.addRow(buttons)
     edit.setFocus()
-    if not dlg.exec():
+    from swui.compat import exec_dialog
+
+    if not exec_dialog(dlg):
         return None
     return edit.text(), spin.value(), state["unit"]
 

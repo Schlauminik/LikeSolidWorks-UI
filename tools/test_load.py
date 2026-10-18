@@ -2329,6 +2329,13 @@ def run(split_namespace):
     if sys.modules["swui.naming"].sw_label_for(tx) != "Text1":
         print("  FEHLER: Baumname des Texts", sys.modules["swui.naming"].sw_label_for(tx))
         return False
+    cpt = sys.modules["swui.compat"]
+    calls_c = []
+    old_style = types.SimpleNamespace(exec_=lambda: calls_c.append("exec_") or 1)
+    new_style = types.SimpleNamespace(exec=lambda: calls_c.append("exec") or 1, exec_=lambda: calls_c.append("falsch"))
+    if cpt.exec_dialog(old_style) != 1 or cpt.exec_dialog(new_style) != 1 or calls_c != ["exec_", "exec"]:
+        print("  FEHLER: Fenster öffnen unter PySide2 (exec_) / PySide6 (exec)", calls_c)
+        return False
     print("  Text     : Klick aufs Blatt, Text + Schriftgröße in mm/pt, gewählten Text ändern, Esc bricht ab, Baum Text1")
 
     # --- Verknuepfungs-Panel (Baugruppe, 8e) -----------------------------
@@ -4139,10 +4146,17 @@ def run(split_namespace):
     print("  3D-Hgrd  : Verlauf gesetzt (oben %s), Sicherung angelegt" % theme.COLORS["view_top"])
     print("  Skizze   : unterbestimmt %s, bestimmt %s" % (theme.COLORS["sketch_open"], theme.COLORS["sketch_defined"]))
 
+    # laufender "Text aufs Blatt"-Modus beim Verlassen beenden (sonst faengt das Blatt weiter Klicks ab)
+    tn_d = sys.modules["swui.text_note"]
+    closed_d = []
+    tn_d._picker = types.SimpleNamespace(close=lambda: closed_d.append(1))
     log.clear()
     wb.Deactivated()
     if any(level == "ERR" for level, _ in log):
         print("  FEHLER in Deactivated():", log)
+        return False
+    if tn_d.picking() or closed_d != [1]:
+        print("  FEHLER: Text-Platzierung nach Verlassen der Werkbank noch aktiv")
         return False
     all_bars = sorted(b.name for b in mw.toolbars)
     if mw.visible_bars() != all_bars or layout.is_active():

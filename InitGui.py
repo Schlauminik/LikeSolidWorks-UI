@@ -263,6 +263,16 @@ class LikeSolidWorksUIWorkbench(FreeCADGui.Workbench):
                 "[SWUI] Drag & Drop in Baugruppen nicht beendet:\n%s\n" % tb.format_exc()
             )
         try:
+            # laufende "Klick aufs Blatt"-Modi beenden (Text, Schweisssymbol, projizierte Ansicht)
+            from swui import proj_views, text_note, weld_symbol
+
+            for mod in (text_note, weld_symbol, proj_views):
+                mod.stop_picking()
+        except Exception:
+            App.Console.PrintError(
+                "[SWUI] Auswahl auf dem Blatt nicht beendet:\n%s\n" % tb.format_exc()
+            )
+        try:
             from swui import context_sketch
 
             context_sketch.uninstall()

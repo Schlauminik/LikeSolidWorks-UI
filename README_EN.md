@@ -49,6 +49,9 @@ matching title block template.
   Condition, Blind, Through All, Up To Next, Mid Plane …
 - Extrude straight from an open sketch: the sketch is closed, selected
   and the feature started in one click
+- Context symbol *Sketch*: click a planar face and a small sketch
+  symbol appears next to the pointer; one click starts a sketch on that
+  face. It fades out as you move the mouse away
 
 **Sketches**
 - SOLIDWORKS colours (blue = under defined, black = fully defined)
@@ -124,6 +127,10 @@ completely: *Tools → Edit parameters →* `BaseApp/Preferences/Mod/SWUI`
 
 **Drag & drop into assemblies** only works in LikeSolidWorks UI.
 Elsewhere FreeCAD opens dropped files as usual.
+
+**Context symbol "Sketch".** To switch it off: parameter
+`BaseApp/Preferences/Mod/SWUI` → new Boolean `ContextSketch` = `false`
+(takes effect immediately).
 
 **Language** is stored in the parameter
 `BaseApp/Preferences/Mod/SWUI/Language` (`auto`, `de`, `en`).

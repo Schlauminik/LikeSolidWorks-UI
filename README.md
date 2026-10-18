@@ -72,6 +72,7 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | L4b1 | Sprache: englische Zeichnungsvorlagen A4 hoch / A3 quer (ISO 7200, Feld „Unit“, Sprache EN); neue Zeichnung nimmt die Vorlage der eingestellten Sprache | **fertig** |
 | L4b2 | Projektionsmethode je Zeichnung wählbar (Blatteigenschaften): Methode 1 (DIN/ISO) oder 3, Symbol im Schriftfeld wechselt mit (ISO 5456-2); neue Zeichnung auf Englisch mit Methode 3 (Vorder-, Draufsicht oben, Seitenansicht rechts), sonst Methode 1; englisches Schriftfeld mit Sprache EN und Datum JJJJ-MM-TT | **fertig** |
 | L5 | Englische README (`README_EN.md`) mit Funktionsübersicht und Installationsanleitung für andere Nutzer; Beschreibung im Addon-Manager zweisprachig | **fertig** |
+| W1 | Kontext-Symbol „Skizze erstellen“ wie in SW: Klick auf eine ebene Fläche im Teil → Symbol rechts oberhalb des Mauspfeils, Klick legt die Skizze auf der Fläche an; wird beim Wegbewegen der Maus blasser und verschwindet; nicht in Baugruppen und nicht bei offenem Dialog (`swui/context_sketch.py`) | **fertig** |
 
 Später: 3D-Skizzen.
 
@@ -155,6 +156,11 @@ angemeldet.
 **Drag & Drop in Baugruppen** (.FCStd-Dateien aus dem Datei-Explorer
 auf eine aktive Baugruppe ziehen) wirkt nur in LikeSolidWorks UI.
 Außerhalb öffnet FreeCAD gezogene Dateien wie gewohnt.
+
+**Symbol „Skizze erstellen“.** Nach einem Klick auf eine ebene Fläche
+erscheint neben dem Mauspfeil ein kleines Skizzen-Symbol. Wer das nicht
+möchte: Parameter `BaseApp/Preferences/Mod/SWUI` → neuer Bool-Eintrag
+`ContextSketch` mit Wert `false` (wirkt sofort).
 
 **Sprache.** Reiter *Evaluieren* → Knopf **Language**: *Automatisch*
 (wie FreeCAD — FreeCAD auf Deutsch ergibt Deutsch, sonst Englisch),

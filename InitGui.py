@@ -181,6 +181,14 @@ class LikeSolidWorksUIWorkbench(FreeCADGui.Workbench):
                 "[SWUI] Drag & Drop in Baugruppen nicht gestartet:\n%s\n" % tb.format_exc()
             )
         try:
+            from swui import context_sketch
+
+            context_sketch.install()
+        except Exception:
+            App.Console.PrintError(
+                "[SWUI] Symbol Skizze erstellen nicht gestartet:\n%s\n" % tb.format_exc()
+            )
+        try:
             from swui import qt_messages
 
             qt_messages.set_active(True)
@@ -253,6 +261,14 @@ class LikeSolidWorksUIWorkbench(FreeCADGui.Workbench):
         except Exception:
             App.Console.PrintError(
                 "[SWUI] Drag & Drop in Baugruppen nicht beendet:\n%s\n" % tb.format_exc()
+            )
+        try:
+            from swui import context_sketch
+
+            context_sketch.uninstall()
+        except Exception:
+            App.Console.PrintError(
+                "[SWUI] Symbol Skizze erstellen nicht beendet:\n%s\n" % tb.format_exc()
             )
         try:
             from swui import qt_messages

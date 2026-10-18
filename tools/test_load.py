@@ -1893,6 +1893,106 @@ def run(split_namespace):
     gui._sel = []
     print("  Bezieh.  : %d Auswahl-Fälle passend; vorhandene ohne Maße; Knopf, Löschen, Ein-/Ausblenden OK" % len(cases))
 
+    # --- Kontext-Symbol "Skizze erstellen" (Wunschliste 1) ---------------
+    cs = sys.modules.get("swui.context_sketch")
+    if cs is None or not cs.is_installed() or not any(isinstance(o, cs._SelectionObserver) for o in gui._sel_observers):
+        print("  FEHLER: Workbench-Activated hat das Symbol Skizze erstellen nicht eingeschaltet")
+        return False
+    if (cs.opacity_for(0), cs.opacity_for(cs.FADE_START), round(cs.opacity_for(100), 2), cs.opacity_for(cs.FADE_END)) != (1.0, 1.0, 0.5, 0.0):
+        print("  FEHLER: Ausblenden nach Abstand", cs.opacity_for(100))
+        return False
+
+    class CFace:
+        def __init__(self, planar):
+            self.planar = planar
+
+        def isPlanar(self):
+            return self.planar
+
+    class CObj:
+        def __init__(self, name, type_id="PartDesign::Pad", parents=()):
+            self.Name, self.TypeId, self.InListRecursive = name, type_id, list(parents)
+
+        def getSubObject(self, sub):
+            return {"Face1": CFace(True), "Face2": CFace(False), "Pad.Face1": CFace(True)}.get(sub)
+
+    asm_c = CObj("Assembly", "Assembly::AssemblyObject")
+    cobjs = {"Pad": CObj("Pad"), "Body": CObj("Body", "PartDesign::Body"), "Teil": CObj("Teil", parents=[asm_c]),
+             "Assembly": asm_c}
+    fc_c = sys.modules["FreeCAD"]
+    old_getdoc = getattr(fc_c, "getDocument", None)
+    fc_c.getDocument = lambda _n: types.SimpleNamespace(getObject=lambda n: cobjs.get(n))
+    one = [types.SimpleNamespace(SubElementNames=["Face1"])]
+    two = [types.SimpleNamespace(SubElementNames=["Face1", "Face3"])]
+    cases_c = [  # (Objekt, Element, Auswahl, Dialog offen, Parameter) -> erwartet
+        (("Pad", "Face1", one, False, True), True),
+        (("Body", "Pad.Face1", one, False, True), True),
+        (("Pad", "Face2", one, False, True), False),   # nicht eben
+        (("Pad", "Edge3", one, False, True), False),   # keine Flaeche
+        (("Pad", "Face1", two, False, True), False),   # zwei Elemente gewaehlt
+        (("Pad", "Face1", one, True, True), False),    # Dialog offen (Feature waehlt Flaechen)
+        (("Teil", "Face1", one, False, True), False),  # in einer Baugruppe
+        (("Assembly", "Face1", one, False, True), False),
+        (("Pad", "Face1", one, False, False), False),  # per Parameter abgeschaltet
+    ]
+    par_c = fc_c.ParamGet(cs.PARAMS)
+    bad_c = []
+    try:
+        for (o_, s_, sel_, dlg_, on_), want_ in cases_c:
+            gui._sel = sel_
+            gui._mw.dialog_open = dlg_
+            par_c.SetBool(cs.PARAM_KEY, on_)
+            if cs.should_show("Doc", o_, s_) != want_:
+                bad_c.append((o_, s_, dlg_, on_))
+    finally:
+        gui._mw.dialog_open = False
+        par_c.RemBool(cs.PARAM_KEY)
+        gui._sel = []
+    if bad_c:
+        print("  FEHLER: Symbol Skizze erstellen – falsche Fälle", bad_c)
+        return False
+    # Klick auf Flaeche -> Symbol rechts oberhalb des Mauspfeils; weit weg -> verschwindet; Klick -> Skizze
+    qtc_c = sys.modules["PySide.QtCore"]
+    qtg_c = sys.modules["PySide.QtGui"]
+    old_single_c = qtc_c.QTimer.singleShot
+    old_cursor_c = qtg_c.QCursor
+    cur_c = [(500, 400)]
+    qtg_c.QCursor = types.SimpleNamespace(pos=lambda: types.SimpleNamespace(x=lambda: cur_c[0][0], y=lambda: cur_c[0][1]))
+    qtc_c.QTimer.singleShot = lambda _ms, fn: fn()
+    try:
+        gui._sel = one
+        obs_c = [o for o in gui._sel_observers if isinstance(o, cs._SelectionObserver)][0]
+        obs_c.addSelection("Doc", "Pad", "Face1", (0, 0, 0))
+        pop_c = cs._popup
+        moved_c = pop_c.move.call_args[0] if pop_c is not None and pop_c.move.called else None
+        shown_c = pop_c is not None and pop_c.show.called
+        g_c = types.SimpleNamespace(x=lambda: 514, y=lambda: 356, width=lambda: 38, height=lambda: 38)
+        pop_c.geometry = lambda: g_c
+        pop_c.isVisible = lambda: True
+        pop_c.hide.reset_mock()
+        cur_c[0] = (533, 375)
+        cs._poll()
+        near_hidden = pop_c.hide.called
+        cur_c[0] = (900, 800)
+        cs._poll()
+        far_hidden = pop_c.hide.called
+        gui._ran.clear()
+        cs._clicked()
+        ran_c = list(gui._ran)
+        obs_c.clearSelection("Doc")
+    finally:
+        qtc_c.QTimer.singleShot = old_single_c
+        qtg_c.QCursor = old_cursor_c
+        gui._sel = []
+        if old_getdoc is None:
+            del fc_c.getDocument
+        else:
+            fc_c.getDocument = old_getdoc
+    if moved_c != (514, 356) or not shown_c or near_hidden or not far_hidden or ran_c != [("PartDesign_NewSketch",)]:
+        print("  FEHLER: Symbol Skizze erstellen – Zeigen/Ausblenden/Klick", moved_c, shown_c, near_hidden, far_hidden, ran_c)
+        return False
+    print("  Skizz-Sym: „Skizze erstellen“ nur bei einer ebenen Fläche im Teil, blasst weg, Klick legt Skizze an")
+
     # --- Verknuepfungs-Panel (Baugruppe, 8e) -----------------------------
     mt = sys.modules.get("swui.assembly_mates")
     if mt is None or not mt.is_installed():
@@ -3729,6 +3829,9 @@ def run(split_namespace):
         return False
     if sys.modules["swui.assembly_mates"].is_installed():
         print("  FEHLER: Verknüpfungs-Panel nach Verlassen noch aktiv")
+        return False
+    if sys.modules["swui.context_sketch"].is_installed():
+        print("  FEHLER: Symbol Skizze erstellen nach Verlassen noch aktiv")
         return False
     rb = sys.modules["swui.ribbon"]
     if rb.is_wanted():

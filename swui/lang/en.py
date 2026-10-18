@@ -669,6 +669,10 @@ TEXTS = {
     "Angabe an der Gabel (z. B. Verfahren)": "Tail note (e.g. process)",
     "Symbolordner": "Symbol folder",
     "Drehwinkel": "Rotation angle",
+    # === Kontext-Symbol "Skizze erstellen" (context_sketch.py) ============
+    "Skizze erstellen": "Sketch",
+    "[SWUI] Skizze konnte nicht erstellt werden:\n%s\n": "[SWUI] Could not create the sketch:\n%s\n",
+    "[SWUI] Symbol „Skizze erstellen“ nicht verfügbar:\n%s\n": "[SWUI] Context symbol \"Sketch\" not available:\n%s\n",
     # === Schritt 4: Namen im Baum (i18n.tree, Vorsatz "Baum|") ======
     # Wie im englischen SOLIDWORKS-FeatureManager: Boss-Extrude1, Top Plane ...
     "Baum|Skizze": "Sketch",

@@ -264,7 +264,8 @@ def _build_entry(parent, entry, available, small=False, beside=False):
         variants = [v for v in variants if v is not None]
         if not variants:
             return None
-        return _make_flyout(parent, variants, icon_size=size, show_text=show_text, beside=beside)
+        return _make_flyout(parent, variants, icon_size=size, show_text=show_text, beside=beside,
+                            title=entry.get("title"))
     if isinstance(entry, dict) and "toggle" in entry:
         variants = [_resolve(e, available) for e in entry["toggle"]]
         if any(v is None for v in variants):
@@ -371,7 +372,7 @@ def _make_button(parent, command, label, opts, icon_size=ICON_SIZE, show_text=Tr
 
 
 def _make_flyout(parent, variants, icon_size=ICON_SIZE, show_text=True, register=True, param_prefix="",
-                 beside=False):
+                 beside=False, title=None):
     """
     Ausklappknopf wie in SOLIDWORKS: Klick auf das Symbol startet die
     aktuelle Variante, der Pfeil daneben oeffnet das Menue mit allen.
@@ -385,7 +386,8 @@ def _make_flyout(parent, variants, icon_size=ICON_SIZE, show_text=True, register
     _style_button(button, icon_size, show_text, beside)
     button.setPopupMode(QtWidgets.QToolButton.ToolButtonPopupMode.MenuButtonPopup)
 
-    fly = {"button": button, "variants": [], "current": 0, "show_text": show_text, "beside": beside}
+    # title: feste Beschriftung (z. B. "Formen"), das Symbol zeigt die zuletzt gewaehlte Variante
+    fly = {"button": button, "variants": [], "current": 0, "show_text": show_text, "beside": beside, "title": title}
     menu = QtWidgets.QMenu(button)
     for i, (command, label, opts) in enumerate(variants):
         info = _command_info(command)
@@ -478,9 +480,12 @@ def _set_variant(fly, i):
     button = fly["button"]
     button.setObjectName("SWUI_Fly_" + v["key"].replace("#", "_"))
     text = _tr(v["label"])
-    button.setText(_menu_text(text) if fly.get("beside") else text)
+    shown = _tr(fly["title"]) if fly.get("title") else text
+    button.setText(_menu_text(shown) if fly.get("beside") else shown)
     button.setIcon(v["icon"])
     name = v["tooltip"] if fly.get("show_text", True) else _menu_text(text)
+    if fly.get("title"):
+        name = "%s: %s" % (_menu_text(_tr(fly["title"])), _menu_text(text))
     button.setToolTip(name + _tr("\n(Pfeil rechts: weitere Varianten)"))
 
 

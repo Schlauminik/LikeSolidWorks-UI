@@ -2074,6 +2074,178 @@ def run(split_namespace):
         return False
     print("  Linien   : Linieneigenschaften nur mit gewählten Linien, SW-Begriffe, Normstärken ISO 128 setzen den Wert")
 
+    # --- Blatt-Skizze: Feld "Formen" (Wunschliste 2, Z1a) -----------------
+    ss = sys.modules.get("swui.sheet_sketch")
+    shape_cmds = ["SWUI_SheetShape_" + k for k, _t, _x in (ss.SHAPES if ss else [])]
+    if ss is None or not shape_cmds or any(c not in commands for c in shape_cmds):
+        print("  FEHLER: Befehle für Formen auf dem Blatt nicht angemeldet")
+        return False
+    if ss.frame_lines(297, 210) != [((0, 0), (297.0, 0)), ((297.0, 0), (297.0, 210.0)), ((297.0, 210.0), (0, 210.0)), ((0, 210.0), (0, 0))]:
+        print("  FEHLER: Blattrand der Blatt-Skizze", ss.frame_lines(297, 210))
+        return False
+
+    class SObj:
+        def __init__(self, doc, type_id, name):
+            self.Document, self.TypeId, self.Name, self.Label = doc, type_id, name, name
+            self.geo, self.cons, self.views = [], [], []
+            self.X = self.Y = 0.0
+            self.ViewObject = types.SimpleNamespace(clicked=[], doubleClicked=lambda: self.ViewObject.clicked.append(1))
+
+        def addProperty(self, _t, name, *_a):
+            setattr(self, name, None)
+
+        def addGeometry(self, g, construction=False):
+            self.geo.append((g, construction))
+            return len(self.geo) - 1
+
+        def addConstraint(self, c):
+            self.cons.append(c)
+
+        @property
+        def Geometry(self):
+            pt = lambda xy: types.SimpleNamespace(x=xy[0], y=xy[1])
+            return [types.SimpleNamespace(StartPoint=pt(g[1]), EndPoint=pt(g[2])) for g, _c in self.geo]
+
+        def delGeometries(self, ids):
+            # wie FreeCAD: Linien weg, Bedingungen daran weg, hoehere Indizes ruecken nach
+            keep = [i for i in range(len(self.geo)) if i not in ids]
+            self.geo = [self.geo[i] for i in keep]
+            self.cons = [("Block", keep.index(c[1])) for c in self.cons if c[1] in keep]
+
+        def addView(self, v):
+            self.views.append(v)
+
+    class SDoc:
+        Name = "Zeichnung"
+
+        def __init__(self):
+            self.Objects, self.tx = [], []
+
+        def addObject(self, t_, n_):
+            o = SObj(self, t_, n_)
+            self.Objects.append(o)
+            return o
+
+        def openTransaction(self, n_):
+            self.tx.append(n_)
+
+        def commitTransaction(self):
+            self.tx.append("commit")
+
+        def recompute(self):
+            pass
+
+        def getObject(self, n_):
+            return next((o for o in self.Objects if o.Name == n_), None)
+
+    sdoc = SDoc()
+    spage = sdoc.addObject("TechDraw::DrawPage", "Page")
+    spage.Template = types.SimpleNamespace(Width=420.0, Height=297.0)
+    had_td2 = "TechDraw" in sys.modules
+    sys.modules.setdefault("TechDraw", types.ModuleType("TechDraw"))
+    edits_s, ran_s = [], []
+    in_edit_s = [True]
+    gdoc_s = types.SimpleNamespace(
+        mdiViewsOfType=lambda _c: [],  # Zeichnungsdatei ohne 3D-Fenster
+        setEdit=lambda n_: edits_s.append(n_),
+        getInEdit=lambda: types.SimpleNamespace(Object=sdoc.getObject("SheetSketch")) if in_edit_s[0] else None)
+    fc_s = sys.modules["FreeCAD"]
+    old_gd_s, old_fgd_s = getattr(gui, "getDocument", None), getattr(fc_s, "getDocument", None)
+    gui.getDocument = lambda _n: gdoc_s
+    fc_s.getDocument = lambda _n: sdoc
+    old_run_s = gui.runCommand
+    gui.runCommand = lambda c_, *a_: ran_s.append(c_)
+    qtc_s = sys.modules["PySide.QtCore"]
+    old_single_s = qtc_s.QTimer.singleShot
+    qtc_s.QTimer.singleShot = lambda _ms, fn: fn()
+    msgs_s = []
+    old_msg_s = getattr(gui, "SendMsgToActiveView", None)
+    gui.SendMsgToActiveView = lambda m_: msgs_s.append(m_)
+    try:
+        sk = ss.edit(spage, "Sketcher_CreateCircle")
+        view_s = ss.find_sheet_view(sk)
+        frame_init = [(g[1], g[2]) for g, c in sk.geo if c]
+        blocks_init = [c for c in sk.cons if c[0] == "Block"]
+        again_s = ss.edit(spage, None)  # zweites Mal: dieselbe Skizze, nichts Neues
+        n_objs = len(sdoc.Objects)
+        # Kreis bei (100, 50) r=10 gezeichnet -> Huelle 90..110 / 40..60
+        sk.Shape = types.SimpleNamespace(BoundBox=types.SimpleNamespace(
+            isValid=lambda: True, XMin=90.0, XMax=110.0, YMin=40.0, YMax=60.0))
+        ss.tick()  # noch in Bearbeitung: nichts
+        still = (view_s.X, view_s.Y)
+        in_edit_s[0] = False
+        ss.tick()  # "Skizze beenden"
+        after_s = (view_s.X, view_s.Y, len(spage.ViewObject.clicked))
+        frame_before = [g[1] for g, c in sk.geo if c][:1]
+        # Benutzer zieht die Zeichnung auf dem Blatt um (+50, +30) -> beim naechsten Bearbeiten
+        # wandert der Blattrand um (-50, -30), nach "Skizze beenden" bleibt die Ansicht, wo sie ist
+        view_s.X, view_s.Y = 150.0, 80.0
+        in_edit_s[0] = True
+        ss.edit(spage, "Sketcher_CreateLine")
+        frame_moved = [(g[1], g[2]) for g, c in sk.geo if c]
+        blocks_moved = sorted(c[1] for c in sk.cons)
+        in_edit_s[0] = False
+        ss.tick()
+        dragged_s = (view_s.X, view_s.Y)
+    finally:
+        if old_msg_s is None:
+            del gui.SendMsgToActiveView
+        else:
+            gui.SendMsgToActiveView = old_msg_s
+        qtc_s.QTimer.singleShot = old_single_s
+        gui.runCommand = old_run_s
+        if old_gd_s is None:
+            del gui.getDocument
+        else:
+            gui.getDocument = old_gd_s
+        if old_fgd_s is None:
+            del fc_s.getDocument
+        else:
+            fc_s.getDocument = old_fgd_s
+        if not had_td2:
+            del sys.modules["TechDraw"]
+    frame_s, blocks_s = frame_init, blocks_init
+    if (getattr(sk, ss.SKETCH_PROP) is not spage or len(frame_s) != 4 or len(blocks_s) != 4
+            or frame_s[1] != ((420.0, 0.0), (420.0, 297.0))):
+        print("  FEHLER: Blatt-Skizze mit Blattrand (Konstruktion, blockiert)", frame_s, blocks_s)
+        return False
+    if (view_s is None or view_s.Source != [sk] or view_s.Scale != 1.0 or view_s.ScaleType != "Custom"
+            or (view_s.Direction.z, view_s.XDirection.x) != (1.0, 1.0) or spage.views != [view_s]
+            or getattr(view_s, "LockPosition", False)):
+        print("  FEHLER: Ansicht der Blatt-Skizze (1:1, von oben, auf dem Blatt)")
+        return False
+    if again_s is not sk or n_objs != 3 or edits_s[:2] != ["SheetSketch", "SheetSketch"]:
+        print("  FEHLER: Blatt-Skizze wird doppelt angelegt / nicht bearbeitet", n_objs, edits_s)
+        return False
+    if ran_s[:2] != ["Std_ViewCreate", "Sketcher_CreateCircle"]:
+        print("  FEHLER: 3D-Fenster/Werkzeug beim Zeichnen", ran_s)
+        return False
+    if still != (210.0, 148.5) or after_s != (100.0, 50.0, 1):
+        print("  FEHLER: Ansicht nach Skizze beenden nicht 1:1 aufs Blatt gelegt / Blatt nicht vorn", still, after_s)
+        return False
+    if (frame_before != [(0.0, 0.0)] or len(frame_moved) != 4 or frame_moved[0] != ((-50.0, -30.0), (370.0, -30.0))
+            or blocks_moved != [0, 1, 2, 3] or dragged_s != (150.0, 80.0)):
+        print("  FEHLER: Zeichnung auf dem Blatt verschoben – Blattrand/Ansicht", frame_moved[:1], blocks_moved, dragged_s)
+        return False
+    old_sk = SObj(sdoc, "Sketcher::SketchObject", "Alt")
+    old_sk.geo = [(("Line", (5.0, 5.0), (20.0, 5.0)), False)] + [
+        (("Line", s_, e_), True) for s_, e_ in ss.frame_lines(420.0, 297.0)]
+    if ss.detect_frame(old_sk, 420.0, 297.0) != 1 or ss.detect_frame(old_sk, 297.0, 210.0) is not None:
+        print("  FEHLER: Blattrand älterer Blatt-Skizzen nicht erkannt", ss.detect_frame(old_sk, 420.0, 297.0))
+        return False
+    if msgs_s.count("ViewFit") < 2:
+        print("  FEHLER: beim Platzieren nicht aufs ganze Blatt gezoomt", msgs_s)
+        return False
+    nm_s = sys.modules["swui.naming"]
+    if (nm_s.sw_label_for(sk), nm_s.sw_label_for(view_s)) != ("Blatt-Skizze1", "Blatt-Skizzen-Ansicht1"):
+        print("  FEHLER: Baumnamen der Blatt-Skizze", nm_s.sw_label_for(sk), nm_s.sw_label_for(view_s))
+        return False
+    fly_f = [f for f in sys.modules["swui.ribbon"]._flyouts if f.get("title") == "Formen"]
+    if not fly_f or [v["command"] for v in fly_f[0]["variants"]] != shape_cmds:
+        print("  FEHLER: Feld Formen im Ribbon (feste Beschriftung, alle Formen)")
+        return False
+    print("  Blatt-Sk.: Formen öffnen Blatt-Skizze (Rand blockiert, aufs Blatt gezoomt), 1:1 aufs Blatt, frei verschiebbar – Rand wandert mit")
+
     # --- Verknuepfungs-Panel (Baugruppe, 8e) -----------------------------
     mt = sys.modules.get("swui.assembly_mates")
     if mt is None or not mt.is_installed():
@@ -3555,6 +3727,8 @@ def run(split_namespace):
     # Alle Ribbon-Texte muessen in jeder Sprache vorhanden sein
     keys_l = ["\n(Pfeil rechts: weitere Varianten)", "Automatisch"]
     def walk_l(entry):
+        if isinstance(entry, dict) and entry.get("title"):
+            keys_l.append(entry["title"])  # feste Beschriftung eines Ausklappknopfs
         if isinstance(entry, dict):
             for k_ in ("stack", "flyout", "toggle"):
                 for sub_ in entry.get(k_, ()):

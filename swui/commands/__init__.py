@@ -63,6 +63,10 @@ def register_all():
 
     FreeCADGui.addCommand("SWUI_LineFormat", line_format.LineFormat())
 
+    from swui import sheet_sketch
+
+    sheet_sketch.register()
+
     from swui import drawing_export
 
     FreeCADGui.addCommand("SWUI_ExportPDF", drawing_export.ExportPdf())

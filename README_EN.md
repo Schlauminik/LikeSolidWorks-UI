@@ -88,6 +88,9 @@ matching title block template.
   (SOLIDWORKS-style: click the arrow tip, place the symbol, the arrow
   follows)
 - Insert images (SVG, PNG, JPG)
+- *Shapes* on the sheet (line, rectangle, circle, arc, polygon): drawn in
+  a sheet sketch with all sketch relations and dimensions, shown 1:1 in
+  place on the sheet and freely movable there
 - *Line Format*: change line style (e.g. dashed), thickness and colour of
   the selected lines, with a quick choice of ISO 128 line thicknesses
 - *Save as PDF* writes all sheets into one PDF; *Export DXF* writes

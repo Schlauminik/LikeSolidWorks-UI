@@ -107,6 +107,10 @@ FEATURE_NAMES = {
     "TechDraw::DrawViewClip": "Ausschnitt-Rahmen",
 }
 
+# Blatt-Skizze und ihre Ansicht (sheet_sketch.py) - erkannt an ihren SWUI-Eigenschaften
+SHEET_SKETCH = "Blatt-Skizze"
+SHEET_SKETCH_VIEW = "Blatt-Skizzen-Ansicht"
+
 # Eigene Symbole (DrawViewSymbol mit SWUI_Kind) - surface_finish.py, weld_symbol.py
 SYMBOL_KINDS = {"surface": "Oberflächenangabe", "weld": "Schweißsymbol"}
 
@@ -196,6 +200,10 @@ def sw_label_for(obj):
     if type_id == PROJ_ITEM_TYPE:
         return proj_item_label(obj)
     base = FEATURE_NAMES.get(type_id)
+    if hasattr(obj, "SWUI_SheetSketch"):  # Blatt-Skizze (sheet_sketch.py)
+        base = SHEET_SKETCH
+    elif hasattr(obj, "SWUI_SheetSketchView"):
+        base = SHEET_SKETCH_VIEW
     if type_id == "TechDraw::DrawViewSymbol":
         base = SYMBOL_KINDS.get(getattr(obj, "SWUI_Kind", ""), base)
     if base is None:
@@ -265,6 +273,7 @@ def _numbered(label, german):
 def tree_terms():
     """Alle deutschen Baumnamen dieses Moduls (fuer den Test: jede Sprache kennt sie)."""
     out = set(FEATURE_NAMES.values()) | set(SYMBOL_KINDS.values()) | set(GROUP_NAMES.values())
+    out |= {SHEET_SKETCH, SHEET_SKETCH_VIEW}
     out |= set(JOINT_NAMES.values()) | set(PLANE_NAMES.values()) | {COINCIDENT, "Deckungsgleich / Abstand"}
     return sorted(out)
 

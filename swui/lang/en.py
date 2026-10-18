@@ -683,6 +683,15 @@ TEXTS = {
     'Normstärke (ISO 128)': 'Standard thickness (ISO 128)',
     'Strichstärke': 'Line thickness',
     'Sichtbar': 'Visible',
+    # === Zeichnen auf dem Blatt (sheet_sketch.py) ========================
+    'Auf dem Blatt zeichnen (Blatt-Skizze mit Abhängigkeiten und Maßen)': 'Draw on the sheet (sheet sketch with relations and dimensions)',
+    'Baum|Blatt-Skizze': 'Sheet Sketch',
+    'Baum|Blatt-Skizzen-Ansicht': 'Sheet Sketch View',
+    'Blatt-Skizze': 'Sheet sketch',
+    'Vieleck': 'Polygon',
+    'Formen': 'Shapes',
+    '[SWUI] Werkzeug %s nicht gestartet:\n%s\n': '[SWUI] Tool %s not started:\n%s\n',
+    '[SWUI] Blatt-Skizze: %s\n': '[SWUI] Sheet sketch: %s\n',
     # === Schritt 4: Namen im Baum (i18n.tree, Vorsatz "Baum|") ======
     # Wie im englischen SOLIDWORKS-FeatureManager: Boss-Extrude1, Top Plane ...
     "Baum|Skizze": "Sketch",

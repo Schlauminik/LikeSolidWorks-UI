@@ -40,6 +40,8 @@ Statt eines Tupels kann ein Gruppeneintrag auch sein:
 und ein Ausklappmenue (auch innerhalb eines Stapels):
 
     {"flyout": [ (Befehl, Beschriftung[, opts]), ... ]}
+    {"flyout": [...], "title": "Formen"}  feste Beschriftung unter dem
+                                          Knopf, Symbol = letzte Variante
 
 Ein Knopf mit Pfeil; die Varianten liegen im Menue. Der Knopf zeigt
 und startet immer die zuletzt gewaehlte Variante - wie in SOLIDWORKS.
@@ -400,6 +402,17 @@ ZEICHNUNGEN = (
             ], "style": "text"},
             # Linienart, Strichstaerke, Farbe der gewaehlten Linien (line_format.py, Dominik 18.10.)
             ("SWUI_LineFormat", "Linien-\neigenschaften", {"svg": "sketch/d_line_format"}),
+        ],
+        [
+            # Zeichnen auf dem Blatt (Dominik, 18.10.): Blatt-Skizze mit allen
+            # Abhaengigkeiten des Sketchers (sheet_sketch.py)
+            {"flyout": [
+                ("SWUI_SheetShape_Line", "Linie", {"svg": "sketch/line_chain"}),
+                ("SWUI_SheetShape_Rectangle", "Rechteck", {"svg": "sketch/rect_corner"}),
+                ("SWUI_SheetShape_Circle", "Kreis", {"svg": "sketch/circle_center"}),
+                ("SWUI_SheetShape_Arc", "Bogen", {"svg": "sketch/arc_center"}),
+                ("SWUI_SheetShape_Polygon", "Vieleck", {"svg": "sketch/polygon"}),
+            ], "title": "Formen"},
         ],
         [
             # Ausgabe (Dominik: PDF und DXF)

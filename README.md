@@ -74,6 +74,7 @@ Entwickelt für **Linux Mint** mit **FreeCAD 1.1** (Flatpak).
 | L5 | Englische README (`README_EN.md`) mit Funktionsübersicht und Installationsanleitung für andere Nutzer; Beschreibung im Addon-Manager zweisprachig | **fertig** |
 | W1 | Kontext-Symbol „Skizze erstellen“ wie in SW: Klick auf eine ebene Fläche im Teil → Symbol rechts oberhalb des Mauspfeils, Klick legt die Skizze auf der Fläche an; wird beim Wegbewegen der Maus blasser und verschwindet; nicht in Baugruppen und nicht bei offenem Dialog (`swui/context_sketch.py`) | **fertig** |
 | W3 | Knopf „Linieneigenschaften“ im Reiter Zeichnungen (wie SW-Linienformat): gewählte Linien einer Ansicht → Linienart, Strichstärke, Farbe, Sichtbar; wirkt sofort; Schnellauswahl Normstärke nach ISO 128 (0,13–1 mm); ohne Auswahl Hinweis statt Fehlerfenster (`swui/line_format.py`, nutzt FreeCADs Dialog TechDraw_DecorateLine) | **fertig** |
+| W2a | Zeichnen auf dem Blatt, Feld **Formen** (Linie, Rechteck, Kreis, Bogen, Vieleck) im Reiter Zeichnungen: öffnet die Blatt-Skizze (Blattrand als blockierte Hilfslinien) mit allen Skizzen-Abhängigkeiten und Maßen; beim Platzieren wird aufs ganze Blatt gezoomt; nach „Skizze beenden“ erscheint sie 1:1 an der richtigen Stelle auf dem Blatt und lässt sich dort frei verschieben – der Blattrand in der Skizze wandert mit (`swui/sheet_sketch.py`) | **fertig** |
 
 Später: 3D-Skizzen.
 

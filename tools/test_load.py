@@ -312,6 +312,15 @@ def _make_stubs():
         def RemUnsigned(self, key):
             self.d.pop(key, None)
 
+        def GetFloat(self, key, default=0.0):
+            return self.d.get(key, default)
+
+        def SetFloat(self, key, value):
+            self.d[key] = float(value)
+
+        def RemFloat(self, key):
+            self.d.pop(key, None)
+
         def GetContents(self):
             return [("?", k, v) for k, v in self.d.items()]
 
@@ -2263,9 +2272,17 @@ def run(split_namespace):
     tpage = tdoc.addObject("TechDraw::DrawPage", "Page")
     qtw_t = sys.modules["PySide.QtWidgets"]
     qtc_t = sys.modules["PySide.QtCore"]
-    answers_t = [("Bohrungen entgratet", True), ("", True), ("geändert", True)]
-    old_dialog_t = qtw_t.QInputDialog.getText
-    qtw_t.QInputDialog.getText = lambda *a_: answers_t.pop(0)
+    # Fenster: (Text, Wert, Einheit); beim Aendern 10 pt
+    answers_t = [("Bohrungen entgratet", 5.0, "mm"), ("", 3.5, "mm"), ("geändert", 10.0, "pt")]
+    seen_t = []
+
+    def dialog_t(text_, size_, unit_):
+        seen_t.append((text_, round(size_, 4), unit_))
+        return answers_t.pop(0)
+
+    old_dialog_t = tn._run_dialog
+    tn._run_dialog = dialog_t
+    par_t2 = sys.modules["FreeCAD"].ParamGet(tn.PARAMS)
     old_single_t = qtc_t.QTimer.singleShot
     qtc_t.QTimer.singleShot = lambda _ms, fn: fn()
     had_td3 = "TechDraw" in sys.modules
@@ -2283,10 +2300,14 @@ def run(split_namespace):
         made_t2 = [o for o in tdoc.Objects if o.TypeId == tn.ANNOTATION_TYPE]
         esc_t = types.SimpleNamespace(type=lambda: T_.KeyPress, key=lambda: qtc_t.Qt.Key.Key_Escape)
         esc_took = tn.handle_pick_event(picker_t, esc_t)
+        size_first = getattr(made_t[0], "TextSize", None) if made_t else None
         if made_t:
             tn.edit_text(made_t[0])
+        remembered_t = tn.last_size()
     finally:
-        qtw_t.QInputDialog.getText = old_dialog_t
+        tn._run_dialog = old_dialog_t
+        par_t2.RemFloat("TextSize")
+        par_t2.RemString("TextUnit")
         qtc_t.QTimer.singleShot = old_single_t
         if not had_td3:
             del sys.modules["TechDraw"]
@@ -2294,14 +2315,21 @@ def run(split_namespace):
         print("  FEHLER: Text per Klick aufs Blatt (genau ein Text, leere Eingabe/Esc ohne Text)", took_t, len(made_t), len(made_t2))
         return False
     tx = made_t[0]
-    if ((round(tx.X, 6), round(tx.Y, 6)) != (120.0, 80.0) or tx.Text != ["geändert"] or getattr(tx, "TextSize", None) != 3.5
+    pt10 = 10.0 * 25.4 / 72.0
+    if (round(tn.to_mm(72, "pt"), 6) != 25.4 or round(tn.from_mm(25.4, "pt"), 6) != 72.0 or tn.to_mm(3.5, "mm") != 3.5
+            or size_first != 5.0 or seen_t[-1] != ("Bohrungen entgratet", 5.0, "mm") or seen_t[1] != ("", 5.0, "mm")
+            or abs(remembered_t[0] - pt10) > 1e-9 or remembered_t[1] != "pt"):
+        print("  FEHLER: Schriftgröße mm/pt (Umrechnung, Vorbelegung beim Ändern, gemerkt)", size_first, seen_t, remembered_t)
+        return False
+    if ((round(tx.X, 6), round(tx.Y, 6)) != (120.0, 80.0) or tx.Text != ["geändert"]
+            or abs(getattr(tx, "TextSize", 0) - pt10) > 1e-9
             or tpage.views != [tx] or not tn.is_text(tx) or tdoc.tx.count("commit") != 2):
         print("  FEHLER: Text – Lage, Inhalt, Schrifthöhe, Rückgängig", tx.X, tx.Y, tx.Text, tdoc.tx)
         return False
     if sys.modules["swui.naming"].sw_label_for(tx) != "Text1":
         print("  FEHLER: Baumname des Texts", sys.modules["swui.naming"].sw_label_for(tx))
         return False
-    print("  Text     : Klick aufs Blatt, Text tippen (3,5 mm), gewählten Text ändern, Esc bricht ab, Baum Text1")
+    print("  Text     : Klick aufs Blatt, Text + Schriftgröße in mm/pt, gewählten Text ändern, Esc bricht ab, Baum Text1")
 
     # --- Verknuepfungs-Panel (Baugruppe, 8e) -----------------------------
     mt = sys.modules.get("swui.assembly_mates")

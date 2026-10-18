@@ -91,8 +91,8 @@ matching title block template.
 - *Shapes* on the sheet (line, rectangle, circle, arc, polygon): drawn in
   a sheet sketch with all sketch relations and dimensions, shown 1:1 in
   place on the sheet and freely movable there
-- *Text*: click the button, click on the sheet and type — plain text
-  (3.5 mm); select a text and click again to edit it
+- *Text*: click the button, click on the sheet and type — plain text,
+  font size in mm or pt; select a text and click again to edit it
 - *Line Format*: change line style (e.g. dashed), thickness and colour of
   the selected lines, with a quick choice of ISO 128 line thicknesses
 - *Save as PDF* writes all sheets into one PDF; *Export DXF* writes
